@@ -2,167 +2,187 @@
 
 English | [中文](#中文) | [日本語](#日本語) | [한국어](#한국어)
 
-Better Footnote is a writing-focused Obsidian plugin for editing Markdown footnotes from a stable sidebar.
+Edit, search, and navigate Markdown footnotes from a stable Obsidian sidebar.
 
-It does not patch Obsidian's core Footnotes view. Instead, it adds a separate right-sidebar view where standard footnote definitions are shown as editable text areas, with navigation back to the matching reference in the source note.
+Better Footnote is built for long notes, papers, and research drafts where footnotes are part of the writing process. It keeps footnotes in a right sidebar so you can revise references, search repeated citations, and jump between a footnote and its in-text marker without losing your place.
 
-## Features
+## What It Helps With
 
-- Open a dedicated Better Footnote sidebar.
-- Parse standard Markdown footnote definitions such as `[^id]: content`.
-- Edit footnotes directly in the sidebar with normal text selection, copy, paste, and multiline input.
-- Search and filter footnotes by number, id, or content, then move through each text match.
-- Save sidebar edits back to the source Markdown note.
-- Normalize multiline footnotes with four-space continuation indentation so Obsidian keeps them inside the same footnote.
-- Show clean numeric labels in the sidebar while preserving the original `[^id]` in the tooltip.
-- Remember the current footnote and sidebar scroll position per file.
-- Expand footnotes whose content is clipped by the fixed-height editor.
-- Collapse search-expanded footnotes automatically when the search is cleared.
-- Click a footnote card to jump to the first matching reference in the source note.
-- Briefly outline the matching `[^id]` reference in the editor so it is easy to locate.
-- Use the "Footnote area" button to jump to the footnote definition block.
-- Sync from editor cursor to sidebar when the cursor is on a `[^id]` reference.
-- Localized interface strings for English, Chinese, Japanese, and Korean.
+- Edit footnotes in one sidebar instead of hunting through the bottom of the note.
+- Select, copy, paste, and write multiline footnote text normally.
+- Search only footnotes, then move through each matching word or phrase with previous/next buttons.
+- Keep the source text and sidebar connected: clicking a footnote jumps to its `[^id]` marker and briefly outlines it.
+- Keep long footnotes compact, with an expand button only when the editor content is actually clipped.
 
-## Usage
+## Footnote Search
 
-1. Enable Better Footnote from Obsidian's Community plugins settings.
+The sidebar search box filters footnotes by number, id, or content. When the search text appears multiple times, each occurrence is counted separately.
+
+Use the up/down buttons to move through matches. Better Footnote scrolls to the matching footnote, expands it if needed, and selects the matched text inside the footnote editor so you can see the exact hit.
+
+Clearing the search returns search-expanded footnotes to their compact state.
+
+## Quick Start
+
+1. Install and enable Better Footnote from Obsidian's Community plugins.
 2. Run `Open Better Footnote` from the command palette.
-3. Open a Markdown note that contains footnote definitions.
-4. Edit footnotes in the sidebar. Changes are saved automatically after a short delay and immediately on blur.
+3. Open a Markdown note with standard footnotes such as `[^1]: Reference text`.
+4. Edit or search footnotes in the right sidebar. Changes are saved automatically.
 
-## Scope
+## Supported Footnotes
 
-This first public version focuses on standard Markdown footnote definitions.
+Better Footnote focuses on standard Markdown footnote definitions:
 
-Current limitations:
+```md
+Text with a footnote.[^1]
 
-- Inline footnotes such as `^[...]` are not editable from the sidebar.
-- Very complex footnote blocks may be normalized when saved.
-- Source mode and Live Preview are both supported through the Markdown editor API, but the most reliable workflow is editing notes in Markdown editing mode.
-
-## Development
-
-This project intentionally uses a plain `main.js` plugin entry without a build step, so the reviewed source and the release artifact are the same file.
-
-Run tests:
-
-```bash
-npm test
+[^1]: A footnote definition.
+    Continued lines stay inside the same footnote.
 ```
 
-Check syntax:
+Inline footnotes such as `^[inline text]` are not edited from the sidebar.
 
-```bash
-node -c main.js
-```
+## Languages
+
+The interface follows Obsidian's language first, then the system language, and falls back to English. English, Chinese, Japanese, and Korean UI strings are included.
 
 ## 中文
 
-Better Footnote 是一个面向论文写作的 Obsidian 脚注侧栏插件。它不修改 Obsidian 核心 Footnotes view，而是提供一个新的右侧边栏，把当前 Markdown 文件中的脚注定义渲染成可直接编辑的文本框。
+Better Footnote 是一个用于 Obsidian 的脚注侧栏插件。它面向长文、论文和研究笔记：把当前笔记里的脚注集中放到右侧边栏，让你可以直接编辑、搜索重复引用，并在脚注和正文标记之间快速来回定位。
 
-### 功能
+### 解决什么问题
 
-- 在右侧打开 Better Footnote 视图。
-- 解析 `[^id]: content` 形式的脚注定义。
-- 支持常见的多行脚注定义。
-- 在侧栏中直接输入、粘贴、复制局部文本。
-- 按序号、id 或内容搜索和过滤脚注，并在每一处文本匹配之间跳转。
-- 侧栏只显示脚注序号，原始 `[^id]` 保留在悬停提示中。
-- 自动把侧栏修改写回原 Markdown 文件。
-- 记住当前文件的侧栏滚动位置和当前脚注。
-- 当脚注内容超出固定高度编辑框时，可按需展开。
-- 清除搜索时，自动收回由搜索展开的脚注。
-- 点击脚注卡片时跳到正文引用，并用紫色框短暂标出正文里的脚注标记。
-- 点击“脚注区”时跳到文末脚注定义。
-- 当正文光标位于 `[^id]` 引用上时，侧栏自动定位到对应脚注。
-- 界面文案支持中文、英文、日文、韩文，并根据 Obsidian/系统语言自动选择。
+- 不用反复滚到文末脚注区，就能在侧栏集中编辑脚注。
+- 可以正常选择、复制、粘贴、换行编辑脚注内容。
+- 可以只搜索脚注，并用上/下按钮逐个跳转到每一处匹配文字。
+- 点击侧栏脚注会跳到正文中的 `[^id]` 标记，并用紫色框短暂标出位置。
+- 长脚注默认保持紧凑；只有内容确实显示不全时，才出现展开按钮。
 
-### 使用方式
+### 脚注搜索
 
-1. 在 Obsidian 的第三方插件设置中启用 Better Footnote。
+侧栏搜索框支持按脚注序号、id 或正文内容过滤。若同一个词在同一条脚注中出现多次，每一处都会单独计数。
+
+点击上/下按钮时，Better Footnote 会跳到对应匹配项，必要时自动展开长脚注，并直接选中脚注编辑框里的匹配文字，让你看到具体命中位置。
+
+清除搜索后，由搜索自动展开的脚注会恢复为紧凑显示。
+
+### 快速开始
+
+1. 在 Obsidian 第三方插件中安装并启用 Better Footnote。
 2. 在命令面板中运行 `Open Better Footnote`。
-3. 打开一篇包含脚注定义的 Markdown 笔记。
-4. 在右侧边栏中编辑脚注。修改会在短暂延迟后自动保存，失焦时会立即保存。
+3. 打开包含标准脚注的 Markdown 笔记，例如 `[^1]: 引用内容`。
+4. 在右侧边栏编辑或搜索脚注。修改会自动保存。
 
-### 当前范围
+### 支持范围
 
-- 首版主要支持标准脚注定义，不编辑 inline footnote `^[...]`。
-- 多行脚注保存时会规范化为后续行四个空格缩进，以便 Obsidian 更稳定地识别为同一条脚注。
-- Source mode 和 Live Preview 都通过 Markdown 编辑器 API 支持；最稳定的工作流仍然是在 Markdown 编辑模式下编辑笔记。
+Better Footnote 主要支持标准 Markdown 脚注定义：
+
+```md
+正文里的脚注。[^1]
+
+[^1]: 脚注内容。
+    继续缩进的行仍属于同一条脚注。
+```
+
+暂不在侧栏编辑 `^[inline text]` 这类 inline footnotes。
+
+### 语言
+
+插件界面会优先跟随 Obsidian 语言，其次跟随系统语言，最后回退到英文。当前包含英文、中文、日文和韩文界面文案。
 
 ## 日本語
 
-Better Footnote は、Obsidian で Markdown 脚注を安定したサイドバーから編集するための執筆向けプラグインです。
+Better Footnote は、Obsidian のための脚注サイドバープラグインです。長いノート、論文、研究メモで脚注を扱うときに、脚注を右サイドバーにまとめて表示し、編集、検索、本文中の脚注マーカーへの移動をしやすくします。
 
-Obsidian のコア Footnotes view を変更するものではありません。標準的な脚注定義を右サイドバーに編集可能なテキストエリアとして表示し、本文中の対応する脚注参照へ移動できる別ビューを追加します。
+### できること
 
-### 機能
+- ノート末尾まで何度も移動せず、サイドバーで脚注をまとめて編集できます。
+- 脚注テキストを通常どおり選択、コピー、貼り付け、複数行編集できます。
+- 脚注だけを検索し、前/次ボタンで各一致箇所へ移動できます。
+- サイドバーの脚注をクリックすると本文中の `[^id]` マーカーへ移動し、短時間アウトライン表示します。
+- 長い脚注は通常コンパクトに表示し、内容が実際に隠れている場合だけ展開ボタンを表示します。
 
-- Better Footnote の専用サイドバーを開けます。
-- `[^id]: content` 形式の標準 Markdown 脚注定義を解析します。
-- サイドバー内で通常のテキスト選択、コピー、貼り付け、複数行入力ができます。
-- 番号、id、本文で脚注を検索・絞り込み、各テキスト一致へ移動できます。
-- サイドバーでの編集内容を元の Markdown ノートに保存します。
-- 複数行脚注は、Obsidian が同じ脚注として認識しやすいように後続行を 4 スペースインデントに整えます。
-- サイドバーには読みやすい番号だけを表示し、元の `[^id]` はツールチップに残します。
-- ファイルごとに現在の脚注とサイドバーのスクロール位置を記憶します。
-- 固定高さの編集欄に収まらない脚注は必要に応じて展開できます。
-- 検索で自動展開された脚注は、検索をクリアすると自動的に折りたたまれます。
-- 脚注カードをクリックすると、本文中の最初の対応参照へ移動します。
-- 対応する `[^id]` 参照を短時間アウトライン表示し、位置を確認しやすくします。
-- 「脚注欄」ボタンで文末の脚注定義ブロックへ移動できます。
-- エディタのカーソルが `[^id]` 参照上にあるとき、サイドバーも対応する脚注へ同期します。
-- 英語、中国語、日本語、韓国語の UI 文言に対応しています。
+### 脚注検索
+
+サイドバーの検索欄では、脚注番号、id、本文で絞り込めます。同じ語句が同じ脚注に複数回出る場合も、それぞれ別の一致として数えます。
+
+前/次ボタンを押すと、該当する一致箇所へ移動します。必要な場合は長い脚注を自動で展開し、脚注エディタ内の一致テキストを選択するため、どこに一致したか確認できます。
+
+検索をクリアすると、検索によって自動展開された脚注はコンパクト表示に戻ります。
 
 ### 使い方
 
-1. Obsidian の Community plugins 設定で Better Footnote を有効にします。
-2. コマンドパレットから `Open Better Footnote` を実行します。
-3. 脚注定義を含む Markdown ノートを開きます。
-4. サイドバーで脚注を編集します。変更は短い遅延後に自動保存され、フォーカスが外れたときにも即時保存されます。
+1. Obsidian の Community plugins から Better Footnote をインストールして有効化します。
+2. コマンドパレットで `Open Better Footnote` を実行します。
+3. `[^1]: Reference text` のような標準脚注を含む Markdown ノートを開きます。
+4. 右サイドバーで脚注を編集または検索します。変更は自動保存されます。
 
-### 現在の範囲
+### 対応する脚注
 
-- 初回公開版は標準的な脚注定義を中心に対応しています。
-- `^[...]` のような inline footnote はサイドバーから編集できません。
-- 複雑な脚注ブロックは保存時に整形される場合があります。
-- Source mode と Live Preview は Markdown エディタ API 経由で対応していますが、もっとも安定した使い方は Markdown 編集モードでの編集です。
+Better Footnote は標準的な Markdown 脚注定義を中心に対応しています。
+
+```md
+本文中の脚注。[^1]
+
+[^1]: 脚注本文。
+    続くインデント行は同じ脚注に含まれます。
+```
+
+`^[inline text]` のような inline footnotes はサイドバーから編集できません。
+
+### 言語
+
+UI は Obsidian の言語、次にシステム言語を参照し、最後に英語へフォールバックします。英語、中国語、日本語、韓国語の UI 文言を含みます。
 
 ## 한국어
 
-Better Footnote는 Obsidian에서 Markdown 각주를 안정적인 사이드바에서 편집하기 위한 글쓰기 중심 플러그인입니다.
+Better Footnote는 Obsidian용 각주 사이드바 플러그인입니다. 긴 노트, 논문, 연구 초안에서 각주를 자주 다룰 때 오른쪽 사이드바에서 각주를 모아 편집하고, 검색하고, 본문의 각주 표시 위치로 이동할 수 있게 합니다.
 
-Obsidian의 코어 Footnotes view를 수정하지 않습니다. 대신 표준 각주 정의를 오른쪽 사이드바에 편집 가능한 텍스트 영역으로 표시하고, 원문 노트의 해당 각주 참조 위치로 이동할 수 있는 별도 뷰를 추가합니다.
+### 도움이 되는 부분
 
-### 기능
+- 노트 끝의 각주 영역을 계속 오가지 않고 사이드바에서 각주를 편집할 수 있습니다.
+- 각주 텍스트를 일반 텍스트처럼 선택, 복사, 붙여넣기, 여러 줄 편집할 수 있습니다.
+- 각주 안에서만 검색하고, 이전/다음 버튼으로 각 일치 항목을 이동할 수 있습니다.
+- 사이드바의 각주를 클릭하면 본문의 `[^id]` 표시로 이동하고 짧게 윤곽선을 표시합니다.
+- 긴 각주는 기본적으로 간결하게 표시되며, 실제로 내용이 잘릴 때만 펼치기 버튼을 보여줍니다.
 
-- 전용 Better Footnote 사이드바를 열 수 있습니다.
-- `[^id]: content` 형식의 표준 Markdown 각주 정의를 파싱합니다.
-- 사이드바에서 일반적인 텍스트 선택, 복사, 붙여넣기, 여러 줄 입력을 할 수 있습니다.
-- 번호, id, 내용으로 각주를 검색하고 필터링한 뒤 각 텍스트 일치 항목으로 이동할 수 있습니다.
-- 사이드바 편집 내용을 원본 Markdown 노트에 저장합니다.
-- 여러 줄 각주는 Obsidian이 같은 각주로 인식하기 쉽도록 이어지는 줄을 네 칸 들여쓰기로 정리합니다.
-- 사이드바에는 읽기 쉬운 번호만 표시하고, 원래 `[^id]`는 툴팁에 보존합니다.
-- 파일별로 현재 각주와 사이드바 스크롤 위치를 기억합니다.
-- 고정 높이 편집기에 다 보이지 않는 각주는 필요할 때 펼칠 수 있습니다.
-- 검색으로 자동 펼쳐진 각주는 검색을 지우면 자동으로 접힙니다.
-- 각주 카드를 클릭하면 본문에서 처음 대응하는 각주 참조로 이동합니다.
-- 대응하는 `[^id]` 참조를 짧게 윤곽선으로 표시해 위치를 확인하기 쉽게 합니다.
-- "각주 영역" 버튼으로 문서 끝의 각주 정의 블록으로 이동할 수 있습니다.
-- 에디터 커서가 `[^id]` 참조 위에 있을 때 사이드바도 해당 각주로 동기화됩니다.
-- 영어, 중국어, 일본어, 한국어 UI 문구를 지원합니다.
+### 각주 검색
 
-### 사용 방법
+사이드바 검색창은 각주 번호, id, 내용으로 각주를 필터링합니다. 같은 단어가 한 각주 안에 여러 번 나오면 각각 별도의 일치 항목으로 계산합니다.
 
-1. Obsidian의 Community plugins 설정에서 Better Footnote를 활성화합니다.
+이전/다음 버튼을 누르면 해당 일치 항목으로 이동합니다. 필요한 경우 긴 각주를 자동으로 펼치고, 각주 편집기 안의 일치 텍스트를 선택해 정확한 위치를 보여줍니다.
+
+검색을 지우면 검색 때문에 자동으로 펼쳐졌던 각주는 다시 간결한 표시로 돌아갑니다.
+
+### 빠른 시작
+
+1. Obsidian Community plugins에서 Better Footnote를 설치하고 활성화합니다.
 2. 명령 팔레트에서 `Open Better Footnote`를 실행합니다.
-3. 각주 정의가 포함된 Markdown 노트를 엽니다.
-4. 사이드바에서 각주를 편집합니다. 변경 사항은 짧은 지연 후 자동 저장되며, 포커스를 잃을 때 즉시 저장됩니다.
+3. `[^1]: Reference text` 같은 표준 각주가 포함된 Markdown 노트를 엽니다.
+4. 오른쪽 사이드바에서 각주를 편집하거나 검색합니다. 변경 사항은 자동 저장됩니다.
 
-### 현재 범위
+### 지원하는 각주
 
-- 첫 공개 버전은 표준 Markdown 각주 정의에 초점을 맞춥니다.
-- `^[...]` 형식의 inline footnote는 사이드바에서 편집할 수 없습니다.
-- 매우 복잡한 각주 블록은 저장 시 정규화될 수 있습니다.
-- Source mode와 Live Preview는 Markdown 에디터 API를 통해 지원하지만, 가장 안정적인 작업 방식은 Markdown 편집 모드에서 노트를 편집하는 것입니다.
+Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다.
+
+```md
+본문의 각주 표시.[^1]
+
+[^1]: 각주 내용.
+    이어지는 들여쓰기 줄은 같은 각주에 포함됩니다.
+```
+
+`^[inline text]` 형식의 inline footnotes는 사이드바에서 편집할 수 없습니다.
+
+### 언어
+
+UI는 먼저 Obsidian 언어, 다음으로 시스템 언어를 따르며, 마지막으로 영어로 돌아갑니다. 영어, 중국어, 일본어, 한국어 UI 문구가 포함되어 있습니다.
+
+## Development
+
+This repository keeps the reviewed source and release artifact in the same plain `main.js` file.
+
+```bash
+npm test
+node -c main.js
+```
