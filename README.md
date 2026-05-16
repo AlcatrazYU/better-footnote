@@ -11,10 +11,13 @@ It does not patch Obsidian's core Footnotes view. Instead, it adds a separate ri
 - Open a dedicated Better Footnote sidebar.
 - Parse standard Markdown footnote definitions such as `[^id]: content`.
 - Edit footnotes directly in the sidebar with normal text selection, copy, paste, and multiline input.
+- Search and filter footnotes by number, id, or content, then move through each text match.
 - Save sidebar edits back to the source Markdown note.
 - Normalize multiline footnotes with four-space continuation indentation so Obsidian keeps them inside the same footnote.
 - Show clean numeric labels in the sidebar while preserving the original `[^id]` in the tooltip.
 - Remember the current footnote and sidebar scroll position per file.
+- Expand footnotes whose content is clipped by the fixed-height editor.
+- Collapse search-expanded footnotes automatically when the search is cleared.
 - Click a footnote card to jump to the first matching reference in the source note.
 - Briefly outline the matching `[^id]` reference in the editor so it is easy to locate.
 - Use the "Footnote area" button to jump to the footnote definition block.
@@ -64,9 +67,12 @@ Better Footnote 是一个面向论文写作的 Obsidian 脚注侧栏插件。它
 - 解析 `[^id]: content` 形式的脚注定义。
 - 支持常见的多行脚注定义。
 - 在侧栏中直接输入、粘贴、复制局部文本。
+- 按序号、id 或内容搜索和过滤脚注，并在每一处文本匹配之间跳转。
 - 侧栏只显示脚注序号，原始 `[^id]` 保留在悬停提示中。
 - 自动把侧栏修改写回原 Markdown 文件。
 - 记住当前文件的侧栏滚动位置和当前脚注。
+- 当脚注内容超出固定高度编辑框时，可按需展开。
+- 清除搜索时，自动收回由搜索展开的脚注。
 - 点击脚注卡片时跳到正文引用，并用紫色框短暂标出正文里的脚注标记。
 - 点击“脚注区”时跳到文末脚注定义。
 - 当正文光标位于 `[^id]` 引用上时，侧栏自动定位到对应脚注。
@@ -96,10 +102,13 @@ Obsidian のコア Footnotes view を変更するものではありません。�
 - Better Footnote の専用サイドバーを開けます。
 - `[^id]: content` 形式の標準 Markdown 脚注定義を解析します。
 - サイドバー内で通常のテキスト選択、コピー、貼り付け、複数行入力ができます。
+- 番号、id、本文で脚注を検索・絞り込み、各テキスト一致へ移動できます。
 - サイドバーでの編集内容を元の Markdown ノートに保存します。
 - 複数行脚注は、Obsidian が同じ脚注として認識しやすいように後続行を 4 スペースインデントに整えます。
 - サイドバーには読みやすい番号だけを表示し、元の `[^id]` はツールチップに残します。
 - ファイルごとに現在の脚注とサイドバーのスクロール位置を記憶します。
+- 固定高さの編集欄に収まらない脚注は必要に応じて展開できます。
+- 検索で自動展開された脚注は、検索をクリアすると自動的に折りたたまれます。
 - 脚注カードをクリックすると、本文中の最初の対応参照へ移動します。
 - 対応する `[^id]` 参照を短時間アウトライン表示し、位置を確認しやすくします。
 - 「脚注欄」ボタンで文末の脚注定義ブロックへ移動できます。
@@ -131,10 +140,13 @@ Obsidian의 코어 Footnotes view를 수정하지 않습니다. 대신 표준 �
 - 전용 Better Footnote 사이드바를 열 수 있습니다.
 - `[^id]: content` 형식의 표준 Markdown 각주 정의를 파싱합니다.
 - 사이드바에서 일반적인 텍스트 선택, 복사, 붙여넣기, 여러 줄 입력을 할 수 있습니다.
+- 번호, id, 내용으로 각주를 검색하고 필터링한 뒤 각 텍스트 일치 항목으로 이동할 수 있습니다.
 - 사이드바 편집 내용을 원본 Markdown 노트에 저장합니다.
 - 여러 줄 각주는 Obsidian이 같은 각주로 인식하기 쉽도록 이어지는 줄을 네 칸 들여쓰기로 정리합니다.
 - 사이드바에는 읽기 쉬운 번호만 표시하고, 원래 `[^id]`는 툴팁에 보존합니다.
 - 파일별로 현재 각주와 사이드바 스크롤 위치를 기억합니다.
+- 고정 높이 편집기에 다 보이지 않는 각주는 필요할 때 펼칠 수 있습니다.
+- 검색으로 자동 펼쳐진 각주는 검색을 지우면 자동으로 접힙니다.
 - 각주 카드를 클릭하면 본문에서 처음 대응하는 각주 참조로 이동합니다.
 - 대응하는 `[^id]` 참조를 짧게 윤곽선으로 표시해 위치를 확인하기 쉽게 합니다.
 - "각주 영역" 버튼으로 문서 끝의 각주 정의 블록으로 이동할 수 있습니다.

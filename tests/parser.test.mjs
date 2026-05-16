@@ -49,4 +49,50 @@ assert.equal(parser.normalizeLanguageTag("ko-KR"), "ko");
 assert.equal(parser.normalizeLanguageTag("fr-FR"), "en");
 assert.equal(parser.formatCharacterCount(12), "12 chars");
 
+assert.deepEqual(parser.filterFootnotes(parsed.footnotes, "第一行").map((footnote) => footnote.id), ["note"]);
+assert.deepEqual(parser.filterFootnotes(parsed.footnotes, "[^1]").map((footnote) => footnote.id), ["1"]);
+assert.deepEqual(
+  parser.findFootnoteSearchResults(parsed.footnotes, "第一").map((result) => ({
+    footnoteId: result.footnoteId,
+    text: result.match?.text || "",
+  })),
+  [
+    { footnoteId: "1", text: "第一" },
+    { footnoteId: "note", text: "第一" },
+  ],
+);
+
+const repeatedSearch = parser.parseFootnotes([
+  "正文[^a][^b]。",
+  "",
+  "[^a]: 語孟子義 一つ目。語孟子義 二つ目。",
+  "[^b]: 語孟子義 三つ目。",
+].join("\n"));
+assert.deepEqual(
+  parser.findFootnoteSearchResults(repeatedSearch.footnotes, "語孟子義").map((result) => result.footnoteId),
+  ["a", "a", "b"],
+);
+
+const beforeTidy = parser.parseFootnotes([
+  "正文[^10]。",
+  "",
+  "[^10]: 同一条脚注内容",
+].join("\n"));
+const afterTidy = parser.parseFootnotes([
+  "正文[^1]。",
+  "",
+  "[^1]: 同一条脚注内容",
+].join("\n"));
+const rememberedState = {
+  activeId: "10",
+  activeSnapshot: {
+    id: "10",
+    displayNumber: 1,
+    contentFingerprint: "同一条脚注内容",
+    definitionStart: beforeTidy.footnotes[0].definitionStart,
+    firstReferenceStart: beforeTidy.footnotes[0].firstReferenceStart,
+  },
+};
+assert.equal(parser.resolveActiveFootnoteId(afterTidy.footnotes, rememberedState, "10"), "1");
+
 console.log("parser tests passed");

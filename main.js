@@ -14,6 +14,15 @@
       readFailed: "Failed to read file: {message}",
       noFootnotes: "No footnote definitions found in this note.",
       footnoteCount: "{file} · {count} footnote{plural}",
+      filteredFootnoteCount: "{file} · {visible}/{total} footnotes · {matches} matches",
+      searchPlaceholder: "Search footnotes",
+      clearSearch: "Clear",
+      noSearchResults: "No footnotes match your search.",
+      previousMatch: "Previous match",
+      nextMatch: "Next match",
+      searchMatchCount: "{current}/{total}",
+      expandFootnote: "Expand",
+      collapseFootnote: "Collapse",
       definitionButton: "Footnote area",
       definitionTooltip: "Jump to the footnote definition area",
       saved: "Saved",
@@ -36,6 +45,15 @@
       readFailed: "读取文件失败：{message}",
       noFootnotes: "这篇笔记中没有找到脚注定义。",
       footnoteCount: "{file} · {count} 条脚注",
+      filteredFootnoteCount: "{file} · 显示 {visible}/{total} 条脚注 · {matches} 处匹配",
+      searchPlaceholder: "搜索脚注",
+      clearSearch: "清除",
+      noSearchResults: "没有匹配的脚注。",
+      previousMatch: "上一处匹配",
+      nextMatch: "下一处匹配",
+      searchMatchCount: "{current}/{total}",
+      expandFootnote: "展开",
+      collapseFootnote: "收起",
       definitionButton: "脚注区",
       definitionTooltip: "跳到文末脚注定义位置",
       saved: "已保存",
@@ -58,6 +76,15 @@
       readFailed: "ファイルの読み込みに失敗しました: {message}",
       noFootnotes: "このノートには脚注定義が見つかりません。",
       footnoteCount: "{file} · 脚注 {count} 件",
+      filteredFootnoteCount: "{file} · {visible}/{total} 件を表示 · {matches} 件一致",
+      searchPlaceholder: "脚注を検索",
+      clearSearch: "クリア",
+      noSearchResults: "一致する脚注がありません。",
+      previousMatch: "前の一致",
+      nextMatch: "次の一致",
+      searchMatchCount: "{current}/{total}",
+      expandFootnote: "展開",
+      collapseFootnote: "折りたたむ",
       definitionButton: "脚注欄",
       definitionTooltip: "文末の脚注定義へ移動",
       saved: "保存済み",
@@ -80,6 +107,15 @@
       readFailed: "파일을 읽지 못했습니다: {message}",
       noFootnotes: "이 노트에서 각주 정의를 찾지 못했습니다.",
       footnoteCount: "{file} · 각주 {count}개",
+      filteredFootnoteCount: "{file} · {visible}/{total}개 표시 · {matches}개 일치",
+      searchPlaceholder: "각주 검색",
+      clearSearch: "지우기",
+      noSearchResults: "일치하는 각주가 없습니다.",
+      previousMatch: "이전 일치",
+      nextMatch: "다음 일치",
+      searchMatchCount: "{current}/{total}",
+      expandFootnote: "펼치기",
+      collapseFootnote: "접기",
       definitionButton: "각주 영역",
       definitionTooltip: "문서 끝의 각주 정의 위치로 이동",
       saved: "저장됨",
@@ -157,6 +193,139 @@
 
   function formatCharacterCount(value, strings = getStrings()) {
     return t(strings, "chars", { count: formatNumber(value) });
+  }
+
+  function normalizeForSearch(value) {
+    return String(value ?? "")
+      .normalize("NFKC")
+      .toLocaleLowerCase()
+      .trim();
+  }
+
+  function getSearchTokens(query) {
+    return normalizeForSearch(query).split(/\s+/).filter(Boolean);
+  }
+
+  function getFootnoteSearchText(footnote) {
+    return normalizeForSearch([
+      footnote.displayNumber,
+      footnote.index,
+      footnote.id,
+      `[^${footnote.id}]`,
+      footnote.content,
+    ].join(" "));
+  }
+
+  function filterFootnotes(footnotes, query) {
+    const tokens = getSearchTokens(query);
+    if (tokens.length === 0) return footnotes;
+    return footnotes.filter((footnote) => {
+      const haystack = getFootnoteSearchText(footnote);
+      return tokens.every((token) => haystack.includes(token));
+    });
+  }
+
+  function getContentSearchTokens(query) {
+    return Array.from(new Set(String(query ?? "").toLocaleLowerCase().trim().split(/\s+/).filter(Boolean)));
+  }
+
+  function findFootnoteContentMatches(footnote, query) {
+    const tokens = getContentSearchTokens(query);
+    if (tokens.length === 0) return [];
+    const content = String(footnote.content || "");
+    const haystack = content.toLocaleLowerCase();
+    const matches = [];
+    for (const token of tokens) {
+      let start = 0;
+      while (start < haystack.length) {
+        const index = haystack.indexOf(token, start);
+        if (index === -1) break;
+        matches.push({
+          footnoteId: footnote.id,
+          start: index,
+          end: index + token.length,
+          text: content.slice(index, index + token.length),
+        });
+        start = index + Math.max(token.length, 1);
+      }
+    }
+    return matches.sort((left, right) => left.start - right.start || right.end - left.end);
+  }
+
+  function findFootnoteSearchResults(footnotes, query) {
+    const tokens = getSearchTokens(query);
+    if (tokens.length === 0) return [];
+    const results = [];
+    for (const footnote of filterFootnotes(footnotes, query)) {
+      const contentMatches = findFootnoteContentMatches(footnote, query);
+      if (contentMatches.length > 0) {
+        for (const match of contentMatches) {
+          results.push({ footnoteId: footnote.id, match });
+        }
+      } else {
+        results.push({ footnoteId: footnote.id, match: null });
+      }
+    }
+    return results;
+  }
+
+  function getFootnoteFingerprint(footnote) {
+    return normalizeForSearch(normalizeLineEndings(footnote?.content || "").replace(/\s+/g, " "));
+  }
+
+  function createFootnoteSnapshot(footnote) {
+    if (!footnote) return null;
+    return {
+      id: footnote.id,
+      displayNumber: footnote.displayNumber || footnote.index || null,
+      contentFingerprint: getFootnoteFingerprint(footnote),
+      definitionStart: footnote.definitionStart,
+      firstReferenceStart: footnote.firstReferenceStart,
+    };
+  }
+
+  function closestFootnote(candidates, snapshot) {
+    if (candidates.length === 0) return null;
+    if (candidates.length === 1) return candidates[0];
+    return candidates.reduce((best, footnote) => {
+      const displayDistance = Number.isFinite(snapshot?.displayNumber)
+        ? Math.abs((footnote.displayNumber || footnote.index || 0) - snapshot.displayNumber)
+        : 0;
+      const referenceDistance =
+        typeof snapshot?.firstReferenceStart === "number" && typeof footnote.firstReferenceStart === "number"
+          ? Math.abs(footnote.firstReferenceStart - snapshot.firstReferenceStart)
+          : 0;
+      const definitionDistance =
+        typeof snapshot?.definitionStart === "number"
+          ? Math.abs(footnote.definitionStart - snapshot.definitionStart)
+          : 0;
+      const score = displayDistance * 1000000 + referenceDistance + definitionDistance;
+      if (!best || score < best.score) {
+        return { footnote, score };
+      }
+      return best;
+    }, null)?.footnote || candidates[0];
+  }
+
+  function resolveActiveFootnoteId(footnotes, savedState = {}, fallbackId = null) {
+    const activeId = savedState.activeId || fallbackId;
+    if (activeId && footnotes.some((footnote) => footnote.id === activeId)) {
+      return activeId;
+    }
+
+    const snapshot = savedState.activeSnapshot || null;
+    if (snapshot?.contentFingerprint) {
+      const contentMatches = footnotes.filter((footnote) => getFootnoteFingerprint(footnote) === snapshot.contentFingerprint);
+      const matched = closestFootnote(contentMatches, snapshot);
+      if (matched) return matched.id;
+    }
+
+    if (Number.isFinite(snapshot?.displayNumber)) {
+      const displayMatch = footnotes.find((footnote) => (footnote.displayNumber || footnote.index) === snapshot.displayNumber);
+      if (displayMatch) return displayMatch.id;
+    }
+
+    return activeId || null;
   }
 
   function normalizeLineEndings(text) {
@@ -387,9 +556,12 @@
     if (typeof module !== "undefined" && module.exports) {
       module.exports = {
         formatCharacterCount,
+        filterFootnotes,
+        findFootnoteSearchResults,
         getStrings,
         normalizeLanguageTag,
         parseFootnotes,
+        resolveActiveFootnoteId,
         replaceFootnoteContent,
         findReferenceAtOffset,
       };
@@ -409,9 +581,12 @@
         replaceFootnoteContent,
         findReferenceAtOffset,
         findReferenceNearOffsetOnLine,
+        filterFootnotes,
+        findFootnoteSearchResults,
         formatCharacterCount,
         getStrings,
         normalizeLanguageTag,
+        resolveActiveFootnoteId,
       };
     }
     return;
@@ -773,6 +948,16 @@
       this.stateByFile = new Map();
       this.activeFootnoteId = null;
       this.listEl = null;
+      this.searchInputEl = null;
+      this.searchCountEl = null;
+      this.searchPreviousButton = null;
+      this.searchNextButton = null;
+      this.currentFootnotes = [];
+      this.searchMatches = [];
+      this.searchMatchIndex = -1;
+      this.suppressTextareaFocusJump = false;
+      this.expandedFootnoteIds = new Set();
+      this.searchExpandedFootnoteIds = new Set();
     }
 
     getViewType() {
@@ -830,9 +1015,16 @@
         ? document.activeElement
         : null;
       const activeId = focusedEditor?.dataset?.footnoteId || this.activeFootnoteId || currentState.activeId || null;
+      const activeFootnote = activeId ? this.currentFootnotes.find((footnote) => footnote.id === activeId) : null;
+      const searchQuery = this.searchInputEl?.value ?? currentState.searchQuery ?? "";
       this.stateByFile.set(this.file.path, {
         scrollTop: this.listEl?.scrollTop ?? currentState.scrollTop ?? 0,
         activeId,
+        activeSnapshot: createFootnoteSnapshot(activeFootnote) || currentState.activeSnapshot || null,
+        searchQuery,
+        searchMatchIndex: this.searchMatchIndex,
+        expandedIds: Array.from(this.expandedFootnoteIds),
+        searchExpandedIds: Array.from(this.searchExpandedFootnoteIds),
       });
     }
 
@@ -847,14 +1039,49 @@
       const headerEl = this.contentEl.createDiv({ cls: "bfw-header" });
       const titleRow = headerEl.createDiv({ cls: "bfw-title-row" });
       titleRow.createDiv({ cls: "bfw-title", text: strings.title });
-      const refreshButton = titleRow.createEl("button", { cls: "bfw-button", text: strings.refresh });
+      const refreshButton = titleRow.createEl("button", {
+        cls: "bfw-button",
+        text: strings.refresh,
+        attr: { type: "button" },
+      });
       refreshButton.addEventListener("click", () => this.scheduleRender(0));
 
       const subtitleEl = headerEl.createDiv({ cls: "bfw-subtitle" });
+      const searchRowEl = headerEl.createDiv({ cls: "bfw-search-row" });
+      this.searchInputEl = searchRowEl.createEl("input", {
+        cls: "bfw-search",
+        attr: {
+          type: "search",
+          placeholder: strings.searchPlaceholder,
+        },
+      });
+      this.searchInputEl.setAttr("aria-label", strings.searchPlaceholder);
+      const clearSearchButton = searchRowEl.createEl("button", {
+        cls: "bfw-button bfw-clear-search bfw-search-nav-button",
+        text: "×",
+        attr: { type: "button" },
+      });
+      clearSearchButton.setAttr("title", strings.clearSearch);
+      this.searchCountEl = searchRowEl.createSpan({ cls: "bfw-search-count" });
+      this.searchPreviousButton = searchRowEl.createEl("button", {
+        cls: "bfw-button bfw-search-nav-button",
+        text: "↑",
+        attr: { type: "button" },
+      });
+      this.searchPreviousButton.setAttr("title", strings.previousMatch);
+      this.searchNextButton = searchRowEl.createEl("button", {
+        cls: "bfw-button bfw-search-nav-button",
+        text: "↓",
+        attr: { type: "button" },
+      });
+      this.searchNextButton.setAttr("title", strings.nextMatch);
       this.listEl = this.contentEl.createDiv({ cls: "bfw-list" });
 
       if (!file) {
         subtitleEl.setText(strings.noActiveFile);
+        this.searchInputEl.setAttr("disabled", "true");
+        clearSearchButton.setAttr("disabled", "true");
+        this.setSearchNavDisabled(true);
         this.listEl.createDiv({ cls: "bfw-empty", text: strings.openMarkdownNote });
         return;
       }
@@ -869,52 +1096,325 @@
       }
 
       const parsed = parseFootnotes(text);
+      this.currentFootnotes = parsed.footnotes;
       const savedState = this.stateByFile.get(file.path) || {};
-      this.activeFootnoteId = savedState.activeId || this.activeFootnoteId;
-      subtitleEl.setText(t(strings, "footnoteCount", {
-        file: file.basename,
-        count: formatNumber(parsed.footnotes.length),
-        plural: parsed.footnotes.length === 1 ? "" : "s",
-      }));
+      this.expandedFootnoteIds = new Set(savedState.expandedIds || []);
+      this.searchExpandedFootnoteIds = new Set(savedState.searchExpandedIds || []);
+      this.activeFootnoteId = resolveActiveFootnoteId(parsed.footnotes, savedState, this.activeFootnoteId);
+      this.searchInputEl.value = savedState.searchQuery || "";
+      this.searchMatchIndex = typeof savedState.searchMatchIndex === "number" ? savedState.searchMatchIndex : -1;
+      clearSearchButton.style.display = this.searchInputEl.value ? "" : "none";
+
+      const renderFilteredList = () => {
+        clearSearchButton.style.display = this.searchInputEl.value ? "" : "none";
+        this.renderFootnoteList(parsed.footnotes, strings, subtitleEl, file.basename);
+      };
 
       if (parsed.footnotes.length === 0) {
+        subtitleEl.setText(t(strings, "footnoteCount", {
+          file: file.basename,
+          count: formatNumber(0),
+          plural: "s",
+        }));
+        this.searchInputEl.setAttr("disabled", "true");
+        clearSearchButton.setAttr("disabled", "true");
+        this.setSearchNavDisabled(true);
         this.listEl.createDiv({ cls: "bfw-empty", text: strings.noFootnotes });
         return;
       }
 
-      for (const footnote of parsed.footnotes) {
-        this.renderFootnoteItem(footnote, strings);
-      }
+      this.searchInputEl.addEventListener("input", () => {
+        if (!this.searchInputEl.value.trim()) {
+          this.collapseSearchExpandedFootnotes();
+        }
+        const currentState = this.stateByFile.get(file.path) || {};
+        this.stateByFile.set(file.path, {
+          ...currentState,
+          searchQuery: this.searchInputEl.value,
+          searchMatchIndex: -1,
+          scrollTop: 0,
+        });
+        this.searchMatchIndex = -1;
+        renderFilteredList();
+      });
 
+      this.searchInputEl.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        this.navigateSearch(event.shiftKey ? -1 : 1);
+      });
+
+      clearSearchButton.addEventListener("click", () => {
+        this.searchInputEl.value = "";
+        this.collapseSearchExpandedFootnotes();
+        const currentState = this.stateByFile.get(file.path) || {};
+        this.stateByFile.set(file.path, {
+          ...currentState,
+          searchQuery: "",
+          searchMatchIndex: -1,
+          expandedIds: Array.from(this.expandedFootnoteIds),
+          searchExpandedIds: [],
+          scrollTop: 0,
+        });
+        this.searchMatchIndex = -1;
+        renderFilteredList();
+        this.searchInputEl.focus();
+      });
+
+      this.searchPreviousButton.addEventListener("click", () => this.navigateSearch(-1));
+      this.searchNextButton.addEventListener("click", () => this.navigateSearch(1));
+
+      renderFilteredList();
       this.listEl.scrollTop = savedState.scrollTop || 0;
       if (this.activeFootnoteId) {
         this.focusFootnote(this.activeFootnoteId, { scroll: true, focusEditor: false });
       }
     }
 
+    renderFootnoteList(footnotes, strings, subtitleEl, fileName) {
+      const query = this.searchInputEl?.value || "";
+      const visibleFootnotes = filterFootnotes(footnotes, query);
+      this.searchMatches = findFootnoteSearchResults(footnotes, query);
+      if (this.searchMatchIndex >= this.searchMatches.length) {
+        this.searchMatchIndex = this.searchMatches.length - 1;
+      }
+      if (this.searchMatches.length === 0) {
+        this.searchMatchIndex = -1;
+      }
+      this.listEl.empty();
+
+      if (query.trim()) {
+        subtitleEl.setText(t(strings, "filteredFootnoteCount", {
+          file: fileName,
+          visible: formatNumber(visibleFootnotes.length),
+          total: formatNumber(footnotes.length),
+          matches: formatNumber(this.searchMatches.length),
+        }));
+      } else {
+        subtitleEl.setText(t(strings, "footnoteCount", {
+          file: fileName,
+          count: formatNumber(footnotes.length),
+          plural: footnotes.length === 1 ? "" : "s",
+        }));
+      }
+
+      if (visibleFootnotes.length === 0) {
+        this.updateSearchControls(strings);
+        this.listEl.createDiv({ cls: "bfw-empty", text: strings.noSearchResults });
+        return;
+      }
+
+      for (const footnote of visibleFootnotes) {
+        this.renderFootnoteItem(footnote, strings);
+      }
+
+      this.updateSearchControls(strings);
+      this.markSearchTarget();
+      if (this.activeFootnoteId) {
+        this.focusFootnote(this.activeFootnoteId, { scroll: false, focusEditor: false });
+      }
+    }
+
+    updateSearchControls(strings = getStrings()) {
+      const total = this.searchMatches.length;
+      const current = this.searchMatchIndex >= 0 && total > 0 ? this.searchMatchIndex + 1 : 0;
+      if (this.searchCountEl) {
+        this.searchCountEl.setText(t(strings, "searchMatchCount", {
+          current: formatNumber(current),
+          total: formatNumber(total),
+        }));
+        this.searchCountEl.style.display = this.searchInputEl?.value?.trim() ? "" : "none";
+      }
+      this.setSearchNavDisabled(total === 0);
+    }
+
+    setSearchNavDisabled(disabled) {
+      if (this.searchPreviousButton) {
+        this.searchPreviousButton.disabled = disabled;
+      }
+      if (this.searchNextButton) {
+        this.searchNextButton.disabled = disabled;
+      }
+    }
+
+    navigateSearch(direction) {
+      if (this.searchMatches.length === 0) return;
+      if (this.searchMatchIndex < 0) {
+        this.searchMatchIndex = direction < 0 ? this.searchMatches.length - 1 : 0;
+      } else {
+        this.searchMatchIndex = (this.searchMatchIndex + direction + this.searchMatches.length) % this.searchMatches.length;
+      }
+      if (this.file) {
+        const currentState = this.stateByFile.get(this.file.path) || {};
+        this.stateByFile.set(this.file.path, {
+          ...currentState,
+          searchQuery: this.searchInputEl?.value || "",
+          searchMatchIndex: this.searchMatchIndex,
+        });
+      }
+      this.updateSearchControls();
+      this.applySearchMatch(this.searchMatches[this.searchMatchIndex]);
+    }
+
+    markSearchTarget() {
+      for (const item of this.contentEl.querySelectorAll(".bfw-item")) {
+        item.removeClass("is-search-target");
+      }
+      const result = this.searchMatches[this.searchMatchIndex];
+      if (!result) return;
+      this.findFootnoteItem(result.footnoteId)?.addClass("is-search-target");
+    }
+
+    applySearchMatch(result) {
+      if (!result) return;
+      this.setFootnoteExpanded(result.footnoteId, true, { source: "search" });
+      this.focusFootnote(result.footnoteId, { scroll: true, focusEditor: false });
+      this.markSearchTarget();
+      const item = this.findFootnoteItem(result.footnoteId);
+      const textarea = item?.querySelector(".bfw-editor");
+      if (!textarea) return;
+      this.applyTextareaHeight(textarea, true);
+      const match = result.match;
+      if (!match) return;
+      this.suppressTextareaFocusJump = true;
+      textarea.focus({ preventScroll: true });
+      textarea.setSelectionRange(match.start, match.end, "forward");
+      this.scrollTextareaToSelection(textarea, match.start);
+      window.setTimeout(() => {
+        this.suppressTextareaFocusJump = false;
+      }, 0);
+    }
+
+    scrollTextareaToSelection(textarea, startOffset) {
+      const valueBeforeMatch = textarea.value.slice(0, startOffset);
+      const lineIndex = valueBeforeMatch.split("\n").length - 1;
+      const lineHeight = parseFloat(window.getComputedStyle(textarea).lineHeight) || 20;
+      const targetTop = Math.max(0, lineIndex * lineHeight - textarea.clientHeight / 2);
+      textarea.scrollTop = targetTop;
+    }
+
+    findFootnoteItem(footnoteId) {
+      return Array.from(this.contentEl.querySelectorAll(".bfw-item"))
+        .find((item) => item.dataset.footnoteId === footnoteId) || null;
+    }
+
+    isFootnoteExpanded(footnoteId) {
+      return this.expandedFootnoteIds.has(footnoteId);
+    }
+
+    setFootnoteExpanded(footnoteId, expanded, options = {}) {
+      if (expanded) {
+        this.expandedFootnoteIds.add(footnoteId);
+        if (options.source === "search") {
+          this.searchExpandedFootnoteIds.add(footnoteId);
+        } else {
+          this.searchExpandedFootnoteIds.delete(footnoteId);
+        }
+      } else {
+        this.expandedFootnoteIds.delete(footnoteId);
+        this.searchExpandedFootnoteIds.delete(footnoteId);
+      }
+      if (this.file) {
+        const currentState = this.stateByFile.get(this.file.path) || {};
+        this.stateByFile.set(this.file.path, {
+          ...currentState,
+          expandedIds: Array.from(this.expandedFootnoteIds),
+          searchExpandedIds: Array.from(this.searchExpandedFootnoteIds),
+        });
+      }
+      const item = this.findFootnoteItem(footnoteId);
+      if (item) {
+        item.toggleClass("is-expanded", expanded);
+        const button = item.querySelector(".bfw-expand-button");
+        const strings = getStrings();
+        if (button) {
+          button.setText(expanded ? "△" : "▽");
+          button.setAttr("title", expanded ? strings.collapseFootnote : strings.expandFootnote);
+        }
+      }
+    }
+
+    collapseSearchExpandedFootnotes() {
+      const ids = Array.from(this.searchExpandedFootnoteIds);
+      for (const footnoteId of ids) {
+        this.setFootnoteExpanded(footnoteId, false);
+      }
+      this.searchExpandedFootnoteIds.clear();
+    }
+
+    applyTextareaHeight(textarea, expanded) {
+      if (!textarea) return;
+      if (!expanded) {
+        textarea.style.height = "";
+        return;
+      }
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.max(120, textarea.scrollHeight + 2)}px`;
+    }
+
+    updateExpandButtonVisibility(textarea, expandButton, footnoteId, strings = getStrings()) {
+      window.requestAnimationFrame(() => {
+        const expanded = this.isFootnoteExpanded(footnoteId);
+        if (expanded) {
+          expandButton.removeClass("is-hidden");
+          expandButton.setText("△");
+          expandButton.setAttr("title", strings.collapseFootnote);
+          this.applyTextareaHeight(textarea, true);
+          return;
+        }
+
+        textarea.style.height = "";
+        const hasHiddenContent = textarea.scrollHeight > textarea.clientHeight + 2;
+        expandButton.toggleClass("is-hidden", !hasHiddenContent);
+        expandButton.setText("▽");
+        expandButton.setAttr("title", strings.expandFootnote);
+      });
+    }
+
     renderFootnoteItem(footnote, strings = getStrings()) {
       const itemEl = this.listEl.createDiv({ cls: "bfw-item" });
       itemEl.dataset.footnoteId = footnote.id;
+      const isExpanded = this.isFootnoteExpanded(footnote.id);
       if (footnote.id === this.activeFootnoteId) {
         itemEl.addClass("is-active");
+      }
+      if (isExpanded) {
+        itemEl.addClass("is-expanded");
       }
 
       const headerEl = itemEl.createDiv({ cls: "bfw-item-header" });
       const idEl = headerEl.createDiv({ cls: "bfw-id", text: String(footnote.displayNumber || footnote.index) });
       idEl.setAttr("title", `[^${footnote.id}]`);
       const actionsEl = headerEl.createDiv({ cls: "bfw-actions" });
-      const definitionButton = actionsEl.createEl("button", { cls: "bfw-button bfw-definition-button", text: strings.definitionButton });
+      const definitionButton = actionsEl.createEl("button", {
+        cls: "bfw-button bfw-definition-button",
+        text: strings.definitionButton,
+        attr: { type: "button" },
+      });
       definitionButton.setAttr("title", strings.definitionTooltip);
       definitionButton.addEventListener("click", (event) => {
         event.stopPropagation();
         this.plugin.jumpToFootnoteDefinition(this.file, footnote.id);
         this.focusFootnote(footnote.id, { scroll: false, focusEditor: false });
       });
+      const expandButton = actionsEl.createEl("button", {
+        cls: "bfw-button bfw-expand-button is-hidden",
+        text: isExpanded ? "△" : "▽",
+        attr: { type: "button" },
+      });
+      expandButton.setAttr("title", isExpanded ? strings.collapseFootnote : strings.expandFootnote);
+      expandButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const nextExpanded = !this.isFootnoteExpanded(footnote.id);
+        this.setFootnoteExpanded(footnote.id, nextExpanded);
+        this.applyTextareaHeight(textarea, nextExpanded);
+      });
 
       const textarea = itemEl.createEl("textarea", { cls: "bfw-editor" });
       textarea.dataset.footnoteId = footnote.id;
       textarea.value = footnote.content;
       textarea.setAttr("spellcheck", "true");
+      this.updateExpandButtonVisibility(textarea, expandButton, footnote.id, strings);
 
       const footerEl = itemEl.createDiv({ cls: "bfw-footer" });
       const countEl = footerEl.createSpan({ text: formatCharacterCount(textarea.value.length, strings) });
@@ -926,6 +1426,10 @@
       });
 
       textarea.addEventListener("focus", () => {
+        if (this.suppressTextareaFocusJump) {
+          this.focusFootnote(footnote.id, { scroll: false, focusEditor: false });
+          return;
+        }
         this.activateFootnoteFromSidebar(footnote.id);
         window.setTimeout(() => {
           if (document.activeElement !== textarea) {
@@ -938,6 +1442,10 @@
         itemEl.addClass("is-dirty");
         countEl.setText(formatCharacterCount(textarea.value.length, strings));
         statusEl.setText(strings.saving);
+        if (this.isFootnoteExpanded(footnote.id)) {
+          this.applyTextareaHeight(textarea, true);
+        }
+        this.updateExpandButtonVisibility(textarea, expandButton, footnote.id, strings);
         this.queueSave(footnote.id, textarea.value, statusEl, itemEl);
       });
 
@@ -976,6 +1484,9 @@
         window.clearTimeout(existing);
         this.saveTimers.delete(footnoteId);
       }
+      if (!existing && !itemEl.classList.contains("is-dirty")) {
+        return { ok: true, message: statusEl.getText?.() || getStrings().saved };
+      }
       return this.saveFootnoteNow(footnoteId, content, statusEl, itemEl);
     }
 
@@ -1005,9 +1516,11 @@
       this.activeFootnoteId = footnoteId;
       if (this.file) {
         const currentState = this.stateByFile.get(this.file.path) || {};
+        const activeFootnote = this.currentFootnotes.find((footnote) => footnote.id === footnoteId);
         this.stateByFile.set(this.file.path, {
           ...currentState,
           activeId: footnoteId,
+          activeSnapshot: createFootnoteSnapshot(activeFootnote) || currentState.activeSnapshot || null,
         });
       }
 
