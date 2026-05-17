@@ -133,6 +133,13 @@
   cursor: pointer;
 }
 
+.bfw-id-block {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .bfw-id {
   display: inline-flex;
   align-items: center;
@@ -148,6 +155,12 @@
   color: var(--text-normal);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bfw-unreferenced {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
   white-space: nowrap;
 }
 

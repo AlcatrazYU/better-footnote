@@ -12,6 +12,8 @@ Better Footnote is built for long notes, papers, and research drafts where footn
 - Select, copy, paste, and write multiline footnote text normally.
 - Search only footnotes, then move through each matching word or phrase with previous/next buttons.
 - Keep the source text and sidebar connected: clicking a footnote jumps to its `[^id]` marker and briefly outlines it.
+- Keep the sidebar faithful to the note: footnotes are shown in definition order with their real `[^id]`, and definitions without an in-text reference are marked as unreferenced.
+- Sync from the footnote definition area too: placing the cursor inside a footnote definition selects the same footnote in the sidebar.
 - Keep long footnotes compact, with an expand button only when the editor content is actually clipped.
 
 ## Footnote Search
@@ -21,6 +23,12 @@ The sidebar search box filters footnotes by number, id, or content. When the sea
 Use the up/down buttons to move through matches. Better Footnote scrolls to the matching footnote, expands it if needed, and selects the matched text inside the footnote editor so you can see the exact hit.
 
 Clearing the search returns search-expanded footnotes to their compact state.
+
+## Tidy Footnotes Integration
+
+Better Footnote can optionally work with [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes). If Tidy Footnotes is installed and enabled, Better Footnote can run it after a new footnote is inserted so the new note is renumbered and moved into the right definition order.
+
+This integration closes Obsidian's built-in floating footnote editor after insertion, because the Better Footnote sidebar becomes the editing surface. Deleting an in-text reference does not automatically run Tidy Footnotes; the sidebar keeps the definition visible, marks it as unreferenced, and lets you tidy manually when you are ready.
 
 ## Quick Start
 
@@ -56,6 +64,8 @@ Better Footnote 是一个用于 Obsidian 的脚注侧栏插件。它面向长文
 - 可以正常选择、复制、粘贴、换行编辑脚注内容。
 - 可以只搜索脚注，并用上/下按钮逐个跳转到每一处匹配文字。
 - 点击侧栏脚注会跳到正文中的 `[^id]` 标记，并用紫色框短暂标出位置。
+- 侧栏忠实显示当前文档里的真实脚注 id，并按文末定义顺序排列；没有正文引用的定义会标记为“未引用”。
+- 在文末脚注定义区点击或移动光标时，右侧栏也会同步选中对应脚注。
 - 长脚注默认保持紧凑；只有内容确实显示不全时，才出现展开按钮。
 
 ### 脚注搜索
@@ -65,6 +75,12 @@ Better Footnote 是一个用于 Obsidian 的脚注侧栏插件。它面向长文
 点击上/下按钮时，Better Footnote 会跳到对应匹配项，必要时自动展开长脚注，并直接选中脚注编辑框里的匹配文字，让你看到具体命中位置。
 
 清除搜索后，由搜索自动展开的脚注会恢复为紧凑显示。
+
+### Tidy Footnotes 联动
+
+Better Footnote 可以选择性地与 [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) 联动。安装并启用 Tidy Footnotes 后，Better Footnote 可以在检测到新增脚注时自动运行它，让新增脚注完成重新编号并回到正确的文末定义顺序。
+
+启用这一联动后，Better Footnote 会关闭 Obsidian 自带的脚注悬浮编辑框，因为脚注编辑入口会转移到 Better Footnote 侧栏。删除正文中的脚注引用时不会自动运行 Tidy Footnotes；侧栏会保留对应脚注定义，标记为“未引用”，你可以在确认后手动整理编号。
 
 ### 快速开始
 
@@ -100,6 +116,8 @@ Better Footnote は、Obsidian のための脚注サイドバープラグイン�
 - 脚注テキストを通常どおり選択、コピー、貼り付け、複数行編集できます。
 - 脚注だけを検索し、前/次ボタンで各一致箇所へ移動できます。
 - サイドバーの脚注をクリックすると本文中の `[^id]` マーカーへ移動し、短時間アウトライン表示します。
+- サイドバーは現在のノート内の実際の脚注 id を表示し、脚注定義の順序で並べます。本文中に参照がない定義には「未参照」と表示します。
+- 文末の脚注定義内にカーソルを置くと、サイドバーでも同じ脚注が選択されます。
 - 長い脚注は通常コンパクトに表示し、内容が実際に隠れている場合だけ展開ボタンを表示します。
 
 ### 脚注検索
@@ -109,6 +127,12 @@ Better Footnote は、Obsidian のための脚注サイドバープラグイン�
 前/次ボタンを押すと、該当する一致箇所へ移動します。必要な場合は長い脚注を自動で展開し、脚注エディタ内の一致テキストを選択するため、どこに一致したか確認できます。
 
 検索をクリアすると、検索によって自動展開された脚注はコンパクト表示に戻ります。
+
+### Tidy Footnotes 連携
+
+Better Footnote は、必要に応じて [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) と連携できます。Tidy Footnotes をインストールして有効化すると、新しい脚注を挿入した後に自動実行し、番号と脚注定義の順序を整えられます。
+
+この連携を有効にすると、Obsidian 標準の脚注フローティング編集欄は閉じられます。脚注の編集は Better Footnote サイドバーで行う前提です。本文中の脚注参照を削除しても Tidy Footnotes は自動実行されません。サイドバーは定義を残して「未参照」と表示し、必要なタイミングで手動整理できます。
 
 ### 使い方
 
@@ -144,6 +168,8 @@ Better Footnote는 Obsidian용 각주 사이드바 플러그인입니다. 긴 �
 - 각주 텍스트를 일반 텍스트처럼 선택, 복사, 붙여넣기, 여러 줄 편집할 수 있습니다.
 - 각주 안에서만 검색하고, 이전/다음 버튼으로 각 일치 항목을 이동할 수 있습니다.
 - 사이드바의 각주를 클릭하면 본문의 `[^id]` 표시로 이동하고 짧게 윤곽선을 표시합니다.
+- 사이드바는 현재 노트의 실제 각주 id를 표시하고, 각주 정의 순서대로 보여줍니다. 본문 참조가 없는 정의는 “참조 없음”으로 표시합니다.
+- 문서 끝의 각주 정의 안에 커서를 두면, 사이드바에서도 같은 각주가 선택됩니다.
 - 긴 각주는 기본적으로 간결하게 표시되며, 실제로 내용이 잘릴 때만 펼치기 버튼을 보여줍니다.
 
 ### 각주 검색
@@ -153,6 +179,12 @@ Better Footnote는 Obsidian용 각주 사이드바 플러그인입니다. 긴 �
 이전/다음 버튼을 누르면 해당 일치 항목으로 이동합니다. 필요한 경우 긴 각주를 자동으로 펼치고, 각주 편집기 안의 일치 텍스트를 선택해 정확한 위치를 보여줍니다.
 
 검색을 지우면 검색 때문에 자동으로 펼쳐졌던 각주는 다시 간결한 표시로 돌아갑니다.
+
+### Tidy Footnotes 연동
+
+Better Footnote는 선택적으로 [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes)와 연동할 수 있습니다. Tidy Footnotes를 설치하고 활성화하면, 새 각주가 삽입된 뒤 자동으로 실행해 번호와 각주 정의 순서를 정리할 수 있습니다.
+
+이 연동을 켜면 Obsidian 기본 각주 플로팅 편집 창은 닫힙니다. 각주 편집은 Better Footnote 사이드바에서 하는 흐름을 기준으로 합니다. 본문 각주 참조를 삭제해도 Tidy Footnotes는 자동 실행되지 않습니다. 사이드바는 해당 정의를 유지하고 “참조 없음”으로 표시하며, 필요할 때 수동으로 정리할 수 있습니다.
 
 ### 빠른 시작
 

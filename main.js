@@ -4,6 +4,15 @@
   const RENDER_DELAY_MS = 90;
   const FOOTNOTE_CONTINUATION_INDENT = "    ";
   const FLASH_SELECTION_MS = 1400;
+  const AUTO_TIDY_DELAY_MS = 250;
+  const SIDEBAR_JUMP_CURSOR_SUPPRESS_MS = 1200;
+  const PLUGIN_ICON = "list-ordered";
+  const TIDY_FOOTNOTES_PLUGIN_URL = "https://community.obsidian.md/plugins/obsidian-tidy-footnotes";
+
+  const DEFAULT_SETTINGS = {
+    autoTidyAfterNewFootnote: false,
+    tidyCommandId: "",
+  };
 
   const I18N = {
     en: {
@@ -34,8 +43,18 @@
       openSourceForDefinition: "Open the source note to jump to a footnote definition.",
       noReferenceFound: "No reference found for [^{id}].",
       footnoteNotFound: "Footnote [^{id}] was not found.",
+      unreferenced: "Unreferenced",
       commandOpen: "Open Better Footnote",
       ribbonOpen: "Open Better Footnote",
+      settingsTitle: "Better Footnote",
+      autoTidyName: "Auto tidy after a new footnote",
+      autoTidyDesc: "Requires Tidy Footnotes. When Better Footnote detects a newly inserted footnote, it runs Tidy Footnotes automatically. This closes Obsidian's built-in floating footnote editor; use the Better Footnote sidebar to edit the footnote.",
+      tidyInstallName: "Tidy Footnotes integration",
+      tidyInstallDesc: "Install and enable Tidy Footnotes before using automatic tidying.",
+      tidyInstallButton: "Open plugin page",
+      tidyCommandMissing: "Tidy Footnotes command was not found.",
+      tidyCommandNoEditor: "No Markdown editor is available for Tidy Footnotes.",
+      tidyCommandFailed: "Failed to run Tidy Footnotes: {message}",
     },
     zh: {
       title: "Better Footnote",
@@ -65,8 +84,18 @@
       openSourceForDefinition: "请先打开源笔记，再跳到脚注定义位置。",
       noReferenceFound: "没有找到 [^{id}] 的正文引用。",
       footnoteNotFound: "没有找到脚注 [^{id}]。",
+      unreferenced: "未引用",
       commandOpen: "打开 Better Footnote",
       ribbonOpen: "打开 Better Footnote",
+      settingsTitle: "Better Footnote",
+      autoTidyName: "新增脚注后自动整理编号",
+      autoTidyDesc: "需要先安装并启用 Tidy Footnotes。Better Footnote 检测到新增脚注后，会自动运行 Tidy Footnotes。启用后会关闭 Obsidian 自带的脚注悬浮编辑框，请在 Better Footnote 侧栏中编辑脚注。",
+      tidyInstallName: "Tidy Footnotes 集成",
+      tidyInstallDesc: "使用自动整理前，请先安装并启用 Tidy Footnotes。",
+      tidyInstallButton: "打开插件页面",
+      tidyCommandMissing: "没有找到 Tidy Footnotes 命令。",
+      tidyCommandNoEditor: "没有可用于 Tidy Footnotes 的 Markdown 编辑器。",
+      tidyCommandFailed: "运行 Tidy Footnotes 失败：{message}",
     },
     ja: {
       title: "Better Footnote",
@@ -96,8 +125,18 @@
       openSourceForDefinition: "脚注定義へ移動するには、元のノートを開いてください。",
       noReferenceFound: "[^{id}] の本文参照が見つかりません。",
       footnoteNotFound: "脚注 [^{id}] が見つかりません。",
+      unreferenced: "未参照",
       commandOpen: "Better Footnote を開く",
       ribbonOpen: "Better Footnote を開く",
+      settingsTitle: "Better Footnote",
+      autoTidyName: "新しい脚注の後に自動整理",
+      autoTidyDesc: "Tidy Footnotes のインストールと有効化が必要です。Better Footnote は新しい脚注を検出すると、Tidy Footnotes を自動実行します。有効にすると Obsidian 標準の脚注フローティング編集欄を閉じるため、脚注は Better Footnote サイドバーで編集してください。",
+      tidyInstallName: "Tidy Footnotes 連携",
+      tidyInstallDesc: "自動整理を使う前に、Tidy Footnotes をインストールして有効化してください。",
+      tidyInstallButton: "プラグインページを開く",
+      tidyCommandMissing: "Tidy Footnotes コマンドが見つかりません。",
+      tidyCommandNoEditor: "Tidy Footnotes に使用できる Markdown エディタがありません。",
+      tidyCommandFailed: "Tidy Footnotes の実行に失敗しました: {message}",
     },
     ko: {
       title: "Better Footnote",
@@ -127,8 +166,18 @@
       openSourceForDefinition: "각주 정의로 이동하려면 원본 노트를 여세요.",
       noReferenceFound: "[^{id}]의 본문 참조를 찾지 못했습니다.",
       footnoteNotFound: "각주 [^{id}]를 찾지 못했습니다.",
+      unreferenced: "참조 없음",
       commandOpen: "Better Footnote 열기",
       ribbonOpen: "Better Footnote 열기",
+      settingsTitle: "Better Footnote",
+      autoTidyName: "새 각주 뒤 자동 정리",
+      autoTidyDesc: "Tidy Footnotes를 먼저 설치하고 활성화해야 합니다. Better Footnote가 새 각주를 감지하면 Tidy Footnotes를 자동으로 실행합니다. 이 기능을 켜면 Obsidian 기본 각주 플로팅 편집 창을 닫으므로, 각주는 Better Footnote 사이드바에서 편집하세요.",
+      tidyInstallName: "Tidy Footnotes 연동",
+      tidyInstallDesc: "자동 정리를 사용하기 전에 Tidy Footnotes를 설치하고 활성화하세요.",
+      tidyInstallButton: "플러그인 페이지 열기",
+      tidyCommandMissing: "Tidy Footnotes 명령을 찾지 못했습니다.",
+      tidyCommandNoEditor: "Tidy Footnotes에 사용할 Markdown 편집기가 없습니다.",
+      tidyCommandFailed: "Tidy Footnotes 실행 실패: {message}",
     },
   };
 
@@ -269,6 +318,36 @@
     return results;
   }
 
+  function getFootnoteDisplayOrderValue(footnote) {
+    if (typeof footnote.firstReferenceStart === "number") return footnote.firstReferenceStart;
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  function orderFootnotesByReference(footnotes) {
+    return Array.from(footnotes || []).sort((left, right) => {
+      const referenceOrder = getFootnoteDisplayOrderValue(left) - getFootnoteDisplayOrderValue(right);
+      if (referenceOrder !== 0) return referenceOrder;
+      const displayOrder = (left.displayNumber || left.index || 0) - (right.displayNumber || right.index || 0);
+      if (displayOrder !== 0) return displayOrder;
+      return (left.definitionStart || 0) - (right.definitionStart || 0);
+    });
+  }
+
+  function detectAddedFootnotes(currentFootnotes, knownFootnoteIds, knownFootnoteSnapshots = null) {
+    if (!knownFootnoteIds) return [];
+    return currentFootnotes.filter((footnote) => {
+      if (knownFootnoteIds.has(footnote.id)) return false;
+      if (isKnownFootnoteBySnapshot(footnote, knownFootnoteSnapshots)) return false;
+      return true;
+    });
+  }
+
+  function choosePrimaryAddedFootnote(addedFootnotes) {
+    if (addedFootnotes.length === 0) return null;
+    const emptyAddedFootnote = addedFootnotes.find((footnote) => !String(footnote.content || "").trim());
+    return emptyAddedFootnote || addedFootnotes[0];
+  }
+
   function getFootnoteFingerprint(footnote) {
     return normalizeForSearch(normalizeLineEndings(footnote?.content || "").replace(/\s+/g, " "));
   }
@@ -282,6 +361,19 @@
       definitionStart: footnote.definitionStart,
       firstReferenceStart: footnote.firstReferenceStart,
     };
+  }
+
+  function isKnownFootnoteBySnapshot(footnote, snapshots) {
+    if (!Array.isArray(snapshots) || snapshots.length === 0) return false;
+    if (typeof footnote.firstReferenceStart === "number") {
+      const referenceMatch = snapshots.some((snapshot) => snapshot.firstReferenceStart === footnote.firstReferenceStart);
+      if (referenceMatch) return true;
+    }
+    const fingerprint = getFootnoteFingerprint(footnote);
+    if (fingerprint) {
+      return snapshots.some((snapshot) => snapshot.contentFingerprint === fingerprint);
+    }
+    return false;
   }
 
   function closestFootnote(candidates, snapshot) {
@@ -307,22 +399,51 @@
     }, null)?.footnote || candidates[0];
   }
 
+  function resolveFootnoteFromSnapshot(footnotes, snapshot, options = {}) {
+    if (!snapshot) return null;
+    const allowDisplayFallback = options.allowDisplayFallback !== false;
+
+    if (typeof snapshot.firstReferenceStart === "number") {
+      const exactReferenceMatch = footnotes.find((footnote) => footnote.firstReferenceStart === snapshot.firstReferenceStart);
+      if (exactReferenceMatch) return exactReferenceMatch;
+
+      const nearbyReferenceMatches = footnotes.filter((footnote) => {
+        return typeof footnote.firstReferenceStart === "number"
+          && Math.abs(footnote.firstReferenceStart - snapshot.firstReferenceStart) <= 8;
+      });
+      const nearbyReferenceMatch = closestFootnote(nearbyReferenceMatches, snapshot);
+      if (nearbyReferenceMatch) return nearbyReferenceMatch;
+    }
+
+    if (snapshot.contentFingerprint) {
+      const contentMatches = footnotes.filter((footnote) => getFootnoteFingerprint(footnote) === snapshot.contentFingerprint);
+      const matched = closestFootnote(contentMatches, snapshot);
+      if (matched) return matched;
+    }
+
+    if (allowDisplayFallback && Number.isFinite(snapshot.displayNumber)) {
+      const displayMatch = footnotes.find((footnote) => (footnote.displayNumber || footnote.index) === snapshot.displayNumber);
+      if (displayMatch) return displayMatch;
+    }
+
+    return null;
+  }
+
   function resolveActiveFootnoteId(footnotes, savedState = {}, fallbackId = null) {
     const activeId = savedState.activeId || fallbackId;
+    const snapshot = savedState.activeSnapshot || null;
+    const strongSnapshotMatch = resolveFootnoteFromSnapshot(footnotes, snapshot, { allowDisplayFallback: false });
+    if (strongSnapshotMatch) {
+      return strongSnapshotMatch.id;
+    }
+
     if (activeId && footnotes.some((footnote) => footnote.id === activeId)) {
       return activeId;
     }
 
-    const snapshot = savedState.activeSnapshot || null;
-    if (snapshot?.contentFingerprint) {
-      const contentMatches = footnotes.filter((footnote) => getFootnoteFingerprint(footnote) === snapshot.contentFingerprint);
-      const matched = closestFootnote(contentMatches, snapshot);
-      if (matched) return matched.id;
-    }
-
-    if (Number.isFinite(snapshot?.displayNumber)) {
-      const displayMatch = footnotes.find((footnote) => (footnote.displayNumber || footnote.index) === snapshot.displayNumber);
-      if (displayMatch) return displayMatch.id;
+    const snapshotMatch = resolveFootnoteFromSnapshot(footnotes, snapshot);
+    if (snapshotMatch) {
+      return snapshotMatch.id;
     }
 
     return activeId || null;
@@ -536,6 +657,12 @@
     return parsed.references.find((reference) => offset >= reference.start && offset <= reference.end) || null;
   }
 
+  function findDefinitionAtOffset(parsed, offset) {
+    return parsed.footnotes.find((footnote) => {
+      return offset >= footnote.definitionStart && offset <= footnote.definitionEnd;
+    }) || null;
+  }
+
   function findReferenceNearOffsetOnLine(parsed, offset) {
     const line = lineIndexFromOffset(parsed.lineStarts, offset) + 1;
     const sameLine = parsed.references.filter((reference) => reference.line === line);
@@ -561,9 +688,12 @@
         getStrings,
         normalizeLanguageTag,
         parseFootnotes,
+        orderFootnotesByReference,
+        detectAddedFootnotes,
         resolveActiveFootnoteId,
         replaceFootnoteContent,
         findReferenceAtOffset,
+        findDefinitionAtOffset,
       };
     }
     return;
@@ -580,7 +710,10 @@
         parseFootnotes,
         replaceFootnoteContent,
         findReferenceAtOffset,
+        findDefinitionAtOffset,
         findReferenceNearOffsetOnLine,
+        orderFootnotesByReference,
+        detectAddedFootnotes,
         filterFootnotes,
         findFootnoteSearchResults,
         formatCharacterCount,
@@ -600,7 +733,7 @@
     codemirrorView = null;
   }
 
-  const { ItemView, MarkdownView, Notice, Plugin } = obsidian;
+  const { ItemView, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } = obsidian;
   const { StateEffect, StateField } = codemirrorState || {};
   const { Decoration, EditorView } = codemirrorView || {};
   const flashFootnoteReferenceEffect = StateEffect?.define?.();
@@ -658,18 +791,23 @@
 
   class BetterFootnotePlugin extends Plugin {
     async onload() {
+      this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
       this.views = new Set();
       this.lastMarkdownFile = null;
       this.cursorSyncTimer = null;
       this.flashSelectionTimer = null;
+      this.pendingTidyKeys = new Set();
+      this.tidyMissingNoticeShown = false;
+      this.suppressCursorSyncUntil = 0;
       const strings = getStrings();
 
       this.registerView(VIEW_TYPE, (leaf) => new BetterFootnoteView(leaf, this));
+      this.addSettingTab(new BetterFootnoteSettingTab(this.app, this));
       if (footnoteReferenceHighlightField) {
         this.registerEditorExtension(footnoteReferenceHighlightField);
       }
 
-      this.addRibbonIcon("file-signature", strings.ribbonOpen, () => {
+      this.addRibbonIcon(PLUGIN_ICON, strings.ribbonOpen, () => {
         this.activateView();
       });
 
@@ -702,6 +840,11 @@
       if (this.flashSelectionTimer !== null) {
         window.clearTimeout(this.flashSelectionTimer);
       }
+      this.pendingTidyKeys.clear();
+    }
+
+    async saveSettings() {
+      await this.saveData(this.settings);
     }
 
     async activateView() {
@@ -753,6 +896,9 @@
     }
 
     syncCursorToViews() {
+      if (Date.now() < this.suppressCursorSyncUntil) {
+        return;
+      }
       if (document.activeElement?.closest?.(".better-footnote")) {
         return;
       }
@@ -765,12 +911,119 @@
       const parsed = parseFootnotes(text);
       const offset = getEditorOffset(editor, text);
       const reference = findReferenceAtOffset(parsed, offset) || findReferenceNearOffsetOnLine(parsed, offset);
-      if (!reference) return;
+      const definition = reference ? null : findDefinitionAtOffset(parsed, offset);
+      const footnoteId = reference?.id || definition?.id || null;
+      if (!footnoteId) return;
 
       for (const view of this.views) {
         if (view.file?.path === markdownView.file?.path) {
-          view.focusFootnote(reference.id, { scroll: true, fromCursor: true });
+          view.focusFootnote(footnoteId, {
+            scroll: true,
+            scrollBlock: "start",
+            fromCursor: true,
+            expandIfClipped: Boolean(reference),
+            autoExpandSource: "sync",
+          });
         }
+      }
+    }
+
+    suppressCursorSyncFromSidebarJump() {
+      this.suppressCursorSyncUntil = Date.now() + SIDEBAR_JUMP_CURSOR_SUPPRESS_MS;
+    }
+
+    getTidyFootnotesCommandId() {
+      const configuredId = String(this.settings?.tidyCommandId || "").trim();
+      if (configuredId) return configuredId;
+
+      const commands = this.app.commands?.commands || {};
+      const candidates = Object.entries(commands).filter(([id, command]) => {
+        const haystack = `${id} ${command?.name || ""}`.toLowerCase();
+        return haystack.includes("tidy") && haystack.includes("footnote");
+      });
+      candidates.sort(([leftId, leftCommand], [rightId, rightCommand]) => {
+        const left = `${leftId} ${leftCommand?.name || ""}`.toLowerCase();
+        const right = `${rightId} ${rightCommand?.name || ""}`.toLowerCase();
+        const leftScore = (leftId.toLowerCase().includes("tidy") ? 2 : 0) + (leftId.toLowerCase().includes("footnote") ? 2 : 0);
+        const rightScore = (rightId.toLowerCase().includes("tidy") ? 2 : 0) + (rightId.toLowerCase().includes("footnote") ? 2 : 0);
+        if (leftScore !== rightScore) return rightScore - leftScore;
+        return left.localeCompare(right);
+      });
+      return candidates[0]?.[0] || "";
+    }
+
+    scheduleTidyFootnotesForNewFootnote(file, footnote) {
+      if (!this.settings?.autoTidyAfterNewFootnote || !file || !footnote) return;
+      const key = `${file.path}:new:${footnote.id}:${footnote.firstReferenceStart ?? footnote.definitionStart}`;
+      if (this.pendingTidyKeys.has(key)) return;
+      this.pendingTidyKeys.add(key);
+      this.dismissObsidianFootnotePopovers();
+      window.setTimeout(() => {
+        this.pendingTidyKeys.delete(key);
+        this.dismissObsidianFootnotePopovers();
+        this.runTidyFootnotes(file);
+        this.dismissObsidianFootnotePopovers();
+        this.refreshViews(file);
+      }, AUTO_TIDY_DELAY_MS);
+    }
+
+    dismissObsidianFootnotePopovers() {
+      if (typeof document === "undefined") return;
+      const createEscapeEvent = () => new KeyboardEvent("keydown", {
+        key: "Escape",
+        code: "Escape",
+        keyCode: 27,
+        which: 27,
+        bubbles: true,
+        cancelable: true,
+      });
+      document.activeElement?.dispatchEvent?.(createEscapeEvent());
+      document.dispatchEvent(createEscapeEvent());
+
+      const selectors = [
+        ".hover-popover",
+        ".popover.hover-popover",
+        ".mod-popover",
+        ".footnote-popover",
+        ".cm-tooltip.cm-tooltip-hover",
+      ];
+      for (const popover of document.querySelectorAll(selectors.join(","))) {
+        if (popover.closest?.(".better-footnote")) continue;
+        if (typeof popover.detach === "function") {
+          popover.detach();
+        } else {
+          popover.remove();
+        }
+      }
+    }
+
+    runTidyFootnotes(file = null) {
+      const strings = getStrings();
+      const commandId = this.getTidyFootnotesCommandId();
+      const command = commandId ? this.app.commands?.commands?.[commandId] : null;
+      if (!command) {
+        if (!this.tidyMissingNoticeShown) {
+          this.tidyMissingNoticeShown = true;
+          new Notice(strings.tidyCommandMissing);
+        }
+        return false;
+      }
+
+      try {
+        const markdownView = this.findMarkdownViewForFile(file || this.lastMarkdownFile) || this.getActiveMarkdownView();
+        if (command.editorCallback) {
+          if (!markdownView?.editor) {
+            new Notice(strings.tidyCommandNoEditor);
+            return false;
+          }
+          command.editorCallback(markdownView.editor, markdownView);
+          return true;
+        }
+        this.app.commands.executeCommandById(commandId);
+        return true;
+      } catch (error) {
+        new Notice(t(strings, "tidyCommandFailed", { message: error.message || String(error) }));
+        return false;
       }
     }
 
@@ -937,6 +1190,43 @@
     }
   }
 
+  class BetterFootnoteSettingTab extends PluginSettingTab {
+    constructor(app, plugin) {
+      super(app, plugin);
+      this.plugin = plugin;
+    }
+
+    display() {
+      const strings = getStrings();
+      this.containerEl.empty();
+      this.containerEl.createEl("h2", { text: strings.settingsTitle });
+
+      new Setting(this.containerEl)
+        .setName(strings.autoTidyName)
+        .setDesc(strings.autoTidyDesc)
+        .addToggle((toggle) => {
+          toggle
+            .setValue(Boolean(this.plugin.settings.autoTidyAfterNewFootnote))
+            .onChange(async (value) => {
+              this.plugin.settings.autoTidyAfterNewFootnote = value;
+              await this.plugin.saveSettings();
+            });
+        });
+
+      new Setting(this.containerEl)
+        .setName(strings.tidyInstallName)
+        .setDesc(strings.tidyInstallDesc)
+        .addButton((button) => {
+          button
+            .setButtonText(strings.tidyInstallButton)
+            .onClick(() => {
+              window.open(TIDY_FOOTNOTES_PLUGIN_URL);
+            });
+        });
+
+    }
+  }
+
   class BetterFootnoteView extends ItemView {
     constructor(leaf, plugin) {
       super(leaf);
@@ -958,6 +1248,7 @@
       this.suppressTextareaFocusJump = false;
       this.expandedFootnoteIds = new Set();
       this.searchExpandedFootnoteIds = new Set();
+      this.syncExpandedFootnoteIds = new Set();
     }
 
     getViewType() {
@@ -969,7 +1260,7 @@
     }
 
     getIcon() {
-      return "file-signature";
+      return PLUGIN_ICON;
     }
 
     async onOpen() {
@@ -1025,6 +1316,10 @@
         searchMatchIndex: this.searchMatchIndex,
         expandedIds: Array.from(this.expandedFootnoteIds),
         searchExpandedIds: Array.from(this.searchExpandedFootnoteIds),
+        syncExpandedIds: Array.from(this.syncExpandedFootnoteIds),
+        knownFootnoteIds: this.currentFootnotes.map((footnote) => footnote.id),
+        knownFootnoteSnapshots: this.currentFootnotes.map((footnote) => createFootnoteSnapshot(footnote)),
+        autoFocusRendersRemaining: currentState.autoFocusRendersRemaining || 0,
       });
     }
 
@@ -1096,21 +1391,54 @@
       }
 
       const parsed = parseFootnotes(text);
-      this.currentFootnotes = parsed.footnotes;
+      const orderedFootnotes = parsed.footnotes;
       const savedState = this.stateByFile.get(file.path) || {};
+      const previousKnownFootnoteIds = Array.isArray(savedState.knownFootnoteIds)
+        ? new Set(savedState.knownFootnoteIds)
+        : null;
+      const addedFootnote = choosePrimaryAddedFootnote(
+        detectAddedFootnotes(orderedFootnotes, previousKnownFootnoteIds, savedState.knownFootnoteSnapshots),
+      );
+      this.currentFootnotes = orderedFootnotes;
       this.expandedFootnoteIds = new Set(savedState.expandedIds || []);
       this.searchExpandedFootnoteIds = new Set(savedState.searchExpandedIds || []);
-      this.activeFootnoteId = resolveActiveFootnoteId(parsed.footnotes, savedState, this.activeFootnoteId);
+      this.syncExpandedFootnoteIds = new Set(savedState.syncExpandedIds || []);
+      this.activeFootnoteId = addedFootnote?.id || resolveActiveFootnoteId(orderedFootnotes, savedState, this.activeFootnoteId);
       this.searchInputEl.value = savedState.searchQuery || "";
       this.searchMatchIndex = typeof savedState.searchMatchIndex === "number" ? savedState.searchMatchIndex : -1;
       clearSearchButton.style.display = this.searchInputEl.value ? "" : "none";
 
+      const nextState = {
+        ...savedState,
+        activeId: this.activeFootnoteId,
+        activeSnapshot: createFootnoteSnapshot(
+          orderedFootnotes.find((footnote) => footnote.id === this.activeFootnoteId),
+        ) || savedState.activeSnapshot || null,
+        knownFootnoteIds: orderedFootnotes.map((footnote) => footnote.id),
+        knownFootnoteSnapshots: orderedFootnotes.map((footnote) => createFootnoteSnapshot(footnote)),
+      };
+      if (addedFootnote) {
+        nextState.activeId = addedFootnote.id;
+        nextState.activeSnapshot = createFootnoteSnapshot(addedFootnote);
+        nextState.autoFocusRendersRemaining = Math.max(
+          Number(savedState.autoFocusRendersRemaining || 0),
+          1,
+        );
+        this.plugin.scheduleTidyFootnotesForNewFootnote(file, addedFootnote);
+      }
+      this.stateByFile.set(file.path, nextState);
+
       const renderFilteredList = () => {
         clearSearchButton.style.display = this.searchInputEl.value ? "" : "none";
-        this.renderFootnoteList(parsed.footnotes, strings, subtitleEl, file.basename);
+        this.renderFootnoteList(orderedFootnotes, strings, subtitleEl, file.basename);
       };
 
-      if (parsed.footnotes.length === 0) {
+      if (orderedFootnotes.length === 0) {
+        this.stateByFile.set(file.path, {
+          ...nextState,
+          knownFootnoteIds: [],
+          knownFootnoteSnapshots: [],
+        });
         subtitleEl.setText(t(strings, "footnoteCount", {
           file: file.basename,
           count: formatNumber(0),
@@ -1164,10 +1492,26 @@
       this.searchPreviousButton.addEventListener("click", () => this.navigateSearch(-1));
       this.searchNextButton.addEventListener("click", () => this.navigateSearch(1));
 
+      const waitForTidyBeforeFocus = Boolean(addedFootnote && this.plugin.settings?.autoTidyAfterNewFootnote);
+
       renderFilteredList();
       this.listEl.scrollTop = savedState.scrollTop || 0;
       if (this.activeFootnoteId) {
-        this.focusFootnote(this.activeFootnoteId, { scroll: true, focusEditor: false });
+        const currentState = this.stateByFile.get(file.path) || {};
+        const remainingFocusRenders = Math.max(0, Number(currentState.autoFocusRendersRemaining || 0));
+        this.focusFootnote(this.activeFootnoteId, {
+          scroll: true,
+          scrollBlock: "start",
+          focusEditor: remainingFocusRenders > 0 && !waitForTidyBeforeFocus,
+          expandIfClipped: remainingFocusRenders > 0,
+          autoExpandSource: remainingFocusRenders > 0 ? "sync" : "",
+        });
+        if (remainingFocusRenders > 0 && !waitForTidyBeforeFocus) {
+          this.stateByFile.set(file.path, {
+            ...this.stateByFile.get(file.path),
+            autoFocusRendersRemaining: remainingFocusRenders - 1,
+          });
+        }
       }
     }
 
@@ -1307,12 +1651,18 @@
         this.expandedFootnoteIds.add(footnoteId);
         if (options.source === "search") {
           this.searchExpandedFootnoteIds.add(footnoteId);
+          this.syncExpandedFootnoteIds.delete(footnoteId);
+        } else if (options.source === "sync") {
+          this.syncExpandedFootnoteIds.add(footnoteId);
+          this.searchExpandedFootnoteIds.delete(footnoteId);
         } else {
           this.searchExpandedFootnoteIds.delete(footnoteId);
+          this.syncExpandedFootnoteIds.delete(footnoteId);
         }
       } else {
         this.expandedFootnoteIds.delete(footnoteId);
         this.searchExpandedFootnoteIds.delete(footnoteId);
+        this.syncExpandedFootnoteIds.delete(footnoteId);
       }
       if (this.file) {
         const currentState = this.stateByFile.get(this.file.path) || {};
@@ -1320,16 +1670,25 @@
           ...currentState,
           expandedIds: Array.from(this.expandedFootnoteIds),
           searchExpandedIds: Array.from(this.searchExpandedFootnoteIds),
+          syncExpandedIds: Array.from(this.syncExpandedFootnoteIds),
         });
       }
       const item = this.findFootnoteItem(footnoteId);
       if (item) {
         item.toggleClass("is-expanded", expanded);
+        const textarea = item.querySelector(".bfw-editor");
+        this.applyTextareaHeight(textarea, expanded);
         const button = item.querySelector(".bfw-expand-button");
         const strings = getStrings();
         if (button) {
           button.setText(expanded ? "△" : "▽");
           button.setAttr("title", expanded ? strings.collapseFootnote : strings.expandFootnote);
+          if (!expanded && textarea) {
+            window.requestAnimationFrame(() => {
+              const hasHiddenContent = textarea.scrollHeight > textarea.clientHeight + 2;
+              button.toggleClass("is-hidden", !hasHiddenContent);
+            });
+          }
         }
       }
     }
@@ -1340,6 +1699,15 @@
         this.setFootnoteExpanded(footnoteId, false);
       }
       this.searchExpandedFootnoteIds.clear();
+    }
+
+    collapseSyncExpandedFootnotes(exceptFootnoteId = null) {
+      const ids = Array.from(this.syncExpandedFootnoteIds);
+      for (const footnoteId of ids) {
+        if (footnoteId !== exceptFootnoteId) {
+          this.setFootnoteExpanded(footnoteId, false);
+        }
+      }
     }
 
     applyTextareaHeight(textarea, expanded) {
@@ -1371,6 +1739,15 @@
       });
     }
 
+    hasHiddenTextareaContent(textarea) {
+      if (!textarea) return false;
+      const previousHeight = textarea.style.height;
+      textarea.style.height = "";
+      const hasHiddenContent = textarea.scrollHeight > textarea.clientHeight + 2;
+      textarea.style.height = previousHeight;
+      return hasHiddenContent;
+    }
+
     renderFootnoteItem(footnote, strings = getStrings()) {
       const itemEl = this.listEl.createDiv({ cls: "bfw-item" });
       itemEl.dataset.footnoteId = footnote.id;
@@ -1383,8 +1760,13 @@
       }
 
       const headerEl = itemEl.createDiv({ cls: "bfw-item-header" });
-      const idEl = headerEl.createDiv({ cls: "bfw-id", text: String(footnote.displayNumber || footnote.index) });
+      const idBlockEl = headerEl.createDiv({ cls: "bfw-id-block" });
+      const idEl = idBlockEl.createDiv({ cls: "bfw-id", text: String(footnote.id) });
       idEl.setAttr("title", `[^${footnote.id}]`);
+      if (footnote.referenceCount === 0) {
+        const unreferencedEl = idBlockEl.createSpan({ cls: "bfw-unreferenced", text: strings.unreferenced });
+        unreferencedEl.setAttr("title", strings.noReferenceFound ? t(strings, "noReferenceFound", { id: footnote.id }) : strings.unreferenced);
+      }
       const actionsEl = headerEl.createDiv({ cls: "bfw-actions" });
       const definitionButton = actionsEl.createEl("button", {
         cls: "bfw-button bfw-definition-button",
@@ -1508,12 +1890,21 @@
 
     activateFootnoteFromSidebar(footnoteId) {
       this.focusFootnote(footnoteId, { scroll: false, focusEditor: false });
-      this.plugin.jumpToFootnoteReference(this.file, footnoteId, { focus: false, flash: true });
+      this.plugin.suppressCursorSyncFromSidebarJump();
+      const footnote = this.currentFootnotes.find((item) => item.id === footnoteId);
+      if (footnote?.referenceCount > 0) {
+        this.plugin.jumpToFootnoteReference(this.file, footnoteId, { focus: false, flash: true });
+      } else {
+        this.plugin.jumpToFootnoteDefinition(this.file, footnoteId, { focus: false });
+      }
       this.captureState();
     }
 
     focusFootnote(footnoteId, options = {}) {
       this.activeFootnoteId = footnoteId;
+      if (options.autoExpandSource === "sync") {
+        this.collapseSyncExpandedFootnotes(footnoteId);
+      }
       if (this.file) {
         const currentState = this.stateByFile.get(this.file.path) || {};
         const activeFootnote = this.currentFootnotes.find((footnote) => footnote.id === footnoteId);
@@ -1535,11 +1926,23 @@
 
       const target = Array.from(items).find((item) => item.dataset.footnoteId === footnoteId);
       if (!target) return;
+      const textarea = target.querySelector(".bfw-editor");
+      if (options.expandIfClipped && textarea && !this.isFootnoteExpanded(footnoteId) && this.hasHiddenTextareaContent(textarea)) {
+        this.setFootnoteExpanded(footnoteId, true, { source: options.autoExpandSource || "sync" });
+        this.applyTextareaHeight(textarea, true);
+      } else if (textarea && this.isFootnoteExpanded(footnoteId)) {
+        this.applyTextareaHeight(textarea, true);
+      }
       if (options.scroll) {
-        target.scrollIntoView({ block: "nearest" });
+        if (options.scrollBlock === "start" && this.listEl) {
+          const top = Math.max(0, target.offsetTop - this.listEl.offsetTop);
+          this.listEl.scrollTo({ top, behavior: "auto" });
+        } else {
+          target.scrollIntoView({ block: options.scrollBlock || "nearest" });
+        }
       }
       if (options.focusEditor) {
-        target.querySelector(".bfw-editor")?.focus();
+        textarea?.focus();
       }
     }
   }

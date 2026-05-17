@@ -42,6 +42,8 @@ assert.equal(unchanged.changed, false);
 
 const cursor = sample.indexOf("[^note]") + 2;
 assert.equal(parser.findReferenceAtOffset(parsed, cursor)?.id, "note");
+const definitionCursor = sample.indexOf("第二行");
+assert.equal(parser.findDefinitionAtOffset(parsed, definitionCursor)?.id, "note");
 
 assert.equal(parser.normalizeLanguageTag("zh-CN"), "zh");
 assert.equal(parser.normalizeLanguageTag("ja_JP"), "ja");
@@ -73,6 +75,36 @@ assert.deepEqual(
   ["a", "a", "b"],
 );
 
+const outOfOrder = parser.parseFootnotes([
+  "先引用新增脚注[^52]，再引用旧脚注[^49]。",
+  "",
+  "[^49]: 旧脚注",
+  "[^52]: 新脚注",
+].join("\n"));
+assert.deepEqual(outOfOrder.footnotes.map((footnote) => footnote.id), ["49", "52"]);
+assert.deepEqual(parser.orderFootnotesByReference(outOfOrder.footnotes).map((footnote) => footnote.id), ["52", "49"]);
+assert.deepEqual(
+  parser.detectAddedFootnotes(parser.orderFootnotesByReference(outOfOrder.footnotes), new Set(["49"])).map((footnote) => footnote.id),
+  ["52"],
+);
+
+const renamedByTidy = parser.parseFootnotes([
+  "先引用新增脚注[^1]，再引用旧脚注[^2]。",
+  "",
+  "[^1]: 新脚注",
+  "[^2]: 旧脚注",
+].join("\n"));
+assert.deepEqual(
+  parser.detectAddedFootnotes(renamedByTidy.footnotes, new Set(["49", "52"]), outOfOrder.footnotes.map((footnote) => ({
+    id: footnote.id,
+    displayNumber: footnote.displayNumber,
+    contentFingerprint: footnote.content,
+    definitionStart: footnote.definitionStart,
+    firstReferenceStart: footnote.firstReferenceStart,
+  }))).map((footnote) => footnote.id),
+  [],
+);
+
 const beforeTidy = parser.parseFootnotes([
   "正文[^10]。",
   "",
@@ -94,5 +126,42 @@ const rememberedState = {
   },
 };
 assert.equal(parser.resolveActiveFootnoteId(afterTidy.footnotes, rememberedState, "10"), "1");
+
+const beforeTidyWithStaleId = parser.parseFootnotes([
+  "正文旧脚注[^48]。",
+  "正文新增脚注[^52]。",
+  "正文旧脚注[^49]。",
+  "正文旧脚注[^50]。",
+  "",
+  "[^48]: 旧 48",
+  "[^49]: 旧 49",
+  "[^50]: 旧 50",
+  "[^52]: ",
+].join("\n"));
+const afterTidyWithStaleId = parser.parseFootnotes([
+  "正文旧脚注[^48]。",
+  "正文新增脚注[^49]。",
+  "正文旧脚注[^50]。",
+  "正文旧脚注[^52]。",
+  "",
+  "[^48]: 旧 48",
+  "[^49]: ",
+  "[^50]: 旧 49",
+  "[^52]: 旧 50",
+].join("\n"));
+const insertedBeforeTidy = beforeTidyWithStaleId.footnotes.find((footnote) => footnote.id === "52");
+assert.equal(
+  parser.resolveActiveFootnoteId(afterTidyWithStaleId.footnotes, {
+    activeId: "52",
+    activeSnapshot: {
+      id: "52",
+      displayNumber: insertedBeforeTidy.displayNumber,
+      contentFingerprint: "",
+      definitionStart: insertedBeforeTidy.definitionStart,
+      firstReferenceStart: insertedBeforeTidy.firstReferenceStart,
+    },
+  }, "52"),
+  "49",
+);
 
 console.log("parser tests passed");
