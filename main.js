@@ -11,8 +11,11 @@
 
   const DEFAULT_SETTINGS = {
     autoTidyAfterNewFootnote: false,
+    countMode: "auto",
     tidyCommandId: "",
   };
+
+  const COUNT_MODES = new Set(["auto", "characters", "words"]);
 
   const I18N = {
     en: {
@@ -26,6 +29,7 @@
       filteredFootnoteCount: "{file} · {visible}/{total} footnotes · {matches} matches",
       searchPlaceholder: "Search footnotes",
       clearSearch: "Clear",
+      resumeSearch: "Resume search",
       noSearchResults: "No footnotes match your search.",
       previousMatch: "Previous match",
       nextMatch: "Next match",
@@ -37,7 +41,8 @@
       saved: "Saved",
       saving: "Saving...",
       saveError: "Error: {message}",
-      chars: "{count} chars",
+      characters: "{count} character{plural}",
+      words: "{count} word{plural}",
       noActiveFileSave: "No active Markdown file.",
       openSourceForReference: "Open the source note to jump to a footnote reference.",
       openSourceForDefinition: "Open the source note to jump to a footnote definition.",
@@ -47,6 +52,11 @@
       commandOpen: "Open Better Footnote",
       ribbonOpen: "Open Better Footnote",
       settingsTitle: "Better Footnote",
+      countModeName: "Footnote count mode",
+      countModeDesc: "Auto follows the plugin language: English counts words; Chinese, Japanese, and Korean count characters. Choose a different mode when your writing language differs from the interface language.",
+      countModeAuto: "Auto",
+      countModeCharacters: "Characters",
+      countModeWords: "Words",
       autoTidyName: "Auto tidy after a new footnote",
       autoTidyDesc: "Requires Tidy Footnotes. When Better Footnote detects a newly inserted footnote, it runs Tidy Footnotes automatically. This closes Obsidian's built-in floating footnote editor; use the Better Footnote sidebar to edit the footnote.",
       tidyInstallName: "Tidy Footnotes integration",
@@ -67,6 +77,7 @@
       filteredFootnoteCount: "{file} · 显示 {visible}/{total} 条脚注 · {matches} 处匹配",
       searchPlaceholder: "搜索脚注",
       clearSearch: "清除",
+      resumeSearch: "恢复搜索",
       noSearchResults: "没有匹配的脚注。",
       previousMatch: "上一处匹配",
       nextMatch: "下一处匹配",
@@ -78,7 +89,8 @@
       saved: "已保存",
       saving: "保存中...",
       saveError: "错误：{message}",
-      chars: "{count} 字",
+      characters: "{count} 字",
+      words: "{count} 词",
       noActiveFileSave: "没有打开 Markdown 文件。",
       openSourceForReference: "请先打开源笔记，再跳到脚注引用位置。",
       openSourceForDefinition: "请先打开源笔记，再跳到脚注定义位置。",
@@ -88,6 +100,11 @@
       commandOpen: "打开 Better Footnote",
       ribbonOpen: "打开 Better Footnote",
       settingsTitle: "Better Footnote",
+      countModeName: "脚注计数方式",
+      countModeDesc: "自动模式会跟随插件界面语言：英文统计单词数，中文、日文、韩文统计字数。也可以根据写作语言，选择不同于界面语言的计数方式。",
+      countModeAuto: "自动",
+      countModeCharacters: "字数",
+      countModeWords: "单词数",
       autoTidyName: "新增脚注后自动整理编号",
       autoTidyDesc: "需要先安装并启用 Tidy Footnotes。Better Footnote 检测到新增脚注后，会自动运行 Tidy Footnotes。启用后会关闭 Obsidian 自带的脚注悬浮编辑框，请在 Better Footnote 侧栏中编辑脚注。",
       tidyInstallName: "Tidy Footnotes 集成",
@@ -108,6 +125,7 @@
       filteredFootnoteCount: "{file} · {visible}/{total} 件を表示 · {matches} 件一致",
       searchPlaceholder: "脚注を検索",
       clearSearch: "クリア",
+      resumeSearch: "検索に戻る",
       noSearchResults: "一致する脚注がありません。",
       previousMatch: "前の一致",
       nextMatch: "次の一致",
@@ -119,7 +137,8 @@
       saved: "保存済み",
       saving: "保存中...",
       saveError: "エラー: {message}",
-      chars: "{count}字",
+      characters: "{count}字",
+      words: "{count}語",
       noActiveFileSave: "Markdown ファイルが開かれていません。",
       openSourceForReference: "脚注参照へ移動するには、元のノートを開いてください。",
       openSourceForDefinition: "脚注定義へ移動するには、元のノートを開いてください。",
@@ -129,6 +148,11 @@
       commandOpen: "Better Footnote を開く",
       ribbonOpen: "Better Footnote を開く",
       settingsTitle: "Better Footnote",
+      countModeName: "脚注のカウント方式",
+      countModeDesc: "自動ではプラグインの表示言語に従います。英語は単語数、中国語・日本語・韓国語は文字数を数えます。執筆言語が UI と異なる場合は、別の方式を選べます。",
+      countModeAuto: "自動",
+      countModeCharacters: "文字数",
+      countModeWords: "単語数",
       autoTidyName: "新しい脚注の後に自動整理",
       autoTidyDesc: "Tidy Footnotes のインストールと有効化が必要です。Better Footnote は新しい脚注を検出すると、Tidy Footnotes を自動実行します。有効にすると Obsidian 標準の脚注フローティング編集欄を閉じるため、脚注は Better Footnote サイドバーで編集してください。",
       tidyInstallName: "Tidy Footnotes 連携",
@@ -149,6 +173,7 @@
       filteredFootnoteCount: "{file} · {visible}/{total}개 표시 · {matches}개 일치",
       searchPlaceholder: "각주 검색",
       clearSearch: "지우기",
+      resumeSearch: "검색 재개",
       noSearchResults: "일치하는 각주가 없습니다.",
       previousMatch: "이전 일치",
       nextMatch: "다음 일치",
@@ -160,7 +185,8 @@
       saved: "저장됨",
       saving: "저장 중...",
       saveError: "오류: {message}",
-      chars: "{count}자",
+      characters: "{count}자",
+      words: "{count}단어",
       noActiveFileSave: "열린 Markdown 파일이 없습니다.",
       openSourceForReference: "각주 참조로 이동하려면 원본 노트를 여세요.",
       openSourceForDefinition: "각주 정의로 이동하려면 원본 노트를 여세요.",
@@ -170,6 +196,11 @@
       commandOpen: "Better Footnote 열기",
       ribbonOpen: "Better Footnote 열기",
       settingsTitle: "Better Footnote",
+      countModeName: "각주 계산 방식",
+      countModeDesc: "자동은 플러그인 표시 언어를 따릅니다. 영어는 단어 수, 중국어·일본어·한국어는 글자 수를 셉니다. 작성 언어가 UI 언어와 다르면 다른 계산 방식을 선택할 수 있습니다.",
+      countModeAuto: "자동",
+      countModeCharacters: "글자 수",
+      countModeWords: "단어 수",
       autoTidyName: "새 각주 뒤 자동 정리",
       autoTidyDesc: "Tidy Footnotes를 먼저 설치하고 활성화해야 합니다. Better Footnote가 새 각주를 감지하면 Tidy Footnotes를 자동으로 실행합니다. 이 기능을 켜면 Obsidian 기본 각주 플로팅 편집 창을 닫으므로, 각주는 Better Footnote 사이드바에서 편집하세요.",
       tidyInstallName: "Tidy Footnotes 연동",
@@ -240,8 +271,44 @@
     return Number(value).toLocaleString(NUMBER_LOCALES[getUiLanguage()] || NUMBER_LOCALES.en);
   }
 
+  function normalizeCountMode(mode) {
+    return COUNT_MODES.has(mode) ? mode : "auto";
+  }
+
+  function resolveCountMode(mode = "auto", language = getUiLanguage()) {
+    const normalizedMode = normalizeCountMode(mode);
+    if (normalizedMode !== "auto") return normalizedMode;
+    return normalizeLanguageTag(language) === "en" ? "words" : "characters";
+  }
+
+  function countCharacters(text) {
+    return Array.from(String(text ?? "").replace(/\s+/g, "")).length;
+  }
+
+  function countWords(text) {
+    const matches = String(text ?? "").match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu);
+    return matches ? matches.length : 0;
+  }
+
+  function countFootnoteText(text, mode = "auto", language = getUiLanguage()) {
+    return resolveCountMode(mode, language) === "words" ? countWords(text) : countCharacters(text);
+  }
+
+  function formatFootnoteCount(text, mode = "auto", strings = getStrings(), language = getUiLanguage()) {
+    const resolvedMode = resolveCountMode(mode, language);
+    const count = countFootnoteText(text, resolvedMode, language);
+    const key = resolvedMode === "words" ? "words" : "characters";
+    return t(strings, key, {
+      count: formatNumber(count),
+      plural: count === 1 ? "" : "s",
+    });
+  }
+
   function formatCharacterCount(value, strings = getStrings()) {
-    return t(strings, "chars", { count: formatNumber(value) });
+    return t(strings, "characters", {
+      count: formatNumber(value),
+      plural: Number(value) === 1 ? "" : "s",
+    });
   }
 
   function normalizeForSearch(value) {
@@ -683,6 +750,9 @@
     if (typeof module !== "undefined" && module.exports) {
       module.exports = {
         formatCharacterCount,
+        formatFootnoteCount,
+        countFootnoteText,
+        resolveCountMode,
         filterFootnotes,
         findFootnoteSearchResults,
         getStrings,
@@ -717,6 +787,9 @@
         filterFootnotes,
         findFootnoteSearchResults,
         formatCharacterCount,
+        formatFootnoteCount,
+        countFootnoteText,
+        resolveCountMode,
         getStrings,
         normalizeLanguageTag,
         resolveActiveFootnoteId,
@@ -792,6 +865,7 @@
   class BetterFootnotePlugin extends Plugin {
     async onload() {
       this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+      this.settings.countMode = normalizeCountMode(this.settings.countMode);
       this.views = new Set();
       this.lastMarkdownFile = null;
       this.cursorSyncTimer = null;
@@ -921,7 +995,7 @@
             scroll: true,
             scrollBlock: "start",
             fromCursor: true,
-            expandIfClipped: Boolean(reference),
+            expandIfClipped: Boolean(reference || definition),
             autoExpandSource: "sync",
           });
         }
@@ -1202,6 +1276,22 @@
       this.containerEl.createEl("h2", { text: strings.settingsTitle });
 
       new Setting(this.containerEl)
+        .setName(strings.countModeName)
+        .setDesc(strings.countModeDesc)
+        .addDropdown((dropdown) => {
+          dropdown
+            .addOption("auto", strings.countModeAuto)
+            .addOption("characters", strings.countModeCharacters)
+            .addOption("words", strings.countModeWords)
+            .setValue(normalizeCountMode(this.plugin.settings.countMode))
+            .onChange(async (value) => {
+              this.plugin.settings.countMode = normalizeCountMode(value);
+              await this.plugin.saveSettings();
+              this.plugin.refreshViews();
+            });
+        });
+
+      new Setting(this.containerEl)
         .setName(strings.autoTidyName)
         .setDesc(strings.autoTidyDesc)
         .addToggle((toggle) => {
@@ -1238,17 +1328,26 @@
       this.stateByFile = new Map();
       this.activeFootnoteId = null;
       this.listEl = null;
+      this.subtitleEl = null;
       this.searchInputEl = null;
+      this.clearSearchButton = null;
+      this.resumeSearchButton = null;
       this.searchCountEl = null;
       this.searchPreviousButton = null;
       this.searchNextButton = null;
       this.currentFootnotes = [];
+      this.searchPaused = false;
       this.searchMatches = [];
       this.searchMatchIndex = -1;
+      this.pausedSearchMatchIndex = -1;
       this.suppressTextareaFocusJump = false;
       this.expandedFootnoteIds = new Set();
       this.searchExpandedFootnoteIds = new Set();
       this.syncExpandedFootnoteIds = new Set();
+    }
+
+    formatFootnoteCountForDisplay(text, strings = getStrings()) {
+      return formatFootnoteCount(text, this.plugin.settings?.countMode || "auto", strings);
     }
 
     getViewType() {
@@ -1313,7 +1412,9 @@
         activeId,
         activeSnapshot: createFootnoteSnapshot(activeFootnote) || currentState.activeSnapshot || null,
         searchQuery,
+        searchPaused: this.searchPaused && Boolean(searchQuery.trim()),
         searchMatchIndex: this.searchMatchIndex,
+        pausedSearchMatchIndex: this.pausedSearchMatchIndex,
         expandedIds: Array.from(this.expandedFootnoteIds),
         searchExpandedIds: Array.from(this.searchExpandedFootnoteIds),
         syncExpandedIds: Array.from(this.syncExpandedFootnoteIds),
@@ -1342,6 +1443,7 @@
       refreshButton.addEventListener("click", () => this.scheduleRender(0));
 
       const subtitleEl = headerEl.createDiv({ cls: "bfw-subtitle" });
+      this.subtitleEl = subtitleEl;
       const searchRowEl = headerEl.createDiv({ cls: "bfw-search-row" });
       this.searchInputEl = searchRowEl.createEl("input", {
         cls: "bfw-search",
@@ -1351,11 +1453,18 @@
         },
       });
       this.searchInputEl.setAttr("aria-label", strings.searchPlaceholder);
+      this.resumeSearchButton = searchRowEl.createEl("button", {
+        cls: "bfw-button bfw-search-nav-button",
+        text: "↵",
+        attr: { type: "button" },
+      });
+      this.resumeSearchButton.setAttr("title", strings.resumeSearch);
       const clearSearchButton = searchRowEl.createEl("button", {
         cls: "bfw-button bfw-clear-search bfw-search-nav-button",
         text: "×",
         attr: { type: "button" },
       });
+      this.clearSearchButton = clearSearchButton;
       clearSearchButton.setAttr("title", strings.clearSearch);
       this.searchCountEl = searchRowEl.createSpan({ cls: "bfw-search-count" });
       this.searchPreviousButton = searchRowEl.createEl("button", {
@@ -1371,11 +1480,13 @@
       });
       this.searchNextButton.setAttr("title", strings.nextMatch);
       this.listEl = this.contentEl.createDiv({ cls: "bfw-list" });
+      this.updateSearchModeButtons();
 
       if (!file) {
         subtitleEl.setText(strings.noActiveFile);
         this.searchInputEl.setAttr("disabled", "true");
         clearSearchButton.setAttr("disabled", "true");
+        this.resumeSearchButton.setAttr("disabled", "true");
         this.setSearchNavDisabled(true);
         this.listEl.createDiv({ cls: "bfw-empty", text: strings.openMarkdownNote });
         return;
@@ -1405,8 +1516,12 @@
       this.syncExpandedFootnoteIds = new Set(savedState.syncExpandedIds || []);
       this.activeFootnoteId = addedFootnote?.id || resolveActiveFootnoteId(orderedFootnotes, savedState, this.activeFootnoteId);
       this.searchInputEl.value = savedState.searchQuery || "";
+      this.searchPaused = Boolean(savedState.searchPaused && this.searchInputEl.value.trim());
       this.searchMatchIndex = typeof savedState.searchMatchIndex === "number" ? savedState.searchMatchIndex : -1;
-      clearSearchButton.style.display = this.searchInputEl.value ? "" : "none";
+      this.pausedSearchMatchIndex = typeof savedState.pausedSearchMatchIndex === "number"
+        ? savedState.pausedSearchMatchIndex
+        : -1;
+      this.updateSearchModeButtons();
 
       const nextState = {
         ...savedState,
@@ -1429,7 +1544,7 @@
       this.stateByFile.set(file.path, nextState);
 
       const renderFilteredList = () => {
-        clearSearchButton.style.display = this.searchInputEl.value ? "" : "none";
+        this.updateSearchModeButtons();
         this.renderFootnoteList(orderedFootnotes, strings, subtitleEl, file.basename);
       };
 
@@ -1446,6 +1561,7 @@
         }));
         this.searchInputEl.setAttr("disabled", "true");
         clearSearchButton.setAttr("disabled", "true");
+        this.resumeSearchButton.setAttr("disabled", "true");
         this.setSearchNavDisabled(true);
         this.listEl.createDiv({ cls: "bfw-empty", text: strings.noFootnotes });
         return;
@@ -1455,11 +1571,15 @@
         if (!this.searchInputEl.value.trim()) {
           this.collapseSearchExpandedFootnotes();
         }
+        this.searchPaused = false;
+        this.pausedSearchMatchIndex = -1;
         const currentState = this.stateByFile.get(file.path) || {};
         this.stateByFile.set(file.path, {
           ...currentState,
           searchQuery: this.searchInputEl.value,
+          searchPaused: false,
           searchMatchIndex: -1,
+          pausedSearchMatchIndex: -1,
           scrollTop: 0,
         });
         this.searchMatchIndex = -1;
@@ -1474,12 +1594,16 @@
 
       clearSearchButton.addEventListener("click", () => {
         this.searchInputEl.value = "";
+        this.searchPaused = false;
+        this.pausedSearchMatchIndex = -1;
         this.collapseSearchExpandedFootnotes();
         const currentState = this.stateByFile.get(file.path) || {};
         this.stateByFile.set(file.path, {
           ...currentState,
           searchQuery: "",
+          searchPaused: false,
           searchMatchIndex: -1,
+          pausedSearchMatchIndex: -1,
           expandedIds: Array.from(this.expandedFootnoteIds),
           searchExpandedIds: [],
           scrollTop: 0,
@@ -1487,6 +1611,12 @@
         this.searchMatchIndex = -1;
         renderFilteredList();
         this.searchInputEl.focus();
+      });
+
+      this.resumeSearchButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.resumeSearchMode({ jumpToCurrentMatch: true });
       });
 
       this.searchPreviousButton.addEventListener("click", () => this.navigateSearch(-1));
@@ -1499,11 +1629,12 @@
       if (this.activeFootnoteId) {
         const currentState = this.stateByFile.get(file.path) || {};
         const remainingFocusRenders = Math.max(0, Number(currentState.autoFocusRendersRemaining || 0));
+        const shouldAutoFocusAfterRender = remainingFocusRenders > 0;
         this.focusFootnote(this.activeFootnoteId, {
-          scroll: true,
+          scroll: shouldAutoFocusAfterRender,
           scrollBlock: "start",
           focusEditor: remainingFocusRenders > 0 && !waitForTidyBeforeFocus,
-          expandIfClipped: remainingFocusRenders > 0,
+          expandIfClipped: shouldAutoFocusAfterRender,
           autoExpandSource: remainingFocusRenders > 0 ? "sync" : "",
         });
         if (remainingFocusRenders > 0 && !waitForTidyBeforeFocus) {
@@ -1515,17 +1646,113 @@
       }
     }
 
+    getRawSearchQuery() {
+      return this.searchInputEl?.value || "";
+    }
+
+    isSearchPaused() {
+      return this.searchPaused && Boolean(this.getRawSearchQuery().trim());
+    }
+
+    getEffectiveSearchQuery() {
+      return this.isSearchPaused() ? "" : this.getRawSearchQuery();
+    }
+
+    updateSearchModeButtons() {
+      const hasQuery = Boolean(this.getRawSearchQuery().trim());
+      if (this.clearSearchButton) {
+        this.clearSearchButton.style.display = hasQuery ? "" : "none";
+      }
+      if (this.resumeSearchButton) {
+        this.resumeSearchButton.style.display = hasQuery && this.searchPaused ? "" : "none";
+      }
+    }
+
+    pauseSearchModeForEditorSync() {
+      if (!this.getRawSearchQuery().trim() || this.searchPaused) return;
+      this.pausedSearchMatchIndex = this.searchMatchIndex;
+      this.searchPaused = true;
+      this.collapseSearchExpandedFootnotes();
+      if (this.file) {
+        const currentState = this.stateByFile.get(this.file.path) || {};
+        this.stateByFile.set(this.file.path, {
+          ...currentState,
+          searchQuery: this.getRawSearchQuery(),
+          searchPaused: true,
+          searchMatchIndex: this.searchMatchIndex,
+          pausedSearchMatchIndex: this.pausedSearchMatchIndex,
+          searchExpandedIds: [],
+        });
+      }
+      this.updateSearchModeButtons();
+      this.renderFootnoteList(this.currentFootnotes, getStrings(), this.subtitleEl, this.file?.basename || "");
+    }
+
+    resumeSearchMode(options = {}) {
+      if (!this.getRawSearchQuery().trim()) return;
+      this.plugin.suppressCursorSyncFromSidebarJump();
+      if (!options.resetMatch && this.searchMatchIndex < 0 && this.pausedSearchMatchIndex >= 0) {
+        this.searchMatchIndex = this.pausedSearchMatchIndex;
+      }
+      this.searchPaused = false;
+      if (options.resetMatch) {
+        this.searchMatchIndex = -1;
+        this.pausedSearchMatchIndex = -1;
+      }
+      if (this.file) {
+        const currentState = this.stateByFile.get(this.file.path) || {};
+        this.stateByFile.set(this.file.path, {
+          ...currentState,
+          searchQuery: this.getRawSearchQuery(),
+          searchPaused: false,
+          searchMatchIndex: this.searchMatchIndex,
+          pausedSearchMatchIndex: this.pausedSearchMatchIndex,
+          scrollTop: options.resetMatch ? 0 : currentState.scrollTop,
+        });
+      }
+      this.updateSearchModeButtons();
+      this.renderFootnoteList(this.currentFootnotes, getStrings(), this.subtitleEl, this.file?.basename || "");
+      if (options.jumpToCurrentMatch && this.searchMatches.length > 0) {
+        if (this.searchMatchIndex < 0 || this.searchMatchIndex >= this.searchMatches.length) {
+          this.searchMatchIndex = 0;
+        }
+        if (this.file) {
+          const currentState = this.stateByFile.get(this.file.path) || {};
+          this.stateByFile.set(this.file.path, {
+            ...currentState,
+            searchQuery: this.getRawSearchQuery(),
+            searchPaused: false,
+            searchMatchIndex: this.searchMatchIndex,
+            pausedSearchMatchIndex: -1,
+          });
+        }
+        this.pausedSearchMatchIndex = -1;
+        this.updateSearchControls();
+        this.applySearchMatch(this.searchMatches[this.searchMatchIndex]);
+      }
+      this.plugin.suppressCursorSyncFromSidebarJump();
+    }
+
+    hasActiveSearch() {
+      return Boolean(this.getRawSearchQuery().trim()) && !this.isSearchPaused();
+    }
+
     renderFootnoteList(footnotes, strings, subtitleEl, fileName) {
-      const query = this.searchInputEl?.value || "";
+      const query = this.getEffectiveSearchQuery();
       const visibleFootnotes = filterFootnotes(footnotes, query);
       this.searchMatches = findFootnoteSearchResults(footnotes, query);
       if (this.searchMatchIndex >= this.searchMatches.length) {
         this.searchMatchIndex = this.searchMatches.length - 1;
       }
-      if (this.searchMatches.length === 0) {
+      if (this.searchMatches.length === 0 && !this.isSearchPaused()) {
         this.searchMatchIndex = -1;
       }
       this.listEl.empty();
+
+      if (!subtitleEl) {
+        this.updateSearchControls(strings);
+        return;
+      }
 
       if (query.trim()) {
         subtitleEl.setText(t(strings, "filteredFootnoteCount", {
@@ -1567,9 +1794,9 @@
           current: formatNumber(current),
           total: formatNumber(total),
         }));
-        this.searchCountEl.style.display = this.searchInputEl?.value?.trim() ? "" : "none";
+        this.searchCountEl.style.display = this.getRawSearchQuery().trim() && !this.isSearchPaused() ? "" : "none";
       }
-      this.setSearchNavDisabled(total === 0);
+      this.setSearchNavDisabled(this.isSearchPaused() || total === 0);
     }
 
     setSearchNavDisabled(disabled) {
@@ -1582,18 +1809,23 @@
     }
 
     navigateSearch(direction) {
+      if (this.isSearchPaused()) {
+        this.resumeSearchMode();
+      }
       if (this.searchMatches.length === 0) return;
       if (this.searchMatchIndex < 0) {
         this.searchMatchIndex = direction < 0 ? this.searchMatches.length - 1 : 0;
       } else {
         this.searchMatchIndex = (this.searchMatchIndex + direction + this.searchMatches.length) % this.searchMatches.length;
       }
+      this.pausedSearchMatchIndex = -1;
       if (this.file) {
         const currentState = this.stateByFile.get(this.file.path) || {};
         this.stateByFile.set(this.file.path, {
           ...currentState,
           searchQuery: this.searchInputEl?.value || "",
           searchMatchIndex: this.searchMatchIndex,
+          pausedSearchMatchIndex: -1,
         });
       }
       this.updateSearchControls();
@@ -1609,10 +1841,13 @@
       this.findFootnoteItem(result.footnoteId)?.addClass("is-search-target");
     }
 
-    applySearchMatch(result) {
+    applySearchMatch(result, options = {}) {
       if (!result) return;
       this.setFootnoteExpanded(result.footnoteId, true, { source: "search" });
-      this.focusFootnote(result.footnoteId, { scroll: true, focusEditor: false });
+      this.focusFootnote(result.footnoteId, {
+        scroll: options.scroll !== false,
+        focusEditor: false,
+      });
       this.markSearchTarget();
       const item = this.findFootnoteItem(result.footnoteId);
       const textarea = item?.querySelector(".bfw-editor");
@@ -1627,6 +1862,27 @@
       window.setTimeout(() => {
         this.suppressTextareaFocusJump = false;
       }, 0);
+    }
+
+    selectFirstSearchMatchForFootnote(footnoteId, options = {}) {
+      if (!this.hasActiveSearch()) return false;
+      const matchIndex = this.searchMatches.findIndex((result) => result.footnoteId === footnoteId);
+      if (matchIndex < 0) return false;
+      this.searchMatchIndex = matchIndex;
+      this.pausedSearchMatchIndex = -1;
+      if (this.file) {
+        const currentState = this.stateByFile.get(this.file.path) || {};
+        this.stateByFile.set(this.file.path, {
+          ...currentState,
+          searchQuery: this.getRawSearchQuery(),
+          searchPaused: false,
+          searchMatchIndex: this.searchMatchIndex,
+          pausedSearchMatchIndex: -1,
+        });
+      }
+      this.updateSearchControls();
+      this.applySearchMatch(this.searchMatches[this.searchMatchIndex], options);
+      return true;
     }
 
     scrollTextareaToSelection(textarea, startOffset) {
@@ -1776,8 +2032,10 @@
       definitionButton.setAttr("title", strings.definitionTooltip);
       definitionButton.addEventListener("click", (event) => {
         event.stopPropagation();
+        this.plugin.suppressCursorSyncFromSidebarJump();
         this.plugin.jumpToFootnoteDefinition(this.file, footnote.id);
         this.focusFootnote(footnote.id, { scroll: false, focusEditor: false });
+        this.plugin.suppressCursorSyncFromSidebarJump();
       });
       const expandButton = actionsEl.createEl("button", {
         cls: "bfw-button bfw-expand-button is-hidden",
@@ -1786,7 +2044,9 @@
       });
       expandButton.setAttr("title", isExpanded ? strings.collapseFootnote : strings.expandFootnote);
       expandButton.addEventListener("click", (event) => {
+        event.preventDefault();
         event.stopPropagation();
+        this.plugin.suppressCursorSyncFromSidebarJump();
         const nextExpanded = !this.isFootnoteExpanded(footnote.id);
         this.setFootnoteExpanded(footnote.id, nextExpanded);
         this.applyTextareaHeight(textarea, nextExpanded);
@@ -1799,12 +2059,13 @@
       this.updateExpandButtonVisibility(textarea, expandButton, footnote.id, strings);
 
       const footerEl = itemEl.createDiv({ cls: "bfw-footer" });
-      const countEl = footerEl.createSpan({ text: formatCharacterCount(textarea.value.length, strings) });
+      const countEl = footerEl.createSpan({ text: this.formatFootnoteCountForDisplay(textarea.value, strings) });
       const statusEl = footerEl.createSpan({ cls: "bfw-status", text: strings.saved });
 
       itemEl.addEventListener("click", (event) => {
         if (event.target?.closest?.(".bfw-definition-button")) return;
-        this.activateFootnoteFromSidebar(footnote.id);
+        if (event.target?.closest?.(".bfw-editor")) return;
+        this.activateFootnoteFromSidebar(footnote.id, { selectSearchMatch: true });
       });
 
       textarea.addEventListener("focus", () => {
@@ -1812,7 +2073,7 @@
           this.focusFootnote(footnote.id, { scroll: false, focusEditor: false });
           return;
         }
-        this.activateFootnoteFromSidebar(footnote.id);
+        this.activateFootnoteFromSidebar(footnote.id, { selectSearchMatch: false });
         window.setTimeout(() => {
           if (document.activeElement !== textarea) {
             textarea.focus();
@@ -1822,7 +2083,7 @@
 
       textarea.addEventListener("input", () => {
         itemEl.addClass("is-dirty");
-        countEl.setText(formatCharacterCount(textarea.value.length, strings));
+        countEl.setText(this.formatFootnoteCountForDisplay(textarea.value, strings));
         statusEl.setText(strings.saving);
         if (this.isFootnoteExpanded(footnote.id)) {
           this.applyTextareaHeight(textarea, true);
@@ -1888,19 +2149,26 @@
       }
     }
 
-    activateFootnoteFromSidebar(footnoteId) {
-      this.focusFootnote(footnoteId, { scroll: false, focusEditor: false });
+    activateFootnoteFromSidebar(footnoteId, options = {}) {
       this.plugin.suppressCursorSyncFromSidebarJump();
+      this.focusFootnote(footnoteId, { scroll: false, focusEditor: false });
       const footnote = this.currentFootnotes.find((item) => item.id === footnoteId);
       if (footnote?.referenceCount > 0) {
         this.plugin.jumpToFootnoteReference(this.file, footnoteId, { focus: false, flash: true });
       } else {
         this.plugin.jumpToFootnoteDefinition(this.file, footnoteId, { focus: false });
       }
+      this.plugin.suppressCursorSyncFromSidebarJump();
+      if (options.selectSearchMatch) {
+        this.selectFirstSearchMatchForFootnote(footnoteId, { scroll: false });
+      }
       this.captureState();
     }
 
     focusFootnote(footnoteId, options = {}) {
+      if (options.fromCursor) {
+        this.pauseSearchModeForEditorSync();
+      }
       this.activeFootnoteId = footnoteId;
       if (options.autoExpandSource === "sync") {
         this.collapseSyncExpandedFootnotes(footnoteId);

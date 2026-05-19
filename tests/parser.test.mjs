@@ -49,7 +49,12 @@ assert.equal(parser.normalizeLanguageTag("zh-CN"), "zh");
 assert.equal(parser.normalizeLanguageTag("ja_JP"), "ja");
 assert.equal(parser.normalizeLanguageTag("ko-KR"), "ko");
 assert.equal(parser.normalizeLanguageTag("fr-FR"), "en");
-assert.equal(parser.formatCharacterCount(12), "12 chars");
+assert.equal(parser.resolveCountMode("auto", "en"), "words");
+assert.equal(parser.resolveCountMode("auto", "ja"), "characters");
+assert.equal(parser.countFootnoteText("This is one footnote.", "words", "en"), 4);
+assert.equal(parser.countFootnoteText("第一行\n第二行", "characters", "zh"), 6);
+assert.equal(parser.formatFootnoteCount("This is one footnote.", "auto", undefined, "en"), "4 words");
+assert.equal(parser.formatFootnoteCount("word", "auto", undefined, "en"), "1 word");
 
 assert.deepEqual(parser.filterFootnotes(parsed.footnotes, "第一行").map((footnote) => footnote.id), ["note"]);
 assert.deepEqual(parser.filterFootnotes(parsed.footnotes, "[^1]").map((footnote) => footnote.id), ["1"]);
