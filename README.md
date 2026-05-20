@@ -39,7 +39,7 @@ This integration closes Obsidian's built-in floating footnote editor after inser
 
 1. Install and enable Better Footnote from Obsidian's Community plugins.
 2. Run `Open Better Footnote` from the command palette.
-3. Open a Markdown note with standard footnotes such as `[^1]: Reference text`.
+3. Open a Markdown note with standard footnote definitions such as `[^1]: Reference text` or `[^citation]: Reference text`.
 4. Edit or search footnotes in the right sidebar. Changes are saved automatically.
 
 ## Supported Footnotes
@@ -48,10 +48,14 @@ Better Footnote focuses on standard Markdown footnote definitions:
 
 ```md
 Text with a footnote.[^1]
+Text with a named footnote.[^citation]
 
 [^1]: A footnote definition.
+[^citation]: A named footnote definition.
     Continued lines stay inside the same footnote.
 ```
+
+Named footnote ids such as `[^citation]` are supported. The sidebar shows the real id, while Obsidian renders the footnote as part of the normal numbered sequence in reading mode.
 
 Inline footnotes such as `^[inline text]` are not edited from the sidebar.
 
@@ -96,7 +100,7 @@ Better Footnote 可以选择性地与 [Tidy Footnotes](https://community.obsidia
 
 1. 在 Obsidian 第三方插件中安装并启用 Better Footnote。
 2. 在命令面板中运行 `Open Better Footnote`。
-3. 打开包含标准脚注的 Markdown 笔记，例如 `[^1]: 引用内容`。
+3. 打开包含标准脚注定义的 Markdown 笔记，例如 `[^1]: 引用内容` 或 `[^citation]: 引用内容`。
 4. 在右侧边栏编辑或搜索脚注。修改会自动保存。
 
 ### 支持范围
@@ -105,10 +109,14 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 
 ```md
 正文里的脚注。[^1]
+正文里的自定义名称脚注。[^citation]
 
 [^1]: 脚注内容。
+[^citation]: 自定义名称脚注内容。
     继续缩进的行仍属于同一条脚注。
 ```
+
+也支持 `[^citation]` 这类自定义名称脚注。侧栏会显示真实 id；Obsidian 在阅读模式中会把它作为普通脚注序列的一部分显示为数字。
 
 暂不在侧栏编辑 `^[inline text]` 这类 inline footnotes。
 
@@ -153,7 +161,7 @@ Better Footnote は、必要に応じて [Tidy Footnotes](https://community.obsi
 
 1. Obsidian の Community plugins から Better Footnote をインストールして有効化します。
 2. コマンドパレットで `Open Better Footnote` を実行します。
-3. `[^1]: Reference text` のような標準脚注を含む Markdown ノートを開きます。
+3. `[^1]: Reference text` や `[^citation]: Reference text` のような標準脚注定義を含む Markdown ノートを開きます。
 4. 右サイドバーで脚注を編集または検索します。変更は自動保存されます。
 
 ### 対応する脚注
@@ -162,10 +170,14 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 
 ```md
 本文中の脚注。[^1]
+本文中の名前付き脚注。[^citation]
 
 [^1]: 脚注本文。
+[^citation]: 名前付き脚注本文。
     続くインデント行は同じ脚注に含まれます。
 ```
+
+`[^citation]` のような名前付き脚注 id にも対応しています。サイドバーには実際の id が表示されますが、Obsidian の閲覧モードでは通常の脚注番号の流れに含めて数字で表示されます。
 
 `^[inline text]` のような inline footnotes はサイドバーから編集できません。
 
@@ -210,7 +222,7 @@ Better Footnote는 선택적으로 [Tidy Footnotes](https://community.obsidian.m
 
 1. Obsidian Community plugins에서 Better Footnote를 설치하고 활성화합니다.
 2. 명령 팔레트에서 `Open Better Footnote`를 실행합니다.
-3. `[^1]: Reference text` 같은 표준 각주가 포함된 Markdown 노트를 엽니다.
+3. `[^1]: Reference text` 또는 `[^citation]: Reference text` 같은 표준 각주 정의가 포함된 Markdown 노트를 엽니다.
 4. 오른쪽 사이드바에서 각주를 편집하거나 검색합니다. 변경 사항은 자동 저장됩니다.
 
 ### 지원하는 각주
@@ -219,10 +231,14 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 
 ```md
 본문의 각주 표시.[^1]
+본문의 이름 있는 각주 표시.[^citation]
 
 [^1]: 각주 내용.
+[^citation]: 이름 있는 각주 내용.
     이어지는 들여쓰기 줄은 같은 각주에 포함됩니다.
 ```
+
+`[^citation]` 같은 이름 있는 각주 id도 지원합니다. 사이드바에는 실제 id가 표시되지만, Obsidian 읽기 모드에서는 일반 각주 번호 흐름에 포함되어 숫자로 표시됩니다.
 
 `^[inline text]` 형식의 inline footnotes는 사이드바에서 편집할 수 없습니다.
 
