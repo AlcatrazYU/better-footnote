@@ -1,15 +1,15 @@
-# Better Footnote 1.2.0
+# Better Footnote 1.3.0
 
-Search flow and footnote count update.
+Sidebar footnote deletion update.
 
 ## Highlights
 
-- Add a footnote count mode setting: Auto, Characters, or Words.
-- In Auto mode, English counts words; Chinese, Japanese, and Korean count characters.
-- Let users override the count mode when their writing language differs from the interface language.
-- Keep the previous search match when sidebar search is paused by clicking a footnote in the source note, then resumed.
-- When clicking a footnote card inside active search results, sync the current match counter to that footnote's first match.
-- Add localized count-mode settings text for English, Chinese, Japanese, and Korean.
+- Add a sidebar context-menu action to delete one footnote.
+- Delete both the in-text reference marker and the footnote definition as one editor-history change.
+- Let users undo deletion through Obsidian's normal editor undo flow: click the note editor, then press Command+Z on macOS or Ctrl+Z on Windows/Linux.
+- Keep restored footnotes from being treated as newly inserted footnotes after undo.
+- Do not automatically tidy numbering after deletion; run Tidy Footnotes manually when ready.
+- Add localized delete and undo guidance for English, Chinese, Japanese, and Korean.
 
 ## Release assets
 

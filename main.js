@@ -6,6 +6,9 @@
   const FLASH_SELECTION_MS = 1400;
   const AUTO_TIDY_DELAY_MS = 250;
   const SIDEBAR_JUMP_CURSOR_SUPPRESS_MS = 1200;
+  const DELETED_FOOTNOTE_RESTORE_TTL_MS = 10 * 60 * 1000;
+  const RESTORED_DELETED_FOOTNOTE_CURSOR_SUPPRESS_MS = 5000;
+  const MAX_DELETED_FOOTNOTE_RESTORE_RECORDS = 50;
   const PLUGIN_ICON = "list-ordered";
   const TIDY_FOOTNOTES_PLUGIN_URL = "https://community.obsidian.md/plugins/obsidian-tidy-footnotes";
 
@@ -65,6 +68,16 @@
       tidyCommandMissing: "Tidy Footnotes command was not found.",
       tidyCommandNoEditor: "No Markdown editor is available for Tidy Footnotes.",
       tidyCommandFailed: "Failed to run Tidy Footnotes: {message}",
+      deleteFootnoteMenu: "Delete this footnote",
+      deleteFootnoteTitle: "Delete footnote [^{id}]?",
+      deleteFootnoteWithReferences: "This will remove {count} reference marker{plural} and the footnote definition.",
+      deleteUnreferencedFootnote: "This footnote has no reference markers. This will remove the footnote definition.",
+      deleteEmptyFootnote: "The footnote definition is empty.",
+      deleteCancel: "Cancel",
+      deleteConfirm: "Delete footnote",
+      deleteNeedsEditor: "Open the source note before deleting a footnote.",
+      deleteFailed: "Failed to delete footnote: {message}",
+      deletedFootnote: "Deleted footnote [^{id}]. Click the note editor, then press {shortcut} to undo.",
     },
     zh: {
       title: "Better Footnote",
@@ -113,6 +126,16 @@
       tidyCommandMissing: "没有找到 Tidy Footnotes 命令。",
       tidyCommandNoEditor: "没有可用于 Tidy Footnotes 的 Markdown 编辑器。",
       tidyCommandFailed: "运行 Tidy Footnotes 失败：{message}",
+      deleteFootnoteMenu: "删除本条脚注",
+      deleteFootnoteTitle: "删除脚注 [^{id}]？",
+      deleteFootnoteWithReferences: "将删除 {count} 处引用标记，并删除脚注定义。",
+      deleteUnreferencedFootnote: "这条脚注没有引用标记。将删除脚注定义。",
+      deleteEmptyFootnote: "这条脚注定义为空。",
+      deleteCancel: "取消",
+      deleteConfirm: "删除脚注",
+      deleteNeedsEditor: "请先打开对应笔记，再删除脚注。",
+      deleteFailed: "删除脚注失败：{message}",
+      deletedFootnote: "已删除脚注 [^{id}]。点击笔记编辑区后按 {shortcut} 撤销。",
     },
     ja: {
       title: "Better Footnote",
@@ -161,6 +184,16 @@
       tidyCommandMissing: "Tidy Footnotes コマンドが見つかりません。",
       tidyCommandNoEditor: "Tidy Footnotes に使用できる Markdown エディタがありません。",
       tidyCommandFailed: "Tidy Footnotes の実行に失敗しました: {message}",
+      deleteFootnoteMenu: "この脚注を削除",
+      deleteFootnoteTitle: "脚注 [^{id}] を削除しますか？",
+      deleteFootnoteWithReferences: "{count} 件の参照マーカーと脚注定義を削除します。",
+      deleteUnreferencedFootnote: "この脚注には参照マーカーがありません。脚注定義を削除します。",
+      deleteEmptyFootnote: "この脚注定義は空です。",
+      deleteCancel: "キャンセル",
+      deleteConfirm: "脚注を削除",
+      deleteNeedsEditor: "脚注を削除する前に、元のノートを開いてください。",
+      deleteFailed: "脚注の削除に失敗しました: {message}",
+      deletedFootnote: "脚注 [^{id}] を削除しました。ノート編集欄をクリックしてから {shortcut} で取り消せます。",
     },
     ko: {
       title: "Better Footnote",
@@ -209,6 +242,16 @@
       tidyCommandMissing: "Tidy Footnotes 명령을 찾지 못했습니다.",
       tidyCommandNoEditor: "Tidy Footnotes에 사용할 Markdown 편집기가 없습니다.",
       tidyCommandFailed: "Tidy Footnotes 실행 실패: {message}",
+      deleteFootnoteMenu: "이 각주 삭제",
+      deleteFootnoteTitle: "각주 [^{id}]를 삭제할까요?",
+      deleteFootnoteWithReferences: "참조 표시 {count}개와 각주 정의를 삭제합니다.",
+      deleteUnreferencedFootnote: "이 각주에는 참조 표시가 없습니다. 각주 정의를 삭제합니다.",
+      deleteEmptyFootnote: "이 각주 정의는 비어 있습니다.",
+      deleteCancel: "취소",
+      deleteConfirm: "각주 삭제",
+      deleteNeedsEditor: "각주를 삭제하기 전에 원본 노트를 여세요.",
+      deleteFailed: "각주 삭제 실패: {message}",
+      deletedFootnote: "각주 [^{id}]를 삭제했습니다. 노트 편집 영역을 클릭한 뒤 {shortcut}로 되돌릴 수 있습니다.",
     },
   };
 
@@ -269,6 +312,12 @@
 
   function formatNumber(value) {
     return Number(value).toLocaleString(NUMBER_LOCALES[getUiLanguage()] || NUMBER_LOCALES.en);
+  }
+
+  function getUndoShortcutLabel() {
+    if (typeof navigator === "undefined") return "Ctrl+Z";
+    const platformSignal = `${navigator.platform || ""} ${navigator.userAgent || ""}`;
+    return /Mac|iPhone|iPad|iPod/i.test(platformSignal) ? "Command+Z" : "Ctrl+Z";
   }
 
   function normalizeCountMode(mode) {
@@ -720,6 +769,77 @@
     };
   }
 
+  function expandDefinitionDeleteRange(text, footnote) {
+    let start = footnote.definitionStart;
+    let end = footnote.definitionEnd;
+    if (text.slice(end, end + 1) === "\n") {
+      end += 1;
+    } else if (start > 0 && text.slice(start - 1, start) === "\n") {
+      start -= 1;
+    }
+    return { start, end };
+  }
+
+  function normalizeDeleteRanges(ranges, textLength = Infinity) {
+    const clampedRanges = ranges
+      .map((range) => ({
+        start: Math.max(0, Math.min(textLength, range.start)),
+        end: Math.max(0, Math.min(textLength, range.end)),
+      }))
+      .filter((range) => range.end > range.start)
+      .sort((left, right) => left.start - right.start || left.end - right.end);
+
+    const merged = [];
+    for (const range of clampedRanges) {
+      const previous = merged[merged.length - 1];
+      if (previous && range.start <= previous.end) {
+        previous.end = Math.max(previous.end, range.end);
+      } else {
+        merged.push({ ...range });
+      }
+    }
+    return merged;
+  }
+
+  function applyDeleteRanges(text, ranges) {
+    let nextText = text;
+    for (const range of Array.from(ranges).sort((left, right) => right.start - left.start)) {
+      nextText = `${nextText.slice(0, range.start)}${nextText.slice(range.end)}`;
+    }
+    return nextText;
+  }
+
+  function deleteFootnoteFromText(rawText, id) {
+    const text = normalizeLineEndings(rawText);
+    const parsed = parseFootnotes(text);
+    const footnote = parsed.footnotes.find((item) => item.id === id);
+    if (!footnote) {
+      return {
+        changed: false,
+        text,
+        reason: "missing-footnote",
+      };
+    }
+
+    const ranges = [
+      ...footnote.references.map((reference) => ({
+        start: reference.start,
+        end: reference.end,
+      })),
+      expandDefinitionDeleteRange(text, footnote),
+    ];
+    const normalizedRanges = normalizeDeleteRanges(ranges, text.length);
+    const nextText = applyDeleteRanges(text, normalizedRanges);
+    return {
+      changed: nextText !== text,
+      text: nextText,
+      footnote,
+      ranges: normalizedRanges,
+      referenceCount: footnote.referenceCount,
+      contentIsBlank: !String(footnote.content || "").trim(),
+    };
+  }
+
   function findReferenceAtOffset(parsed, offset) {
     return parsed.references.find((reference) => offset >= reference.start && offset <= reference.end) || null;
   }
@@ -762,6 +882,7 @@
         detectAddedFootnotes,
         resolveActiveFootnoteId,
         replaceFootnoteContent,
+        deleteFootnoteFromText,
         findReferenceAtOffset,
         findDefinitionAtOffset,
       };
@@ -793,6 +914,7 @@
         getStrings,
         normalizeLanguageTag,
         resolveActiveFootnoteId,
+        deleteFootnoteFromText,
       };
     }
     return;
@@ -806,7 +928,7 @@
     codemirrorView = null;
   }
 
-  const { ItemView, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } = obsidian;
+  const { ItemView, MarkdownView, Menu, Modal, Notice, Plugin, PluginSettingTab, Setting } = obsidian;
   const { StateEffect, StateField } = codemirrorState || {};
   const { Decoration, EditorView } = codemirrorView || {};
   const flashFootnoteReferenceEffect = StateEffect?.define?.();
@@ -862,6 +984,59 @@
     return positionFromOffset(text, offset);
   }
 
+  class ConfirmDeleteFootnoteModal extends Modal {
+    constructor(app, details, onConfirm, onClose) {
+      super(app);
+      this.details = details;
+      this.onConfirm = onConfirm;
+      this.onCloseCallback = onClose;
+    }
+
+    onOpen() {
+      const strings = getStrings();
+      const { contentEl } = this;
+      const referenceCount = Number(this.details?.referenceCount || 0);
+      const isBlank = Boolean(this.details?.contentIsBlank);
+      contentEl.empty();
+      contentEl.addClass("bfw-delete-modal");
+      contentEl.createEl("h2", {
+        text: t(strings, "deleteFootnoteTitle", { id: this.details?.id || "" }),
+      });
+      contentEl.createEl("p", {
+        text: referenceCount > 0
+          ? t(strings, "deleteFootnoteWithReferences", {
+            count: formatNumber(referenceCount),
+            plural: referenceCount === 1 ? "" : "s",
+          })
+          : strings.deleteUnreferencedFootnote,
+      });
+      if (isBlank) {
+        contentEl.createEl("p", { text: strings.deleteEmptyFootnote });
+      }
+
+      const buttonRow = contentEl.createDiv({ cls: "bfw-delete-modal-buttons" });
+      const cancelButton = buttonRow.createEl("button", {
+        text: strings.deleteCancel,
+        attr: { type: "button" },
+      });
+      const deleteButton = buttonRow.createEl("button", {
+        cls: "mod-warning",
+        text: strings.deleteConfirm,
+        attr: { type: "button" },
+      });
+      cancelButton.addEventListener("click", () => this.close());
+      deleteButton.addEventListener("click", () => {
+        this.close();
+        this.onConfirm?.();
+      });
+    }
+
+    onClose() {
+      this.contentEl.empty();
+      this.onCloseCallback?.();
+    }
+  }
+
   class BetterFootnotePlugin extends Plugin {
     async onload() {
       this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -873,6 +1048,9 @@
       this.pendingTidyKeys = new Set();
       this.tidyMissingNoticeShown = false;
       this.suppressCursorSyncUntil = 0;
+      this.activeDeleteNotice = null;
+      this.recentlyDeletedFootnotesByFile = new Map();
+      this.restoredDeletedFootnoteCursorSuppressionsByFile = new Map();
       const strings = getStrings();
 
       this.registerView(VIEW_TYPE, (leaf) => new BetterFootnoteView(leaf, this));
@@ -914,7 +1092,10 @@
       if (this.flashSelectionTimer !== null) {
         window.clearTimeout(this.flashSelectionTimer);
       }
+      this.hideActiveDeleteNotice();
       this.pendingTidyKeys.clear();
+      this.recentlyDeletedFootnotesByFile.clear();
+      this.restoredDeletedFootnoteCursorSuppressionsByFile.clear();
     }
 
     async saveSettings() {
@@ -988,6 +1169,13 @@
       const definition = reference ? null : findDefinitionAtOffset(parsed, offset);
       const footnoteId = reference?.id || definition?.id || null;
       if (!footnoteId) return;
+      const footnote = parsed.footnotes.find((item) => item.id === footnoteId);
+      if (
+        this.shouldSuppressRestoredDeletedFootnoteCursorSync(markdownView.file, footnoteId)
+        || this.matchesRecentlyDeletedFootnote(markdownView.file, footnote)
+      ) {
+        return;
+      }
 
       for (const view of this.views) {
         if (view.file?.path === markdownView.file?.path) {
@@ -1004,6 +1192,100 @@
 
     suppressCursorSyncFromSidebarJump() {
       this.suppressCursorSyncUntil = Date.now() + SIDEBAR_JUMP_CURSOR_SUPPRESS_MS;
+    }
+
+    hideActiveDeleteNotice() {
+      if (this.activeDeleteNotice && typeof this.activeDeleteNotice.hide === "function") {
+        this.activeDeleteNotice.hide();
+      }
+      this.activeDeleteNotice = null;
+    }
+
+    getActiveDeletedFootnoteRecords(file) {
+      if (!file) return [];
+      const records = this.recentlyDeletedFootnotesByFile.get(file.path);
+      if (!Array.isArray(records) || records.length === 0) return [];
+      const now = Date.now();
+      const activeRecords = records.filter((record) => record.expiresAt > now);
+      if (activeRecords.length !== records.length) {
+        if (activeRecords.length > 0) {
+          this.recentlyDeletedFootnotesByFile.set(file.path, activeRecords);
+        } else {
+          this.recentlyDeletedFootnotesByFile.delete(file.path);
+        }
+      }
+      return activeRecords;
+    }
+
+    rememberDeletedFootnote(file, footnote) {
+      if (!file || !footnote) return;
+      const records = this.getActiveDeletedFootnoteRecords(file);
+      records.push({
+        id: String(footnote.id),
+        snapshot: createFootnoteSnapshot(footnote),
+        expiresAt: Date.now() + DELETED_FOOTNOTE_RESTORE_TTL_MS,
+      });
+      const activeRecords = records
+        .filter((record) => record.expiresAt > Date.now())
+        .slice(-MAX_DELETED_FOOTNOTE_RESTORE_RECORDS);
+      this.recentlyDeletedFootnotesByFile.set(file.path, activeRecords);
+    }
+
+    matchesRecentlyDeletedFootnote(file, footnote) {
+      if (!file || !footnote) return false;
+      const snapshot = createFootnoteSnapshot(footnote);
+      return this.getActiveDeletedFootnoteRecords(file).some((record) => {
+        if (record.id !== String(footnote.id)) return false;
+        const deletedFingerprint = record.snapshot?.contentFingerprint || "";
+        const restoredFingerprint = snapshot?.contentFingerprint || "";
+        return !deletedFingerprint || deletedFingerprint === restoredFingerprint;
+      });
+    }
+
+    suppressRestoredDeletedFootnoteCursorSync(file, footnoteId) {
+      if (!file || !footnoteId) return;
+      const suppressions = this.restoredDeletedFootnoteCursorSuppressionsByFile.get(file.path) || new Map();
+      suppressions.set(String(footnoteId), Date.now() + RESTORED_DELETED_FOOTNOTE_CURSOR_SUPPRESS_MS);
+      this.restoredDeletedFootnoteCursorSuppressionsByFile.set(file.path, suppressions);
+    }
+
+    shouldSuppressRestoredDeletedFootnoteCursorSync(file, footnoteId) {
+      if (!file || !footnoteId) return false;
+      const suppressions = this.restoredDeletedFootnoteCursorSuppressionsByFile.get(file.path);
+      if (!suppressions) return false;
+      const now = Date.now();
+      for (const [id, expiresAt] of Array.from(suppressions.entries())) {
+        if (expiresAt <= now) suppressions.delete(id);
+      }
+      if (suppressions.size === 0) {
+        this.restoredDeletedFootnoteCursorSuppressionsByFile.delete(file.path);
+        return false;
+      }
+      return (suppressions.get(String(footnoteId)) || 0) > now;
+    }
+
+    consumeRestoredDeletedFootnote(file, footnote) {
+      if (!file || !footnote) return false;
+      const activeRecords = this.getActiveDeletedFootnoteRecords(file);
+      if (activeRecords.length === 0) return false;
+      const snapshot = createFootnoteSnapshot(footnote);
+      const matchIndex = activeRecords.findIndex((record) => {
+        if (record.id !== String(footnote.id)) return false;
+        const deletedFingerprint = record.snapshot?.contentFingerprint || "";
+        const restoredFingerprint = snapshot?.contentFingerprint || "";
+        return !deletedFingerprint || deletedFingerprint === restoredFingerprint;
+      });
+      const matched = matchIndex >= 0;
+      if (matched) {
+        activeRecords.splice(matchIndex, 1);
+        this.suppressRestoredDeletedFootnoteCursorSync(file, footnote.id);
+      }
+      if (activeRecords.length > 0) {
+        this.recentlyDeletedFootnotesByFile.set(file.path, activeRecords);
+      } else {
+        this.recentlyDeletedFootnotesByFile.delete(file.path);
+      }
+      return matched;
     }
 
     getTidyFootnotesCommandId() {
@@ -1168,6 +1450,108 @@
       }
       await this.app.vault.modify(file, result.text);
       return { ok: true, message: strings.saved };
+    }
+
+    getDeleteFootnoteDetails(file, footnoteId) {
+      const strings = getStrings();
+      const markdownView = this.findMarkdownViewForFile(file);
+      const editor = markdownView?.editor;
+      if (!editor || typeof editor.getValue !== "function") {
+        return { ok: false, message: strings.deleteNeedsEditor };
+      }
+      const result = deleteFootnoteFromText(editor.getValue(), footnoteId);
+      if (!result.changed) {
+        return { ok: false, message: t(strings, "footnoteNotFound", { id: footnoteId }) };
+      }
+      return {
+        ok: true,
+        id: footnoteId,
+        referenceCount: result.referenceCount,
+        contentIsBlank: result.contentIsBlank,
+      };
+    }
+
+    confirmDeleteFootnote(file, footnoteId) {
+      this.suppressCursorSyncFromSidebarJump();
+      const details = this.getDeleteFootnoteDetails(file, footnoteId);
+      if (!details.ok) {
+        new Notice(details.message);
+        return;
+      }
+      new ConfirmDeleteFootnoteModal(this.app, details, () => {
+        this.suppressCursorSyncFromSidebarJump();
+        this.deleteFootnoteFromEditor(file, footnoteId);
+      }, () => {
+        this.suppressCursorSyncFromSidebarJump();
+      }).open();
+    }
+
+    deleteFootnoteFromEditor(file, footnoteId) {
+      const strings = getStrings();
+      const markdownView = this.findMarkdownViewForFile(file);
+      const editor = markdownView?.editor;
+      if (!editor || typeof editor.getValue !== "function") {
+        new Notice(strings.deleteNeedsEditor);
+        return false;
+      }
+
+      try {
+        const text = normalizeLineEndings(editor.getValue());
+        const result = deleteFootnoteFromText(text, footnoteId);
+        if (!result.changed) {
+          new Notice(t(strings, "footnoteNotFound", { id: footnoteId }));
+          return false;
+        }
+        if (!this.applyEditorDeleteTransaction(editor, text, result.ranges)) {
+          new Notice(strings.deleteNeedsEditor);
+          return false;
+        }
+        this.rememberDeletedFootnote(file, result.footnote);
+        this.suppressCursorSyncFromSidebarJump();
+        this.refreshViews(file);
+        this.showFootnoteDeletedNotice(footnoteId);
+        return true;
+      } catch (error) {
+        new Notice(t(strings, "deleteFailed", { message: error.message || String(error) }));
+        return false;
+      }
+    }
+
+    applyEditorDeleteTransaction(editor, text, ranges) {
+      const changes = normalizeDeleteRanges(ranges, text.length);
+      if (changes.length === 0) return false;
+      if (typeof editor.transaction === "function") {
+        editor.transaction({
+          changes: changes.map((range) => ({
+            from: editorPositionFromOffset(editor, text, range.start),
+            to: editorPositionFromOffset(editor, text, range.end),
+            text: "",
+          })),
+        });
+        return true;
+      }
+      const cm = editor.cm;
+      if (cm && typeof cm.dispatch === "function") {
+        cm.dispatch({
+          changes: changes.map((range) => ({
+            from: range.start,
+            to: range.end,
+            insert: "",
+          })),
+        });
+        return true;
+      }
+      return false;
+    }
+
+    showFootnoteDeletedNotice(footnoteId) {
+      const strings = getStrings();
+      this.hideActiveDeleteNotice();
+      const notice = new Notice(t(strings, "deletedFootnote", {
+        id: footnoteId,
+        shortcut: getUndoShortcutLabel(),
+      }), 10000);
+      this.activeDeleteNotice = notice;
     }
 
     jumpToFootnoteReference(file, footnoteId, options = {}) {
@@ -1507,14 +1891,27 @@
       const previousKnownFootnoteIds = Array.isArray(savedState.knownFootnoteIds)
         ? new Set(savedState.knownFootnoteIds)
         : null;
-      const addedFootnote = choosePrimaryAddedFootnote(
+      let addedFootnote = choosePrimaryAddedFootnote(
         detectAddedFootnotes(orderedFootnotes, previousKnownFootnoteIds, savedState.knownFootnoteSnapshots),
       );
+      let restoredDeletedFootnote = null;
+      if (addedFootnote && this.plugin.consumeRestoredDeletedFootnote(file, addedFootnote)) {
+        restoredDeletedFootnote = addedFootnote;
+        addedFootnote = null;
+        this.plugin.hideActiveDeleteNotice();
+      }
       this.currentFootnotes = orderedFootnotes;
       this.expandedFootnoteIds = new Set(savedState.expandedIds || []);
       this.searchExpandedFootnoteIds = new Set(savedState.searchExpandedIds || []);
       this.syncExpandedFootnoteIds = new Set(savedState.syncExpandedIds || []);
-      this.activeFootnoteId = addedFootnote?.id || resolveActiveFootnoteId(orderedFootnotes, savedState, this.activeFootnoteId);
+      if (restoredDeletedFootnote) {
+        this.expandedFootnoteIds.delete(restoredDeletedFootnote.id);
+        this.searchExpandedFootnoteIds.delete(restoredDeletedFootnote.id);
+        this.syncExpandedFootnoteIds.delete(restoredDeletedFootnote.id);
+      }
+      this.activeFootnoteId = restoredDeletedFootnote?.id
+        || addedFootnote?.id
+        || resolveActiveFootnoteId(orderedFootnotes, savedState, this.activeFootnoteId);
       this.searchInputEl.value = savedState.searchQuery || "";
       this.searchPaused = Boolean(savedState.searchPaused && this.searchInputEl.value.trim());
       this.searchMatchIndex = typeof savedState.searchMatchIndex === "number" ? savedState.searchMatchIndex : -1;
@@ -1532,7 +1929,11 @@
         knownFootnoteIds: orderedFootnotes.map((footnote) => footnote.id),
         knownFootnoteSnapshots: orderedFootnotes.map((footnote) => createFootnoteSnapshot(footnote)),
       };
-      if (addedFootnote) {
+      if (restoredDeletedFootnote) {
+        nextState.activeId = restoredDeletedFootnote.id;
+        nextState.activeSnapshot = createFootnoteSnapshot(restoredDeletedFootnote);
+        nextState.autoFocusRendersRemaining = 0;
+      } else if (addedFootnote) {
         nextState.activeId = addedFootnote.id;
         nextState.activeSnapshot = createFootnoteSnapshot(addedFootnote);
         nextState.autoFocusRendersRemaining = Math.max(
@@ -2066,6 +2467,29 @@
         if (event.target?.closest?.(".bfw-definition-button")) return;
         if (event.target?.closest?.(".bfw-editor")) return;
         this.activateFootnoteFromSidebar(footnote.id, { selectSearchMatch: true });
+      });
+
+      itemEl.addEventListener("contextmenu", (event) => {
+        if (event.target?.closest?.(".bfw-editor")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.plugin.suppressCursorSyncFromSidebarJump();
+        const menu = new Menu();
+        menu.addItem((item) => {
+          item
+            .setTitle(strings.deleteFootnoteMenu)
+            .setIcon("trash-2")
+            .onClick(() => {
+              this.plugin.suppressCursorSyncFromSidebarJump();
+              const pendingSave = this.saveTimers.get(footnote.id);
+              if (pendingSave) {
+                window.clearTimeout(pendingSave);
+                this.saveTimers.delete(footnote.id);
+              }
+              this.plugin.confirmDeleteFootnote(this.file, footnote.id);
+            });
+        });
+        menu.showAtMouseEvent(event);
       });
 
       textarea.addEventListener("focus", () => {

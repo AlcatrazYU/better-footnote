@@ -14,6 +14,7 @@ Better Footnote is built for long notes, papers, and research drafts where footn
 - Keep the source text and sidebar connected: clicking a footnote jumps to its `[^id]` marker and briefly outlines it.
 - Keep the sidebar faithful to the note: footnotes are shown in definition order with their real `[^id]`, and definitions without an in-text reference are marked as unreferenced.
 - Sync from the footnote definition area too: placing the cursor inside a footnote definition selects the same footnote in the sidebar.
+- Delete a single footnote from the sidebar context menu, removing both its reference markers and its definition.
 - Keep long footnotes compact, with an expand button only when the editor content is actually clipped.
 - Count footnote length as words or characters, with an automatic default based on the plugin language.
 
@@ -28,6 +29,12 @@ Clearing the search returns search-expanded footnotes to their compact state.
 ## Footnote Count
 
 The footer of each footnote shows a live count. In Auto mode, English counts words, while Chinese, Japanese, and Korean count characters. You can override this in settings when your writing language differs from the interface language.
+
+## Deleting a Footnote
+
+Right-click a footnote card in the sidebar and choose `Delete this footnote`. After confirmation, Better Footnote removes both the in-text reference marker and the footnote definition in one editor change.
+
+To undo, click back into the note editor and press `Command+Z` on macOS or `Ctrl+Z` on Windows/Linux. Repeated undo works through Obsidian's normal editor history. Better Footnote does not tidy numbering after deletion; run Tidy Footnotes manually when you are ready.
 
 ## Tidy Footnotes Integration
 
@@ -75,6 +82,7 @@ Better Footnote 是一个用于 Obsidian 的脚注侧栏插件。它面向长文
 - 点击侧栏脚注会跳到正文中的 `[^id]` 标记，并用紫色框短暂标出位置。
 - 侧栏忠实显示当前文档里的真实脚注 id，并按文末定义顺序排列；没有正文引用的定义会标记为“未引用”。
 - 在文末脚注定义区点击或移动光标时，右侧栏也会同步选中对应脚注。
+- 可以从侧栏右键菜单删除单条脚注，同时移除正文引用标记和脚注定义。
 - 长脚注默认保持紧凑；只有内容确实显示不全时，才出现展开按钮。
 - 可以按单词数或字数统计脚注长度，默认跟随插件界面语言自动选择。
 
@@ -89,6 +97,12 @@ Better Footnote 是一个用于 Obsidian 的脚注侧栏插件。它面向长文
 ### 脚注计数
 
 每条脚注左下角会显示实时计数。自动模式下，英文界面统计单词数，中文、日文、韩文界面统计字数。如果写作语言和界面语言不同，可以在设置中改为固定统计字数或单词数。
+
+### 删除脚注
+
+在侧栏脚注卡片上右键，选择“删除本条脚注”。确认后，Better Footnote 会在一次编辑操作中同时删除正文引用标记和文末脚注定义。
+
+如需撤销，请先点击回笔记编辑区，然后在 macOS 上按 `Command+Z`，在 Windows/Linux 上按 `Ctrl+Z`。连续撤销会走 Obsidian 正常的编辑历史。Better Footnote 不会在删除后自动整理编号；确认无误后，可以手动运行 Tidy Footnotes。
 
 ### Tidy Footnotes 联动
 
@@ -136,6 +150,7 @@ Better Footnote は、Obsidian のための脚注サイドバープラグイン�
 - サイドバーの脚注をクリックすると本文中の `[^id]` マーカーへ移動し、短時間アウトライン表示します。
 - サイドバーは現在のノート内の実際の脚注 id を表示し、脚注定義の順序で並べます。本文中に参照がない定義には「未参照」と表示します。
 - 文末の脚注定義内にカーソルを置くと、サイドバーでも同じ脚注が選択されます。
+- サイドバーのコンテキストメニューから、参照マーカーと脚注定義をまとめて 1 件ずつ削除できます。
 - 長い脚注は通常コンパクトに表示し、内容が実際に隠れている場合だけ展開ボタンを表示します。
 - 脚注の長さを単語数または文字数で表示できます。既定ではプラグインの表示言語に基づいて自動選択します。
 
@@ -150,6 +165,12 @@ Better Footnote は、Obsidian のための脚注サイドバープラグイン�
 ### 脚注カウント
 
 各脚注のフッターにはリアルタイムのカウントが表示されます。自動モードでは、英語 UI は単語数、中国語・日本語・韓国語 UI は文字数を数えます。執筆言語が UI と異なる場合は、設定で文字数または単語数に固定できます。
+
+### 脚注の削除
+
+サイドバーの脚注カードを右クリックし、「この脚注を削除」を選びます。確認後、Better Footnote は本文中の参照マーカーと脚注定義を 1 回の編集操作として削除します。
+
+取り消すには、ノート編集欄をクリックしてから、macOS では `Command+Z`、Windows/Linux では `Ctrl+Z` を押します。複数回の取り消しは Obsidian 標準の編集履歴に従います。Better Footnote は削除後に番号を自動整理しません。必要なタイミングで Tidy Footnotes を手動実行してください。
 
 ### Tidy Footnotes 連携
 
@@ -197,6 +218,7 @@ Better Footnote는 Obsidian용 각주 사이드바 플러그인입니다. 긴 �
 - 사이드바의 각주를 클릭하면 본문의 `[^id]` 표시로 이동하고 짧게 윤곽선을 표시합니다.
 - 사이드바는 현재 노트의 실제 각주 id를 표시하고, 각주 정의 순서대로 보여줍니다. 본문 참조가 없는 정의는 “참조 없음”으로 표시합니다.
 - 문서 끝의 각주 정의 안에 커서를 두면, 사이드바에서도 같은 각주가 선택됩니다.
+- 사이드바 컨텍스트 메뉴에서 각주 1개를 삭제해 참조 표시와 각주 정의를 함께 제거할 수 있습니다.
 - 긴 각주는 기본적으로 간결하게 표시되며, 실제로 내용이 잘릴 때만 펼치기 버튼을 보여줍니다.
 - 각주 길이를 단어 수 또는 글자 수로 표시할 수 있으며, 기본값은 플러그인 표시 언어에 따라 자동 선택됩니다.
 
@@ -211,6 +233,12 @@ Better Footnote는 Obsidian용 각주 사이드바 플러그인입니다. 긴 �
 ### 각주 계산
 
 각 각주의 하단에는 실시간 계산 값이 표시됩니다. 자동 모드에서는 영어 UI는 단어 수, 중국어·일본어·한국어 UI는 글자 수를 셉니다. 작성 언어가 UI 언어와 다르면 설정에서 글자 수 또는 단어 수로 고정할 수 있습니다.
+
+### 각주 삭제
+
+사이드바의 각주 카드를 오른쪽 클릭하고 “이 각주 삭제”를 선택합니다. 확인하면 Better Footnote가 본문 참조 표시와 각주 정의를 하나의 편집 작업으로 함께 삭제합니다.
+
+되돌리려면 노트 편집 영역을 클릭한 뒤 macOS에서는 `Command+Z`, Windows/Linux에서는 `Ctrl+Z`를 누르세요. 여러 번 되돌리기는 Obsidian의 일반 편집 기록을 따릅니다. Better Footnote는 삭제 후 번호를 자동으로 정리하지 않습니다. 필요할 때 Tidy Footnotes를 직접 실행하세요.
 
 ### Tidy Footnotes 연동
 

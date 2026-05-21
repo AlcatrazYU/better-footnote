@@ -40,6 +40,38 @@ assert.equal(parser.parseFootnotes(replacedWithBlankLine.text).footnotes[0].cont
 const unchanged = parser.replaceFootnoteContent(sample, "missing", "x");
 assert.equal(unchanged.changed, false);
 
+const deletedNumbered = parser.deleteFootnoteFromText(sample, "1");
+assert.ok(deletedNumbered.changed);
+assert.equal(deletedNumbered.referenceCount, 2);
+assert.equal(parser.parseFootnotes(deletedNumbered.text).footnotes.some((footnote) => footnote.id === "1"), false);
+assert.equal(deletedNumbered.text.includes("[^1]"), false);
+assert.equal(deletedNumbered.text.includes("[^note]"), true);
+
+const deletedNamed = parser.deleteFootnoteFromText(sample, "note");
+assert.ok(deletedNamed.changed);
+assert.equal(deletedNamed.referenceCount, 1);
+assert.equal(parser.parseFootnotes(deletedNamed.text).footnotes.some((footnote) => footnote.id === "note"), false);
+assert.equal(deletedNamed.text.includes("[^note]"), false);
+
+const deletedUnreferenced = parser.deleteFootnoteFromText([
+  "正文没有引用。",
+  "",
+  "[^orphan]: 孤立脚注",
+].join("\n"), "orphan");
+assert.ok(deletedUnreferenced.changed);
+assert.equal(deletedUnreferenced.referenceCount, 0);
+assert.equal(deletedUnreferenced.text.includes("[^orphan]"), false);
+
+const deletedEmpty = parser.deleteFootnoteFromText([
+  "正文新增空脚注[^empty]。",
+  "",
+  "[^empty]: ",
+].join("\n"), "empty");
+assert.ok(deletedEmpty.changed);
+assert.equal(deletedEmpty.referenceCount, 1);
+assert.equal(deletedEmpty.contentIsBlank, true);
+assert.equal(deletedEmpty.text.includes("[^empty]"), false);
+
 const cursor = sample.indexOf("[^note]") + 2;
 assert.equal(parser.findReferenceAtOffset(parsed, cursor)?.id, "note");
 const definitionCursor = sample.indexOf("第二行");

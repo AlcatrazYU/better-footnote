@@ -217,6 +217,13 @@
   white-space: nowrap;
 }
 
+.bfw-delete-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 .bfw-reference-flash {
   border-radius: 3px;
   background-color: transparent;
