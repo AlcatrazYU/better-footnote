@@ -37,6 +37,10 @@
       previousMatch: "Previous match",
       nextMatch: "Next match",
       searchMatchCount: "{current}/{total}",
+      multipleReferences: "{count} refs",
+      referencePosition: "{current}/{total}",
+      previousReference: "Previous reference",
+      nextReference: "Next reference",
       expandFootnote: "Expand",
       collapseFootnote: "Collapse",
       definitionButton: "Footnote area",
@@ -95,6 +99,10 @@
       previousMatch: "上一处匹配",
       nextMatch: "下一处匹配",
       searchMatchCount: "{current}/{total}",
+      multipleReferences: "{count} 处引用",
+      referencePosition: "{current}/{total}",
+      previousReference: "上一处引用",
+      nextReference: "下一处引用",
       expandFootnote: "展开",
       collapseFootnote: "收起",
       definitionButton: "脚注区",
@@ -153,6 +161,10 @@
       previousMatch: "前の一致",
       nextMatch: "次の一致",
       searchMatchCount: "{current}/{total}",
+      multipleReferences: "{count} 箇所参照",
+      referencePosition: "{current}/{total}",
+      previousReference: "前の参照",
+      nextReference: "次の参照",
       expandFootnote: "展開",
       collapseFootnote: "折りたたむ",
       definitionButton: "脚注欄",
@@ -211,6 +223,10 @@
       previousMatch: "이전 일치",
       nextMatch: "다음 일치",
       searchMatchCount: "{current}/{total}",
+      multipleReferences: "{count}개 참조",
+      referencePosition: "{current}/{total}",
+      previousReference: "이전 참조",
+      nextReference: "다음 참조",
       expandFootnote: "펼치기",
       collapseFootnote: "접기",
       definitionButton: "각주 영역",
@@ -477,6 +493,29 @@
       definitionStart: footnote.definitionStart,
       firstReferenceStart: footnote.firstReferenceStart,
     };
+  }
+
+  function deletedFootnoteRecordMatchesFootnote(record, footnote) {
+    if (!record || !footnote) return false;
+    if (record.id !== String(footnote.id)) return false;
+    const deletedFingerprint = record.snapshot?.contentFingerprint || "";
+    const currentFingerprint = getFootnoteFingerprint(footnote);
+    return deletedFingerprint === currentFingerprint;
+  }
+
+  function normalizeReferenceIndex(footnote, index = 0) {
+    const count = Math.max(0, Number(footnote?.references?.length || footnote?.referenceCount || 0));
+    if (count <= 0) return 0;
+    const numericIndex = Number.isFinite(Number(index)) ? Number(index) : 0;
+    return Math.max(0, Math.min(count - 1, Math.trunc(numericIndex)));
+  }
+
+  function referenceIndexForFootnoteReference(footnote, reference) {
+    if (!footnote || !reference || !Array.isArray(footnote.references)) return 0;
+    const index = footnote.references.findIndex((item) => {
+      return item.start === reference.start && item.end === reference.end;
+    });
+    return index >= 0 ? index : 0;
   }
 
   function isKnownFootnoteBySnapshot(footnote, snapshots) {
@@ -883,6 +922,9 @@
         resolveActiveFootnoteId,
         replaceFootnoteContent,
         deleteFootnoteFromText,
+        deletedFootnoteRecordMatchesFootnote,
+        normalizeReferenceIndex,
+        referenceIndexForFootnoteReference,
         findReferenceAtOffset,
         findDefinitionAtOffset,
       };
@@ -915,6 +957,9 @@
         normalizeLanguageTag,
         resolveActiveFootnoteId,
         deleteFootnoteFromText,
+        deletedFootnoteRecordMatchesFootnote,
+        normalizeReferenceIndex,
+        referenceIndexForFootnoteReference,
       };
     }
     return;
@@ -1176,6 +1221,9 @@
       ) {
         return;
       }
+      const referenceIndex = reference && footnote
+        ? referenceIndexForFootnoteReference(footnote, reference)
+        : undefined;
 
       for (const view of this.views) {
         if (view.file?.path === markdownView.file?.path) {
@@ -1183,6 +1231,7 @@
             scroll: true,
             scrollBlock: "start",
             fromCursor: true,
+            referenceIndex,
             expandIfClipped: Boolean(reference || definition),
             autoExpandSource: "sync",
           });
@@ -1233,12 +1282,8 @@
 
     matchesRecentlyDeletedFootnote(file, footnote) {
       if (!file || !footnote) return false;
-      const snapshot = createFootnoteSnapshot(footnote);
       return this.getActiveDeletedFootnoteRecords(file).some((record) => {
-        if (record.id !== String(footnote.id)) return false;
-        const deletedFingerprint = record.snapshot?.contentFingerprint || "";
-        const restoredFingerprint = snapshot?.contentFingerprint || "";
-        return !deletedFingerprint || deletedFingerprint === restoredFingerprint;
+        return deletedFootnoteRecordMatchesFootnote(record, footnote);
       });
     }
 
@@ -1268,12 +1313,8 @@
       if (!file || !footnote) return false;
       const activeRecords = this.getActiveDeletedFootnoteRecords(file);
       if (activeRecords.length === 0) return false;
-      const snapshot = createFootnoteSnapshot(footnote);
       const matchIndex = activeRecords.findIndex((record) => {
-        if (record.id !== String(footnote.id)) return false;
-        const deletedFingerprint = record.snapshot?.contentFingerprint || "";
-        const restoredFingerprint = snapshot?.contentFingerprint || "";
-        return !deletedFingerprint || deletedFingerprint === restoredFingerprint;
+        return deletedFootnoteRecordMatchesFootnote(record, footnote);
       });
       const matched = matchIndex >= 0;
       if (matched) {
@@ -1564,7 +1605,8 @@
       const text = normalizeLineEndings(markdownView.editor.getValue());
       const parsed = parseFootnotes(text);
       const footnote = parsed.footnotes.find((item) => item.id === footnoteId);
-      const reference = footnote?.references?.[0] || null;
+      const referenceIndex = normalizeReferenceIndex(footnote, options.referenceIndex);
+      const reference = footnote?.references?.[referenceIndex] || null;
       if (!reference) {
         new Notice(t(strings, "noReferenceFound", { id: footnoteId }));
         return false;
@@ -1799,6 +1841,7 @@
         searchPaused: this.searchPaused && Boolean(searchQuery.trim()),
         searchMatchIndex: this.searchMatchIndex,
         pausedSearchMatchIndex: this.pausedSearchMatchIndex,
+        referenceIndexes: { ...(currentState.referenceIndexes || {}) },
         expandedIds: Array.from(this.expandedFootnoteIds),
         searchExpandedIds: Array.from(this.searchExpandedFootnoteIds),
         syncExpandedIds: Array.from(this.syncExpandedFootnoteIds),
@@ -2367,6 +2410,64 @@
       }
     }
 
+    getFootnoteReferenceIndex(footnoteOrId) {
+      const footnote = typeof footnoteOrId === "object"
+        ? footnoteOrId
+        : this.currentFootnotes.find((item) => item.id === footnoteOrId);
+      if (!footnote) return 0;
+      const currentState = this.file ? this.stateByFile.get(this.file.path) || {} : {};
+      const referenceIndexes = currentState.referenceIndexes || {};
+      return normalizeReferenceIndex(footnote, referenceIndexes[footnote.id]);
+    }
+
+    setFootnoteReferenceIndex(footnoteId, index) {
+      if (!this.file || !footnoteId) return 0;
+      const footnote = this.currentFootnotes.find((item) => item.id === footnoteId);
+      const nextIndex = normalizeReferenceIndex(footnote, index);
+      const currentState = this.stateByFile.get(this.file.path) || {};
+      this.stateByFile.set(this.file.path, {
+        ...currentState,
+        referenceIndexes: {
+          ...(currentState.referenceIndexes || {}),
+          [footnoteId]: nextIndex,
+        },
+      });
+      this.updateReferenceNavDisplay(footnoteId);
+      return nextIndex;
+    }
+
+    updateReferenceNavDisplay(footnoteId, strings = getStrings()) {
+      const footnote = this.currentFootnotes.find((item) => item.id === footnoteId);
+      if (!footnote || Number(footnote.referenceCount || 0) <= 1) return;
+      const item = this.findFootnoteItem(footnoteId);
+      const positionEl = item?.querySelector?.(".bfw-reference-position");
+      if (!positionEl) return;
+      positionEl.setText(t(strings, "referencePosition", {
+        current: formatNumber(this.getFootnoteReferenceIndex(footnote) + 1),
+        total: formatNumber(footnote.referenceCount),
+      }));
+    }
+
+    navigateFootnoteReference(footnoteId, direction) {
+      const footnote = this.currentFootnotes.find((item) => item.id === footnoteId);
+      const count = Number(footnote?.referenceCount || 0);
+      if (!footnote || count <= 0) return;
+      this.plugin.suppressCursorSyncFromSidebarJump();
+      const currentIndex = this.getFootnoteReferenceIndex(footnote);
+      const nextIndex = count > 1
+        ? (currentIndex + direction + count) % count
+        : 0;
+      this.setFootnoteReferenceIndex(footnoteId, nextIndex);
+      this.focusFootnote(footnoteId, { scroll: false, focusEditor: false });
+      this.plugin.jumpToFootnoteReference(this.file, footnoteId, {
+        focus: false,
+        flash: true,
+        referenceIndex: nextIndex,
+      });
+      this.plugin.suppressCursorSyncFromSidebarJump();
+      this.captureState();
+    }
+
     applyTextareaHeight(textarea, expanded) {
       if (!textarea) return;
       if (!expanded) {
@@ -2424,6 +2525,40 @@
         const unreferencedEl = idBlockEl.createSpan({ cls: "bfw-unreferenced", text: strings.unreferenced });
         unreferencedEl.setAttr("title", strings.noReferenceFound ? t(strings, "noReferenceFound", { id: footnote.id }) : strings.unreferenced);
       }
+      if (footnote.referenceCount > 1) {
+        idBlockEl.createSpan({
+          cls: "bfw-reference-summary",
+          text: t(strings, "multipleReferences", { count: formatNumber(footnote.referenceCount) }),
+        });
+        const referenceNavEl = idBlockEl.createSpan({ cls: "bfw-reference-nav" });
+        const previousReferenceButton = referenceNavEl.createEl("button", {
+          cls: "bfw-button bfw-reference-nav-button",
+          text: "↑",
+          attr: { type: "button" },
+        });
+        previousReferenceButton.setAttr("title", strings.previousReference);
+        const referencePositionEl = referenceNavEl.createSpan({ cls: "bfw-reference-position" });
+        const nextReferenceButton = referenceNavEl.createEl("button", {
+          cls: "bfw-button bfw-reference-nav-button",
+          text: "↓",
+          attr: { type: "button" },
+        });
+        nextReferenceButton.setAttr("title", strings.nextReference);
+        previousReferenceButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          this.navigateFootnoteReference(footnote.id, -1);
+        });
+        nextReferenceButton.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          this.navigateFootnoteReference(footnote.id, 1);
+        });
+        referencePositionEl.setText(t(strings, "referencePosition", {
+          current: formatNumber(this.getFootnoteReferenceIndex(footnote) + 1),
+          total: formatNumber(footnote.referenceCount),
+        }));
+      }
       const actionsEl = headerEl.createDiv({ cls: "bfw-actions" });
       const definitionButton = actionsEl.createEl("button", {
         cls: "bfw-button bfw-definition-button",
@@ -2465,6 +2600,7 @@
 
       itemEl.addEventListener("click", (event) => {
         if (event.target?.closest?.(".bfw-definition-button")) return;
+        if (event.target?.closest?.(".bfw-reference-nav")) return;
         if (event.target?.closest?.(".bfw-editor")) return;
         this.activateFootnoteFromSidebar(footnote.id, { selectSearchMatch: true });
       });
@@ -2578,7 +2714,11 @@
       this.focusFootnote(footnoteId, { scroll: false, focusEditor: false });
       const footnote = this.currentFootnotes.find((item) => item.id === footnoteId);
       if (footnote?.referenceCount > 0) {
-        this.plugin.jumpToFootnoteReference(this.file, footnoteId, { focus: false, flash: true });
+        this.plugin.jumpToFootnoteReference(this.file, footnoteId, {
+          focus: false,
+          flash: true,
+          referenceIndex: this.getFootnoteReferenceIndex(footnote),
+        });
       } else {
         this.plugin.jumpToFootnoteDefinition(this.file, footnoteId, { focus: false });
       }
@@ -2600,10 +2740,15 @@
       if (this.file) {
         const currentState = this.stateByFile.get(this.file.path) || {};
         const activeFootnote = this.currentFootnotes.find((footnote) => footnote.id === footnoteId);
+        const referenceIndexes = { ...(currentState.referenceIndexes || {}) };
+        if (typeof options.referenceIndex === "number") {
+          referenceIndexes[footnoteId] = normalizeReferenceIndex(activeFootnote, options.referenceIndex);
+        }
         this.stateByFile.set(this.file.path, {
           ...currentState,
           activeId: footnoteId,
           activeSnapshot: createFootnoteSnapshot(activeFootnote) || currentState.activeSnapshot || null,
+          referenceIndexes,
         });
       }
 
@@ -2618,6 +2763,7 @@
 
       const target = Array.from(items).find((item) => item.dataset.footnoteId === footnoteId);
       if (!target) return;
+      this.updateReferenceNavDisplay(footnoteId);
       const textarea = target.querySelector(".bfw-editor");
       if (options.expandIfClipped && textarea && !this.isFootnoteExpanded(footnoteId) && this.hasHiddenTextareaContent(textarea)) {
         this.setFootnoteExpanded(footnoteId, true, { source: options.autoExpandSource || "sync" });

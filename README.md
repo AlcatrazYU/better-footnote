@@ -12,6 +12,7 @@ Better Footnote is built for long notes, papers, and research drafts where footn
 - Select, copy, paste, and write multiline footnote text normally.
 - Search only footnotes, then move through each matching word or phrase with previous/next buttons.
 - Keep the source text and sidebar connected: clicking a footnote jumps to its `[^id]` marker and briefly outlines it.
+- See when one footnote is referenced multiple times, then cycle through each reference from the selected sidebar card.
 - Keep the sidebar faithful to the note: footnotes are shown in definition order with their real `[^id]`, and definitions without an in-text reference are marked as unreferenced.
 - Sync from the footnote definition area too: placing the cursor inside a footnote definition selects the same footnote in the sidebar.
 - Delete a single footnote from the sidebar context menu, removing both its reference markers and its definition.
@@ -25,6 +26,12 @@ The sidebar search box filters footnotes by number, id, or content. When the sea
 Use the up/down buttons to move through matches. Better Footnote scrolls to the matching footnote, expands it if needed, and selects the matched text inside the footnote editor so you can see the exact hit.
 
 Clearing the search returns search-expanded footnotes to their compact state.
+
+## Multiple References
+
+If the same footnote id appears more than once in the text, Better Footnote keeps one sidebar card for the single footnote definition and shows how many references point to it. When that card is selected, small previous/next buttons cycle through each in-text reference and flash the exact marker.
+
+This works for named ids such as `[^citation]` and for repeated numeric ids such as `[^1]`. It does not change the note, renumber footnotes, or run Tidy Footnotes.
 
 ## Footnote Count
 
@@ -80,6 +87,7 @@ Better Footnote 是一个用于 Obsidian 的脚注侧栏插件。它面向长文
 - 可以正常选择、复制、粘贴、换行编辑脚注内容。
 - 可以只搜索脚注，并用上/下按钮逐个跳转到每一处匹配文字。
 - 点击侧栏脚注会跳到正文中的 `[^id]` 标记，并用紫色框短暂标出位置。
+- 同一条脚注被多处引用时，可以看到引用数量，并在选中该脚注后逐处切换定位。
 - 侧栏忠实显示当前文档里的真实脚注 id，并按文末定义顺序排列；没有正文引用的定义会标记为“未引用”。
 - 在文末脚注定义区点击或移动光标时，右侧栏也会同步选中对应脚注。
 - 可以从侧栏右键菜单删除单条脚注，同时移除正文引用标记和脚注定义。
@@ -93,6 +101,12 @@ Better Footnote 是一个用于 Obsidian 的脚注侧栏插件。它面向长文
 点击上/下按钮时，Better Footnote 会跳到对应匹配项，必要时自动展开长脚注，并直接选中脚注编辑框里的匹配文字，让你看到具体命中位置。
 
 清除搜索后，由搜索自动展开的脚注会恢复为紧凑显示。
+
+### 多处引用
+
+如果同一个脚注 id 在正文中出现多次，Better Footnote 仍然只保留一张侧栏卡片，因为文末脚注定义只有一条。侧栏会显示它有几处引用；选中该卡片后，会出现上一处/下一处按钮，可以循环跳转到正文中的每一个引用标记，并短暂高亮当前位置。
+
+这同时适用于 `[^citation]` 这类自定义 id，也适用于重复出现的数字 id，例如 `[^1]`。这个功能只负责定位，不会修改正文、重新编号，也不会运行 Tidy Footnotes。
 
 ### 脚注计数
 
@@ -148,6 +162,7 @@ Better Footnote は、Obsidian のための脚注サイドバープラグイン�
 - 脚注テキストを通常どおり選択、コピー、貼り付け、複数行編集できます。
 - 脚注だけを検索し、前/次ボタンで各一致箇所へ移動できます。
 - サイドバーの脚注をクリックすると本文中の `[^id]` マーカーへ移動し、短時間アウトライン表示します。
+- 同じ脚注が複数箇所で参照されている場合、参照数を表示し、選択中のカードから各参照へ移動できます。
 - サイドバーは現在のノート内の実際の脚注 id を表示し、脚注定義の順序で並べます。本文中に参照がない定義には「未参照」と表示します。
 - 文末の脚注定義内にカーソルを置くと、サイドバーでも同じ脚注が選択されます。
 - サイドバーのコンテキストメニューから、参照マーカーと脚注定義をまとめて 1 件ずつ削除できます。
@@ -161,6 +176,12 @@ Better Footnote は、Obsidian のための脚注サイドバープラグイン�
 前/次ボタンを押すと、該当する一致箇所へ移動します。必要な場合は長い脚注を自動で展開し、脚注エディタ内の一致テキストを選択するため、どこに一致したか確認できます。
 
 検索をクリアすると、検索によって自動展開された脚注はコンパクト表示に戻ります。
+
+### 複数参照
+
+同じ脚注 id が本文中に複数回出てくる場合でも、脚注定義は 1 件なので、Better Footnote はサイドバーに 1 枚のカードだけを表示します。そのカードには参照数が表示され、選択すると前/次ボタンで本文中の各参照マーカーへ循環移動し、移動先を短時間ハイライトします。
+
+これは `[^citation]` のような名前付き id にも、繰り返し使われた `[^1]` のような数字 id にも対応します。この機能は位置移動だけを行い、本文の変更、番号整理、Tidy Footnotes の実行は行いません。
 
 ### 脚注カウント
 
@@ -216,6 +237,7 @@ Better Footnote는 Obsidian용 각주 사이드바 플러그인입니다. 긴 �
 - 각주 텍스트를 일반 텍스트처럼 선택, 복사, 붙여넣기, 여러 줄 편집할 수 있습니다.
 - 각주 안에서만 검색하고, 이전/다음 버튼으로 각 일치 항목을 이동할 수 있습니다.
 - 사이드바의 각주를 클릭하면 본문의 `[^id]` 표시로 이동하고 짧게 윤곽선을 표시합니다.
+- 같은 각주가 여러 곳에서 참조될 때 참조 수를 보여 주고, 선택한 카드에서 각 참조 위치로 이동할 수 있습니다.
 - 사이드바는 현재 노트의 실제 각주 id를 표시하고, 각주 정의 순서대로 보여줍니다. 본문 참조가 없는 정의는 “참조 없음”으로 표시합니다.
 - 문서 끝의 각주 정의 안에 커서를 두면, 사이드바에서도 같은 각주가 선택됩니다.
 - 사이드바 컨텍스트 메뉴에서 각주 1개를 삭제해 참조 표시와 각주 정의를 함께 제거할 수 있습니다.
@@ -229,6 +251,12 @@ Better Footnote는 Obsidian용 각주 사이드바 플러그인입니다. 긴 �
 이전/다음 버튼을 누르면 해당 일치 항목으로 이동합니다. 필요한 경우 긴 각주를 자동으로 펼치고, 각주 편집기 안의 일치 텍스트를 선택해 정확한 위치를 보여줍니다.
 
 검색을 지우면 검색 때문에 자동으로 펼쳐졌던 각주는 다시 간결한 표시로 돌아갑니다.
+
+### 여러 참조
+
+같은 각주 id가 본문에 여러 번 나타나도 문서 끝의 각주 정의는 하나이므로, Better Footnote는 사이드바에 카드 하나만 표시합니다. 이 카드에는 참조 수가 표시되며, 카드를 선택하면 이전/다음 버튼으로 본문의 각 참조 표시를 순환 이동하고 해당 위치를 짧게 강조합니다.
+
+이 기능은 `[^citation]` 같은 이름 있는 id와 반복해서 사용된 `[^1]` 같은 숫자 id 모두에 적용됩니다. 위치 이동만 처리하며 본문 수정, 번호 정리, Tidy Footnotes 실행은 하지 않습니다.
 
 ### 각주 계산
 

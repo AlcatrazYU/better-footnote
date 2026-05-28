@@ -164,6 +164,34 @@
   white-space: nowrap;
 }
 
+.bfw-reference-summary {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+
+.bfw-reference-nav {
+  display: none;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+
+.bfw-item.is-active .bfw-reference-summary {
+  display: none;
+}
+
+.bfw-item.is-active .bfw-reference-nav {
+  display: inline-flex;
+}
+
+.bfw-reference-position {
+  min-width: 32px;
+  text-align: center;
+}
+
 .bfw-actions {
   display: flex;
   align-items: center;
@@ -175,6 +203,12 @@
   padding: 0 8px;
   border-radius: 4px;
   font-size: var(--font-ui-smaller);
+}
+
+.bfw-reference-nav-button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
 }
 
 .bfw-editor {

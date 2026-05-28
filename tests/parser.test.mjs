@@ -26,6 +26,10 @@ assert.equal(parsed.footnotes[1].id, "note");
 assert.equal(parsed.footnotes[1].displayNumber, 2);
 assert.equal(parsed.footnotes[1].content, "第一行\n第二行\n第三行");
 assert.equal(parsed.footnotes[1].referenceCount, 1);
+assert.equal(parser.referenceIndexForFootnoteReference(parsed.footnotes[0], parsed.footnotes[0].references[0]), 0);
+assert.equal(parser.referenceIndexForFootnoteReference(parsed.footnotes[0], parsed.footnotes[0].references[1]), 1);
+assert.equal(parser.normalizeReferenceIndex(parsed.footnotes[0], -1), 0);
+assert.equal(parser.normalizeReferenceIndex(parsed.footnotes[0], 99), 1);
 
 const replaced = parser.replaceFootnoteContent(sample, "note", "改写第一行\n改写第二行");
 assert.ok(replaced.changed);
@@ -71,6 +75,26 @@ assert.ok(deletedEmpty.changed);
 assert.equal(deletedEmpty.referenceCount, 1);
 assert.equal(deletedEmpty.contentIsBlank, true);
 assert.equal(deletedEmpty.text.includes("[^empty]"), false);
+
+const deletedEmptyRecord = {
+  id: "1",
+  snapshot: {
+    contentFingerprint: "",
+  },
+};
+const reusedNumberedFootnote = parser.parseFootnotes([
+  "原来的脚注重新编号为[^1]。",
+  "",
+  "[^1]: 原来的非空脚注",
+].join("\n")).footnotes[0];
+assert.equal(parser.deletedFootnoteRecordMatchesFootnote(deletedEmptyRecord, reusedNumberedFootnote), false);
+
+const restoredEmptyFootnote = parser.parseFootnotes([
+  "恢复空脚注[^1]。",
+  "",
+  "[^1]: ",
+].join("\n")).footnotes[0];
+assert.equal(parser.deletedFootnoteRecordMatchesFootnote(deletedEmptyRecord, restoredEmptyFootnote), true);
 
 const cursor = sample.indexOf("[^note]") + 2;
 assert.equal(parser.findReferenceAtOffset(parsed, cursor)?.id, "note");

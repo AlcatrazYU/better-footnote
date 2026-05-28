@@ -1,15 +1,16 @@
-# Better Footnote 1.3.0
+# Better Footnote 1.4.0
 
-Sidebar footnote deletion update.
+Multiple-reference navigation update.
 
 ## Highlights
 
-- Add a sidebar context-menu action to delete one footnote.
-- Delete both the in-text reference marker and the footnote definition as one editor-history change.
-- Let users undo deletion through Obsidian's normal editor undo flow: click the note editor, then press Command+Z on macOS or Ctrl+Z on Windows/Linux.
-- Keep restored footnotes from being treated as newly inserted footnotes after undo.
-- Do not automatically tidy numbering after deletion; run Tidy Footnotes manually when ready.
-- Add localized delete and undo guidance for English, Chinese, Japanese, and Korean.
+- Show a compact reference count when one footnote id is used in multiple in-text markers.
+- When a multi-reference footnote is selected, show previous/next controls and cycle through each reference marker.
+- Remember the reference selected from the editor, so clicking the sidebar card returns to that same marker instead of always jumping to the first reference.
+- Support both named ids such as `[^citation]` and repeated numeric ids such as `[^1]`.
+- Keep the feature navigation-only: it does not change note content, renumber footnotes, or run Tidy Footnotes.
+- Fix a stale deletion record bug where deleting an empty newly inserted footnote could later block editor-to-sidebar sync after Tidy Footnotes reused that number.
+- Add localized multi-reference labels and tooltips for English, Chinese, Japanese, and Korean.
 
 ## Release assets
 
