@@ -136,6 +136,23 @@ assert.deepEqual(
   ["a", "a", "b"],
 );
 
+const exactIdSearch = parser.parseFootnotes([
+  "正文引用数字脚注[^17]，也引用命名脚注[^citation]。",
+  "",
+  "[^17]: 第十七条脚注。",
+  "[^citation]: 这里写到 1917 年，也写到 2017 年。",
+].join("\n"));
+assert.deepEqual(parser.filterFootnotes(exactIdSearch.footnotes, "^17").map((footnote) => footnote.id), ["17"]);
+assert.deepEqual(parser.findFootnoteSearchResults(exactIdSearch.footnotes, "^17"), [
+  { footnoteId: "17", match: null },
+]);
+assert.deepEqual(parser.filterFootnotes(exactIdSearch.footnotes, "^citation").map((footnote) => footnote.id), ["citation"]);
+assert.deepEqual(parser.filterFootnotes(exactIdSearch.footnotes, "17").map((footnote) => footnote.id), ["17", "citation"]);
+assert.deepEqual(
+  parser.findFootnoteSearchResults(exactIdSearch.footnotes, "17").map((result) => result.footnoteId),
+  ["17", "citation", "citation"],
+);
+
 const outOfOrder = parser.parseFootnotes([
   "先引用新增脚注[^52]，再引用旧脚注[^49]。",
   "",

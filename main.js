@@ -31,6 +31,7 @@
       footnoteCount: "{file} · {count} footnote{plural}",
       filteredFootnoteCount: "{file} · {visible}/{total} footnotes · {matches} matches",
       searchPlaceholder: "Search footnotes",
+      searchTooltip: "Search footnote content; type ^ plus a footnote number or name to jump to that footnote, e.g. ^42 or ^citation.",
       clearSearch: "Clear",
       resumeSearch: "Resume search",
       noSearchResults: "No footnotes match your search.",
@@ -93,6 +94,7 @@
       footnoteCount: "{file} · {count} 条脚注",
       filteredFootnoteCount: "{file} · 显示 {visible}/{total} 条脚注 · {matches} 处匹配",
       searchPlaceholder: "搜索脚注",
+      searchTooltip: "搜索脚注内容；输入 ^ 加脚注编号或名称，可精准定位该条脚注，例如 ^42 或 ^citation。",
       clearSearch: "清除",
       resumeSearch: "恢复搜索",
       noSearchResults: "没有匹配的脚注。",
@@ -155,6 +157,7 @@
       footnoteCount: "{file} · 脚注 {count} 件",
       filteredFootnoteCount: "{file} · {visible}/{total} 件を表示 · {matches} 件一致",
       searchPlaceholder: "脚注を検索",
+      searchTooltip: "脚注本文を検索します。^ に続けて脚注番号または名前を入力すると、その脚注へ移動できます。例: ^42 または ^citation。",
       clearSearch: "クリア",
       resumeSearch: "検索に戻る",
       noSearchResults: "一致する脚注がありません。",
@@ -217,6 +220,7 @@
       footnoteCount: "{file} · 각주 {count}개",
       filteredFootnoteCount: "{file} · {visible}/{total}개 표시 · {matches}개 일치",
       searchPlaceholder: "각주 검색",
+      searchTooltip: "각주 내용을 검색합니다. ^ 뒤에 각주 번호나 이름을 입력하면 해당 각주로 바로 이동합니다. 예: ^42 또는 ^citation.",
       clearSearch: "지우기",
       resumeSearch: "검색 재개",
       noSearchResults: "일치하는 각주가 없습니다.",
@@ -387,6 +391,17 @@
     return normalizeForSearch(query).split(/\s+/).filter(Boolean);
   }
 
+  function getExactFootnoteIdSearchQuery(query) {
+    const normalized = normalizeForSearch(query);
+    if (!normalized.startsWith("^")) return null;
+    const id = normalized.slice(1).trim();
+    return id || null;
+  }
+
+  function isExactFootnoteIdMatch(footnote, exactId) {
+    return normalizeForSearch(footnote?.id) === exactId;
+  }
+
   function getFootnoteSearchText(footnote) {
     return normalizeForSearch([
       footnote.displayNumber,
@@ -398,6 +413,10 @@
   }
 
   function filterFootnotes(footnotes, query) {
+    const exactId = getExactFootnoteIdSearchQuery(query);
+    if (exactId) {
+      return footnotes.filter((footnote) => isExactFootnoteIdMatch(footnote, exactId));
+    }
     const tokens = getSearchTokens(query);
     if (tokens.length === 0) return footnotes;
     return footnotes.filter((footnote) => {
@@ -434,6 +453,12 @@
   }
 
   function findFootnoteSearchResults(footnotes, query) {
+    const exactId = getExactFootnoteIdSearchQuery(query);
+    if (exactId) {
+      return footnotes
+        .filter((footnote) => isExactFootnoteIdMatch(footnote, exactId))
+        .map((footnote) => ({ footnoteId: footnote.id, match: null }));
+    }
     const tokens = getSearchTokens(query);
     if (tokens.length === 0) return [];
     const results = [];
@@ -1879,7 +1904,7 @@
           placeholder: strings.searchPlaceholder,
         },
       });
-      this.searchInputEl.setAttr("aria-label", strings.searchPlaceholder);
+      this.searchInputEl.setAttr("aria-label", strings.searchTooltip);
       this.resumeSearchButton = searchRowEl.createEl("button", {
         cls: "bfw-button bfw-search-nav-button",
         text: "↵",

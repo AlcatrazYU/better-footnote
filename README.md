@@ -49,6 +49,8 @@ Inline footnotes such as `^[inline text]` are not edited from the sidebar.
 
 The sidebar search box searches only footnotes. You can filter by number, id, or content without matching unrelated body text.
 
+If you already know the footnote number or name, type `^` before it to jump directly to that footnote. For example, `^42` only matches footnote `42`, and `^citation` only matches footnote `citation`. Plain `42` remains a normal search across footnote numbers, ids, and content.
+
 When the search text appears multiple times, each occurrence is counted separately. Use the up/down buttons to move through exact matches. Better Footnote scrolls to the matching footnote, expands it if needed, and selects the matched text inside the footnote editor so you can see the exact hit.
 
 Clearing the search returns search-expanded footnotes to their compact state.
@@ -134,6 +136,8 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 ### 脚注搜索
 
 侧栏搜索框只搜索脚注。你可以按脚注序号、id 或内容过滤，不会被正文中的同词内容干扰。
+
+如果你已经明确知道脚注编号或名称，可以在前面加 `^` 直接定位该条脚注。例如，`^42` 只匹配脚注 `42`，`^citation` 只匹配脚注 `citation`。普通输入 `42` 仍然保持原有搜索逻辑，会搜索脚注序号、id 和脚注内容。
 
 若同一个词在同一条脚注中出现多次，每一处都会单独计数。点击上/下按钮时，Better Footnote 会跳到对应匹配项，必要时自动展开长脚注，并直接选中脚注编辑框里的匹配文字，让你看到具体命中位置。
 
@@ -221,6 +225,8 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 
 サイドバーの検索欄は脚注だけを検索します。脚注番号、id、本文で絞り込めるため、本文中の同じ語句に邪魔されません。
 
+探したい脚注番号または名前が分かっている場合は、先頭に `^` を付けるとその脚注だけに直接絞り込めます。たとえば、`^42` は脚注 `42` だけを、`^citation` は脚注 `citation` だけを対象にします。通常の `42` はこれまでどおり、脚注番号、id、脚注本文を検索します。
+
 同じ語句が同じ脚注に複数回出る場合も、それぞれ別の一致として数えます。前/次ボタンを押すと該当する一致箇所へ移動します。必要な場合は長い脚注を自動で展開し、脚注エディタ内の一致テキストを選択するため、どこに一致したか確認できます。
 
 検索をクリアすると、検索によって自動展開された脚注はコンパクト表示に戻ります。
@@ -306,6 +312,8 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 ### 각주 검색
 
 사이드바 검색창은 각주만 검색합니다. 각주 번호, id, 내용으로 필터링할 수 있어 본문에 있는 같은 단어에 방해받지 않습니다.
+
+찾으려는 각주 번호나 이름을 정확히 알고 있다면 앞에 `^`를 붙여 해당 각주만 바로 찾을 수 있습니다. 예를 들어 `^42`는 각주 `42`만, `^citation`은 각주 `citation`만 일치시킵니다. 일반적인 `42` 입력은 기존처럼 각주 번호, id, 각주 내용을 검색합니다.
 
 같은 단어가 한 각주 안에 여러 번 나오면 각각 별도의 일치 항목으로 계산합니다. 이전/다음 버튼을 누르면 해당 일치 항목으로 이동합니다. 필요한 경우 긴 각주를 자동으로 펼치고, 각주 편집기 안의 일치 텍스트를 선택해 정확한 위치를 보여줍니다.
 
