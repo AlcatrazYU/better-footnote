@@ -30,7 +30,7 @@
       noFootnotes: "No footnote definitions found in this note.",
       footnoteCount: "{file} · {count} footnote{plural}",
       filteredFootnoteCount: "{file} · {visible}/{total} footnotes · {matches} matches",
-      searchPlaceholder: "Search footnotes",
+      searchPlaceholder: "Search footnotes; ^number/name jumps",
       searchTooltip: "Search footnote content; type ^ plus a footnote number or name to jump to that footnote, e.g. ^42 or ^citation.",
       clearSearch: "Clear",
       resumeSearch: "Resume search",
@@ -93,7 +93,7 @@
       noFootnotes: "这篇笔记中没有找到脚注定义。",
       footnoteCount: "{file} · {count} 条脚注",
       filteredFootnoteCount: "{file} · 显示 {visible}/{total} 条脚注 · {matches} 处匹配",
-      searchPlaceholder: "搜索脚注",
+      searchPlaceholder: "搜索脚注；^编号/名称精准定位",
       searchTooltip: "搜索脚注内容；输入 ^ 加脚注编号或名称，可精准定位该条脚注，例如 ^42 或 ^citation。",
       clearSearch: "清除",
       resumeSearch: "恢复搜索",
@@ -156,7 +156,7 @@
       noFootnotes: "このノートには脚注定義が見つかりません。",
       footnoteCount: "{file} · 脚注 {count} 件",
       filteredFootnoteCount: "{file} · {visible}/{total} 件を表示 · {matches} 件一致",
-      searchPlaceholder: "脚注を検索",
+      searchPlaceholder: "脚注検索；^番号/名前で移動",
       searchTooltip: "脚注本文を検索します。^ に続けて脚注番号または名前を入力すると、その脚注へ移動できます。例: ^42 または ^citation。",
       clearSearch: "クリア",
       resumeSearch: "検索に戻る",
@@ -219,7 +219,7 @@
       noFootnotes: "이 노트에서 각주 정의를 찾지 못했습니다.",
       footnoteCount: "{file} · 각주 {count}개",
       filteredFootnoteCount: "{file} · {visible}/{total}개 표시 · {matches}개 일치",
-      searchPlaceholder: "각주 검색",
+      searchPlaceholder: "각주 검색; ^번호/이름 바로 이동",
       searchTooltip: "각주 내용을 검색합니다. ^ 뒤에 각주 번호나 이름을 입력하면 해당 각주로 바로 이동합니다. 예: ^42 또는 ^citation.",
       clearSearch: "지우기",
       resumeSearch: "검색 재개",
@@ -1878,6 +1878,27 @@
 
     async render() {
       const strings = getStrings();
+      const previousSearchInput = this.searchInputEl;
+      const shouldRestoreSearchFocus = document.activeElement === previousSearchInput;
+      const searchSelectionStart = shouldRestoreSearchFocus ? previousSearchInput.selectionStart : null;
+      const searchSelectionEnd = shouldRestoreSearchFocus ? previousSearchInput.selectionEnd : null;
+      const searchSelectionDirection = shouldRestoreSearchFocus ? previousSearchInput.selectionDirection : null;
+      const restoreSearchFocus = () => {
+        if (!shouldRestoreSearchFocus) return;
+        window.requestAnimationFrame(() => {
+          if (!this.searchInputEl || this.searchInputEl.disabled) return;
+          this.searchInputEl.focus({ preventScroll: true });
+          if (searchSelectionStart === null || searchSelectionEnd === null) return;
+          try {
+            const valueLength = this.searchInputEl.value.length;
+            const selectionStart = Math.min(searchSelectionStart, valueLength);
+            const selectionEnd = Math.min(searchSelectionEnd, valueLength);
+            this.searchInputEl.setSelectionRange(selectionStart, selectionEnd, searchSelectionDirection || "none");
+          } catch (error) {
+            // Some input states do not expose a selectable range.
+          }
+        });
+      };
       this.captureState();
       const file = this.plugin.getCurrentMarkdownFile();
       this.file = file;
@@ -1941,6 +1962,7 @@
         this.resumeSearchButton.setAttr("disabled", "true");
         this.setSearchNavDisabled(true);
         this.listEl.createDiv({ cls: "bfw-empty", text: strings.openMarkdownNote });
+        restoreSearchFocus();
         return;
       }
 
@@ -1950,6 +1972,7 @@
       } catch (error) {
         subtitleEl.setText(file.path);
         this.listEl.createDiv({ cls: "bfw-empty", text: t(strings, "readFailed", { message: error.message }) });
+        restoreSearchFocus();
         return;
       }
 
@@ -2033,6 +2056,7 @@
         this.resumeSearchButton.setAttr("disabled", "true");
         this.setSearchNavDisabled(true);
         this.listEl.createDiv({ cls: "bfw-empty", text: strings.noFootnotes });
+        restoreSearchFocus();
         return;
       }
 
@@ -2113,6 +2137,7 @@
           });
         }
       }
+      restoreSearchFocus();
     }
 
     getRawSearchQuery() {
