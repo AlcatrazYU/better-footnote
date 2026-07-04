@@ -1,7 +1,7 @@
 {
   "id": "better-footnote",
   "name": "Better Footnote",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "minAppVersion": "1.5.0",
   "description": "A writing-focused footnote sidebar for editing, navigating, and preserving context in academic Markdown notes.",
   "author": "AlcatrazYU",

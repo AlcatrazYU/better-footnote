@@ -153,6 +153,70 @@ assert.deepEqual(
   ["17", "citation", "citation"],
 );
 
+const markdownEditorTarget = {
+  closest(selector) {
+    return selector.includes(".cm-editor") || selector.includes(".markdown-source-view") ? {} : null;
+  },
+};
+const betterFootnoteTarget = {
+  closest(selector) {
+    if (selector.includes(".better-footnote")) return {};
+    return selector.includes(".cm-editor") || selector.includes(".markdown-source-view") ? {} : null;
+  },
+};
+const nonEditorTarget = {
+  closest() {
+    return null;
+  },
+};
+
+assert.equal(parser.isTextEditingKey({ key: "a" }), true);
+assert.equal(parser.isTextEditingKey({ key: "Backspace" }), true);
+assert.equal(parser.isTextEditingKey({ key: "a", metaKey: true }), false);
+assert.equal(parser.isTextEditingKey({ key: "ArrowDown" }), false);
+assert.equal(parser.isEditorTextInputEvent({
+  type: "beforeinput",
+  inputType: "insertText",
+  target: markdownEditorTarget,
+}), true);
+assert.equal(parser.isEditorTextInputEvent({
+  type: "beforeinput",
+  inputType: "historyUndo",
+  target: markdownEditorTarget,
+}), false);
+assert.equal(parser.isEditorTextInputEvent({
+  type: "keydown",
+  key: "x",
+  target: markdownEditorTarget,
+}), true);
+assert.equal(parser.isEditorTextInputEvent({
+  type: "beforeinput",
+  inputType: "insertText",
+  target: betterFootnoteTarget,
+}), false);
+assert.equal(parser.isEditorTextInputEvent({
+  type: "beforeinput",
+  inputType: "insertText",
+  target: nonEditorTarget,
+}), false);
+assert.equal(parser.isCommandLikeEditorKeydown({
+  type: "keydown",
+  key: "t",
+  metaKey: true,
+  target: markdownEditorTarget,
+}), true);
+assert.equal(parser.isCommandLikeEditorKeydown({
+  type: "keydown",
+  key: "ArrowDown",
+  target: markdownEditorTarget,
+}), true);
+assert.equal(parser.isCommandLikeEditorKeydown({
+  type: "keydown",
+  key: "t",
+  metaKey: true,
+  target: betterFootnoteTarget,
+}), false);
+
 const outOfOrder = parser.parseFootnotes([
   "先引用新增脚注[^52]，再引用旧脚注[^49]。",
   "",
@@ -241,5 +305,49 @@ assert.equal(
   }, "52"),
   "49",
 );
+
+{
+  const scheduled = new Map();
+  const cleared = new Set();
+  const flushed = [];
+  let nextTimerId = 1;
+  const scheduler = parser.createDeferredFileScheduler({
+    delayMs: 900,
+    setTimeoutFn(callback, delay) {
+      const id = nextTimerId++;
+      scheduled.set(id, { callback, delay });
+      return id;
+    },
+    clearTimeoutFn(id) {
+      cleared.add(id);
+      scheduled.delete(id);
+    },
+    onFlush(payload, key) {
+      flushed.push({ payload, key });
+    },
+  });
+
+  for (let index = 0; index < 56; index += 1) {
+    scheduler.schedule("large.md", { file: { path: "large.md" }, index });
+  }
+
+  assert.equal(scheduler.size(), 1);
+  assert.equal(cleared.size, 55);
+  assert.equal(flushed.length, 0);
+  const [timer] = scheduled.values();
+  assert.equal(timer.delay, 900);
+  timer.callback();
+  assert.equal(scheduler.size(), 0);
+  assert.deepEqual(flushed, [
+    { payload: { file: { path: "large.md" }, index: 55 }, key: "large.md" },
+  ]);
+
+  scheduler.schedule("a.md", { file: { path: "a.md" } });
+  scheduler.schedule("b.md", { file: { path: "b.md" } });
+  assert.equal(scheduler.has("a.md"), true);
+  assert.equal(scheduler.has("b.md"), true);
+  scheduler.clear();
+  assert.equal(scheduler.size(), 0);
+}
 
 console.log("parser tests passed");

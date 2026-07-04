@@ -2,6 +2,8 @@
   const VIEW_TYPE = "better-footnote-view";
   const SAVE_DELAY_MS = 450;
   const RENDER_DELAY_MS = 90;
+  const EDITOR_CHANGE_REFRESH_DELAY_MS = 900;
+  const CURSOR_SYNC_DELAY_MS = 80;
   const FOOTNOTE_CONTINUATION_INDENT = "    ";
   const FLASH_SELECTION_MS = 1400;
   const AUTO_TIDY_DELAY_MS = 250;
@@ -82,7 +84,7 @@
       deleteConfirm: "Delete footnote",
       deleteNeedsEditor: "Open the source note before deleting a footnote.",
       deleteFailed: "Failed to delete footnote: {message}",
-      deletedFootnote: "Deleted footnote [^{id}]. Click the note editor, then press {shortcut} to undo.",
+      deletedFootnote: "Deleted footnote [^{id}]. Press {shortcut} to undo.",
     },
     zh: {
       title: "Better Footnote",
@@ -145,7 +147,7 @@
       deleteConfirm: "删除脚注",
       deleteNeedsEditor: "请先打开对应笔记，再删除脚注。",
       deleteFailed: "删除脚注失败：{message}",
-      deletedFootnote: "已删除脚注 [^{id}]。点击笔记编辑区后按 {shortcut} 撤销。",
+      deletedFootnote: "已删除脚注 [^{id}]。按 {shortcut} 可撤销。",
     },
     ja: {
       title: "Better Footnote",
@@ -208,7 +210,7 @@
       deleteConfirm: "脚注を削除",
       deleteNeedsEditor: "脚注を削除する前に、元のノートを開いてください。",
       deleteFailed: "脚注の削除に失敗しました: {message}",
-      deletedFootnote: "脚注 [^{id}] を削除しました。ノート編集欄をクリックしてから {shortcut} で取り消せます。",
+      deletedFootnote: "脚注 [^{id}] を削除しました。{shortcut} で取り消せます。",
     },
     ko: {
       title: "Better Footnote",
@@ -271,7 +273,7 @@
       deleteConfirm: "각주 삭제",
       deleteNeedsEditor: "각주를 삭제하기 전에 원본 노트를 여세요.",
       deleteFailed: "각주 삭제 실패: {message}",
-      deletedFootnote: "각주 [^{id}]를 삭제했습니다. 노트 편집 영역을 클릭한 뒤 {shortcut}로 되돌릴 수 있습니다.",
+      deletedFootnote: "각주 [^{id}]를 삭제했습니다. {shortcut}로 되돌릴 수 있습니다.",
     },
   };
 
@@ -930,6 +932,98 @@
     return nearest && nearest.distance <= 2 ? nearest.reference : null;
   }
 
+  function closestElement(target, selector) {
+    return target && typeof target.closest === "function" ? target.closest(selector) : null;
+  }
+
+  function isBetterFootnoteTarget(target) {
+    return Boolean(closestElement(target, ".better-footnote"));
+  }
+
+  function isMarkdownEditorTarget(target) {
+    return Boolean(closestElement(target, ".cm-editor, .markdown-source-view"));
+  }
+
+  function isCursorNavigationKey(event) {
+    return [
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "Home",
+      "End",
+      "PageUp",
+      "PageDown",
+    ].includes(event?.key);
+  }
+
+  function isTextEditingKey(event) {
+    const key = event?.key;
+    if (!key) return false;
+    if (event.metaKey || event.ctrlKey || event.altKey) return false;
+    if (event.isComposing || key === "Process") return true;
+    if (key.length === 1) return true;
+    return ["Backspace", "Delete", "Enter", "NumpadEnter", "Tab"].includes(key);
+  }
+
+  function isEditorTextInputEvent(event) {
+    if (!event || isBetterFootnoteTarget(event.target) || !isMarkdownEditorTarget(event.target)) {
+      return false;
+    }
+    if (event.type === "keydown") {
+      return isTextEditingKey(event);
+    }
+    const inputType = String(event.inputType || "");
+    if (!inputType) return true;
+    if (inputType.startsWith("history")) return false;
+    return inputType.startsWith("insert") || inputType.startsWith("delete");
+  }
+
+  function isCommandLikeEditorKeydown(event) {
+    if (!event || event.type !== "keydown") return false;
+    if (isBetterFootnoteTarget(event.target) || !isMarkdownEditorTarget(event.target)) return false;
+    if (isTextEditingKey(event)) return false;
+    return Boolean(event.metaKey || event.ctrlKey || event.altKey || isCursorNavigationKey(event));
+  }
+
+  function createDeferredFileScheduler({ delayMs, setTimeoutFn, clearTimeoutFn, onFlush }) {
+    const timers = new Map();
+    return {
+      schedule(key, payload) {
+        const normalizedKey = String(key || "");
+        if (!normalizedKey) return;
+        const existing = timers.get(normalizedKey);
+        if (existing) {
+          clearTimeoutFn(existing);
+        }
+        const timer = setTimeoutFn(() => {
+          timers.delete(normalizedKey);
+          onFlush(payload, normalizedKey);
+        }, delayMs);
+        timers.set(normalizedKey, timer);
+      },
+      cancel(key) {
+        const normalizedKey = String(key || "");
+        const existing = timers.get(normalizedKey);
+        if (!existing) return;
+        clearTimeoutFn(existing);
+        timers.delete(normalizedKey);
+      },
+      clear() {
+        for (const timer of timers.values()) {
+          clearTimeoutFn(timer);
+        }
+        timers.clear();
+      },
+      has(key) {
+        return timers.has(String(key || ""));
+      },
+      size() {
+        return timers.size;
+      },
+    };
+  }
+
   if (typeof require !== "function") {
     if (typeof module !== "undefined" && module.exports) {
       module.exports = {
@@ -952,6 +1046,10 @@
         referenceIndexForFootnoteReference,
         findReferenceAtOffset,
         findDefinitionAtOffset,
+        isTextEditingKey,
+        isEditorTextInputEvent,
+        isCommandLikeEditorKeydown,
+        createDeferredFileScheduler,
       };
     }
     return;
@@ -985,6 +1083,10 @@
         deletedFootnoteRecordMatchesFootnote,
         normalizeReferenceIndex,
         referenceIndexForFootnoteReference,
+        isTextEditingKey,
+        isEditorTextInputEvent,
+        isCommandLikeEditorKeydown,
+        createDeferredFileScheduler,
       };
     }
     return;
@@ -1118,6 +1220,13 @@
       this.pendingTidyKeys = new Set();
       this.tidyMissingNoticeShown = false;
       this.suppressCursorSyncUntil = 0;
+      this.typingCursorSyncSuppressUntil = 0;
+      this.deferredEditorRefresh = createDeferredFileScheduler({
+        delayMs: EDITOR_CHANGE_REFRESH_DELAY_MS,
+        setTimeoutFn: (callback, delay) => window.setTimeout(callback, delay),
+        clearTimeoutFn: (timer) => window.clearTimeout(timer),
+        onFlush: ({ file }) => this.flushDeferredEditorRefresh(file),
+      });
       this.activeDeleteNotice = null;
       this.recentlyDeletedFootnotesByFile = new Map();
       this.restoredDeletedFootnoteCursorSuppressionsByFile = new Map();
@@ -1143,11 +1252,16 @@
       this.registerEvent(this.app.workspace.on("file-open", () => this.onWorkspaceContextChanged()));
       this.registerEvent(this.app.workspace.on("editor-change", () => this.onEditorChanged()));
       this.registerEvent(this.app.vault.on("modify", (file) => {
-        if (isMarkdownFile(file)) this.refreshViews(file);
+        if (isMarkdownFile(file)) this.onVaultFileModified(file);
       }));
+      this.registerDomEvent(document, "beforeinput", (event) => this.onEditorTextInputEvent(event));
+      this.registerDomEvent(document, "keydown", (event) => this.onEditorKeydown(event));
+      this.registerDomEvent(document, "pointerdown", (event) => this.onDocumentPointerDown(event));
       this.registerDomEvent(document, "selectionchange", () => this.scheduleCursorSync());
-      this.registerDomEvent(document, "keyup", () => this.scheduleCursorSync());
-      this.registerDomEvent(document, "mouseup", () => this.scheduleCursorSync());
+      this.registerDomEvent(document, "keyup", (event) => {
+        this.scheduleCursorSync({ force: isCursorNavigationKey(event) });
+      });
+      this.registerDomEvent(document, "mouseup", () => this.scheduleCursorSync({ force: true }));
 
       this.app.workspace.onLayoutReady(() => {
         this.trackCurrentMarkdownFile();
@@ -1162,6 +1276,7 @@
       if (this.flashSelectionTimer !== null) {
         window.clearTimeout(this.flashSelectionTimer);
       }
+      this.deferredEditorRefresh?.clear();
       this.hideActiveDeleteNotice();
       this.pendingTidyKeys.clear();
       this.recentlyDeletedFootnotesByFile.clear();
@@ -1193,16 +1308,77 @@
     onWorkspaceContextChanged() {
       this.trackCurrentMarkdownFile();
       this.refreshViews();
-      this.scheduleCursorSync();
+      this.scheduleCursorSync({ force: true });
     }
 
     onEditorChanged() {
-      this.trackCurrentMarkdownFile();
-      this.refreshViews(this.lastMarkdownFile);
-      this.scheduleCursorSync();
+      const file = this.trackCurrentMarkdownFile();
+      if (!file) return;
+      if (this.isTypingActive()) {
+        this.scheduleDeferredEditorRefresh(file);
+        return;
+      }
+      this.refreshViews(file);
+      this.scheduleCursorSync({ force: true, delay: RENDER_DELAY_MS + CURSOR_SYNC_DELAY_MS });
+    }
+
+    onVaultFileModified(file) {
+      if (this.isTypingActive() && this.lastMarkdownFile?.path === file?.path) {
+        this.scheduleDeferredEditorRefresh(file);
+        return;
+      }
+      this.refreshViews(file);
+    }
+
+    onEditorTextInputEvent(event) {
+      if (isEditorTextInputEvent(event)) {
+        this.markTypingActive();
+      }
+    }
+
+    onEditorKeydown(event) {
+      if (isEditorTextInputEvent(event)) {
+        this.markTypingActive();
+      } else if (isCommandLikeEditorKeydown(event)) {
+        this.clearTypingActive();
+      }
+    }
+
+    onDocumentPointerDown(event) {
+      if (!isBetterFootnoteTarget(event?.target)) {
+        this.clearTypingActive();
+      }
+    }
+
+    markTypingActive() {
+      this.typingCursorSyncSuppressUntil = Date.now() + EDITOR_CHANGE_REFRESH_DELAY_MS;
+    }
+
+    clearTypingActive() {
+      this.typingCursorSyncSuppressUntil = 0;
+    }
+
+    isTypingActive() {
+      return Date.now() < this.typingCursorSyncSuppressUntil;
+    }
+
+    scheduleDeferredEditorRefresh(file) {
+      if (!file?.path) return;
+      this.deferredEditorRefresh.schedule(file.path, { file });
+    }
+
+    flushDeferredEditorRefresh(file) {
+      if (!file?.path) return;
+      this.refreshViews(file);
+      this.scheduleCursorSync({ force: true, delay: RENDER_DELAY_MS + CURSOR_SYNC_DELAY_MS });
     }
 
     refreshViews(file = null) {
+      if (file?.path) {
+        this.deferredEditorRefresh?.cancel(file.path);
+      } else {
+        this.deferredEditorRefresh?.clear();
+      }
       for (const view of this.views) {
         if (!file || !view.file || view.file.path === file.path) {
           view.scheduleRender();
@@ -1210,17 +1386,24 @@
       }
     }
 
-    scheduleCursorSync() {
+    scheduleCursorSync(options = {}) {
+      const force = Boolean(options.force);
+      if (!force && this.isTypingActive()) {
+        return;
+      }
       if (this.cursorSyncTimer !== null) {
         window.clearTimeout(this.cursorSyncTimer);
       }
       this.cursorSyncTimer = window.setTimeout(() => {
         this.cursorSyncTimer = null;
-        this.syncCursorToViews();
-      }, 80);
+        this.syncCursorToViews({ force });
+      }, typeof options.delay === "number" ? options.delay : CURSOR_SYNC_DELAY_MS);
     }
 
-    syncCursorToViews() {
+    syncCursorToViews(options = {}) {
+      if (!options.force && this.isTypingActive()) {
+        return;
+      }
       if (Date.now() < this.suppressCursorSyncUntil) {
         return;
       }
@@ -1574,6 +1757,7 @@
         }
         this.rememberDeletedFootnote(file, result.footnote);
         this.suppressCursorSyncFromSidebarJump();
+        this.focusMarkdownEditor(markdownView);
         this.refreshViews(file);
         this.showFootnoteDeletedNotice(footnoteId);
         return true;
@@ -1605,6 +1789,15 @@
             insert: "",
           })),
         });
+        return true;
+      }
+      return false;
+    }
+
+    focusMarkdownEditor(markdownView) {
+      const editor = markdownView?.editor;
+      if (editor && typeof editor.focus === "function") {
+        editor.focus();
         return true;
       }
       return false;

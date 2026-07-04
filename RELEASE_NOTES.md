@@ -1,12 +1,13 @@
-# Better Footnote 1.4.2
+# Better Footnote 1.4.3
 
-Small sidebar search usability update.
+Performance and workflow stability update for large notes.
 
 ## Highlights
 
-- Preserve search box focus and cursor position when the sidebar re-renders, so the first click into the search field remains usable.
-- Make the search placeholder more discoverable by hinting that `^number` or `^name` jumps directly to a footnote.
-- Keep the existing exact id search, ordinary content search, navigation, and footnote editing behavior unchanged.
+- Reduce typing lag in large notes by deferring sidebar refreshes only during real text input instead of every editor change.
+- Keep structural footnote operations responsive, including new footnotes, Tidy Footnotes renumbering, sidebar deletion, and command-driven changes.
+- Return focus to the Markdown editor after deleting a footnote from the sidebar, so Tidy Footnotes shortcuts and `Ctrl`/`Command + Z` undo work without an extra click.
+- Keep the existing footnote editing, search, exact id jump, multi-reference navigation, and deletion semantics unchanged.
 
 ## Release assets
 
