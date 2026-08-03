@@ -18,6 +18,7 @@
     autoTidyAfterNewFootnote: false,
     countMode: "auto",
     tidyCommandId: "",
+    renderMarkdownInSidebar: false,
   };
 
   const COUNT_MODES = new Set(["auto", "characters", "words"]);
@@ -67,6 +68,8 @@
       countModeAuto: "Auto",
       countModeCharacters: "Characters",
       countModeWords: "Words",
+      renderMarkdownName: "Render Markdown in sidebar",
+      renderMarkdownDesc: "When enabled, footnote cards you are not editing show rendered Markdown, including links, bold, and other formatting. Click the text to edit the Markdown source; click a link to open it. While editing, the card shows the raw source.",
       autoTidyName: "Auto tidy after a new footnote",
       autoTidyDesc: "Requires Tidy Footnotes. When Better Footnote detects a newly inserted footnote, it runs Tidy Footnotes automatically. This closes Obsidian's built-in floating footnote editor; use the Better Footnote sidebar to edit the footnote.",
       tidyInstallName: "Tidy Footnotes integration",
@@ -130,6 +133,8 @@
       countModeAuto: "自动",
       countModeCharacters: "字数",
       countModeWords: "单词数",
+      renderMarkdownName: "侧栏渲染 Markdown",
+      renderMarkdownDesc: "开启后，未在编辑的脚注卡片会显示渲染后的 Markdown，包括链接、粗体等格式。点击文字进入源码编辑，点击链接直接打开。编辑时卡片显示原始 Markdown 源码。",
       autoTidyName: "新增脚注后自动整理编号",
       autoTidyDesc: "需要先安装并启用 Tidy Footnotes。Better Footnote 检测到新增脚注后，会自动运行 Tidy Footnotes。启用后会关闭 Obsidian 自带的脚注悬浮编辑框，请在 Better Footnote 侧栏中编辑脚注。",
       tidyInstallName: "Tidy Footnotes 集成",
@@ -193,6 +198,8 @@
       countModeAuto: "自動",
       countModeCharacters: "文字数",
       countModeWords: "単語数",
+      renderMarkdownName: "サイドバーで Markdown をレンダリング",
+      renderMarkdownDesc: "有効にすると、編集していない脚注カードはリンクや太字などを含むレンダリング済みの Markdown で表示されます。本文をクリックするとソースを編集でき、リンクをクリックすると開きます。編集中は Markdown ソースを表示します。",
       autoTidyName: "新しい脚注の後に自動整理",
       autoTidyDesc: "Tidy Footnotes のインストールと有効化が必要です。Better Footnote は新しい脚注を検出すると、Tidy Footnotes を自動実行します。有効にすると Obsidian 標準の脚注フローティング編集欄を閉じるため、脚注は Better Footnote サイドバーで編集してください。",
       tidyInstallName: "Tidy Footnotes 連携",
@@ -256,6 +263,8 @@
       countModeAuto: "자동",
       countModeCharacters: "글자 수",
       countModeWords: "단어 수",
+      renderMarkdownName: "사이드바에서 Markdown 렌더링",
+      renderMarkdownDesc: "켜면 편집 중이 아닌 각주 카드가 링크, 굵게 등 서식을 포함한 렌더링된 Markdown으로 표시됩니다. 본문을 클릭하면 소스를 편집할 수 있고, 링크를 클릭하면 링크가 열립니다. 편집 중에는 Markdown 소스가 표시됩니다.",
       autoTidyName: "새 각주 뒤 자동 정리",
       autoTidyDesc: "Tidy Footnotes를 먼저 설치하고 활성화해야 합니다. Better Footnote가 새 각주를 감지하면 Tidy Footnotes를 자동으로 실행합니다. 이 기능을 켜면 Obsidian 기본 각주 플로팅 편집 창을 닫으므로, 각주는 Better Footnote 사이드바에서 편집하세요.",
       tidyInstallName: "Tidy Footnotes 연동",
@@ -1024,6 +1033,66 @@
     };
   }
 
+  function approximateSourceOffsetFromClick(content, contextText, offsetInContext) {
+    const text = normalizeLineEndings(content ?? "");
+    const context = String(contextText ?? "");
+    if (!text || !context) return null;
+    const numericOffset = Number(offsetInContext);
+    const clickOffset = Math.max(0, Math.min(context.length, Number.isFinite(numericOffset) ? Math.trunc(numericOffset) : 0));
+    const windowSizes = [context.length, 24, 12, 6, 3, 1];
+    const triedFragments = new Set();
+    for (const windowSize of windowSizes) {
+      const size = Math.max(1, Math.min(context.length, windowSize));
+      const start = Math.max(0, Math.min(context.length - size, clickOffset - Math.floor(size / 2)));
+      const fragment = context.slice(start, start + size);
+      const fragmentKey = `${start}:${size}`;
+      if (!fragment.trim() || triedFragments.has(fragmentKey)) continue;
+      triedFragments.add(fragmentKey);
+      const index = text.indexOf(fragment);
+      if (index !== -1) {
+        return Math.max(0, Math.min(text.length, index + (clickOffset - start)));
+      }
+    }
+    return null;
+  }
+
+  function createLruCache(options = {}) {
+    const maxEntries = Math.max(1, Math.trunc(Number(options.maxEntries) || 200));
+    const entries = new Map();
+    return {
+      get(key) {
+        const normalizedKey = String(key ?? "");
+        if (!entries.has(normalizedKey)) return undefined;
+        const value = entries.get(normalizedKey);
+        entries.delete(normalizedKey);
+        entries.set(normalizedKey, value);
+        return value;
+      },
+      set(key, value) {
+        const normalizedKey = String(key ?? "");
+        if (entries.has(normalizedKey)) {
+          entries.delete(normalizedKey);
+        }
+        entries.set(normalizedKey, value);
+        while (entries.size > maxEntries) {
+          entries.delete(entries.keys().next().value);
+        }
+      },
+      has(key) {
+        return entries.has(String(key ?? ""));
+      },
+      delete(key) {
+        return entries.delete(String(key ?? ""));
+      },
+      clear() {
+        entries.clear();
+      },
+      size() {
+        return entries.size;
+      },
+    };
+  }
+
   if (typeof require !== "function") {
     if (typeof module !== "undefined" && module.exports) {
       module.exports = {
@@ -1050,6 +1119,8 @@
         isEditorTextInputEvent,
         isCommandLikeEditorKeydown,
         createDeferredFileScheduler,
+        approximateSourceOffsetFromClick,
+        createLruCache,
       };
     }
     return;
@@ -1087,6 +1158,8 @@
         isEditorTextInputEvent,
         isCommandLikeEditorKeydown,
         createDeferredFileScheduler,
+        approximateSourceOffsetFromClick,
+        createLruCache,
       };
     }
     return;
@@ -1100,7 +1173,7 @@
     codemirrorView = null;
   }
 
-  const { ItemView, MarkdownView, Menu, Modal, Notice, Plugin, PluginSettingTab, Setting } = obsidian;
+  const { Component, ItemView, MarkdownRenderer, MarkdownView, Menu, Modal, Notice, Plugin, PluginSettingTab, Setting } = obsidian;
   const { StateEffect, StateField } = codemirrorState || {};
   const { Decoration, EditorView } = codemirrorView || {};
   const flashFootnoteReferenceEffect = StateEffect?.define?.();
@@ -1213,6 +1286,7 @@
     async onload() {
       this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
       this.settings.countMode = normalizeCountMode(this.settings.countMode);
+      this.settings.renderMarkdownInSidebar = Boolean(this.settings.renderMarkdownInSidebar);
       this.views = new Set();
       this.lastMarkdownFile = null;
       this.cursorSyncTimer = null;
@@ -1920,6 +1994,19 @@
       this.containerEl.createEl("h2", { text: strings.settingsTitle });
 
       new Setting(this.containerEl)
+        .setName(strings.renderMarkdownName)
+        .setDesc(strings.renderMarkdownDesc)
+        .addToggle((toggle) => {
+          toggle
+            .setValue(Boolean(this.plugin.settings.renderMarkdownInSidebar))
+            .onChange(async (value) => {
+              this.plugin.settings.renderMarkdownInSidebar = Boolean(value);
+              await this.plugin.saveSettings();
+              this.plugin.refreshViews();
+            });
+        });
+
+      new Setting(this.containerEl)
         .setName(strings.countModeName)
         .setDesc(strings.countModeDesc)
         .addDropdown((dropdown) => {
@@ -1988,6 +2075,11 @@
       this.expandedFootnoteIds = new Set();
       this.searchExpandedFootnoteIds = new Set();
       this.syncExpandedFootnoteIds = new Set();
+      this.editingFootnoteId = null;
+      this.renderGeneration = 0;
+      this.markdownRenderComponents = [];
+      this.markdownRenderCache = createLruCache({ maxEntries: 200 });
+      this.renderCacheFilePath = "";
     }
 
     formatFootnoteCountForDisplay(text, strings = getStrings()) {
@@ -2021,6 +2113,8 @@
       if (this.renderTimer !== null) {
         window.clearTimeout(this.renderTimer);
       }
+      this.invalidateRenderedArtifacts(null);
+      this.markdownRenderCache.clear();
       this.plugin.unregisterFootnoteView(this);
     }
 
@@ -2040,6 +2134,169 @@
 
     isEditing() {
       return document.activeElement?.classList?.contains("bfw-editor");
+    }
+
+    isMarkdownRenderingEnabled() {
+      return Boolean(this.plugin.settings?.renderMarkdownInSidebar)
+        && Boolean(MarkdownRenderer?.render || MarkdownRenderer?.renderMarkdown);
+    }
+
+    invalidateRenderedArtifacts(file) {
+      this.renderGeneration += 1;
+      for (const component of this.markdownRenderComponents) {
+        try {
+          component.unload();
+        } catch (_error) {
+          // The component may already be unloaded.
+        }
+      }
+      this.markdownRenderComponents = [];
+      const path = file?.path || "";
+      if (path !== this.renderCacheFilePath) {
+        this.renderCacheFilePath = path;
+        this.markdownRenderCache.clear();
+        this.editingFootnoteId = null;
+      }
+    }
+
+    getMeasurableContentEl(item) {
+      if (!item) return null;
+      return item.querySelector(".bfw-rendered") || item.querySelector(".bfw-editor");
+    }
+
+    hasHiddenContent(el) {
+      if (!el) return false;
+      if (el.tagName === "TEXTAREA") {
+        return this.hasHiddenTextareaContent(el);
+      }
+      return el.scrollHeight > el.clientHeight + 2;
+    }
+
+    renderMarkdownIntoContainer(container, content, onReady) {
+      const component = new Component();
+      component.load();
+      this.markdownRenderComponents.push(component);
+      const generation = this.renderGeneration;
+      const sourcePath = this.file?.path || "";
+      const renderCall = MarkdownRenderer?.render
+        ? MarkdownRenderer.render(this.plugin.app, content, container, sourcePath, component)
+        : MarkdownRenderer.renderMarkdown(content, container, sourcePath, component);
+      Promise.resolve(renderCall).then(() => {
+        if (generation !== this.renderGeneration) return;
+        this.markdownRenderCache.set(content, container);
+        onReady?.();
+      }).catch(() => {
+        // Rendering errors leave the card blank; editing still works.
+      });
+    }
+
+    mountRenderedContent(itemEl, textarea, footnoteId, content, onReady) {
+      const normalizedContent = normalizeLineEndings(content ?? "");
+      const renderedEl = document.createElement("div");
+      renderedEl.className = "bfw-rendered markdown-rendered";
+      renderedEl.dataset.footnoteId = footnoteId;
+      textarea.insertAdjacentElement("beforebegin", renderedEl);
+      itemEl.addClass("is-rendered");
+      const cached = this.markdownRenderCache.get(normalizedContent);
+      if (cached) {
+        renderedEl.appendChild(cached.cloneNode(true));
+        onReady?.();
+      } else {
+        const container = document.createElement("div");
+        container.className = "bfw-rendered-inner";
+        renderedEl.appendChild(container);
+        this.renderMarkdownIntoContainer(container, normalizedContent, onReady);
+      }
+      renderedEl.addEventListener("click", (event) => {
+        if (event.target?.closest?.("a")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.enterFootnoteEditMode(footnoteId, this.caretContextFromPoint(event));
+      });
+      return renderedEl;
+    }
+
+    enterFootnoteEditMode(footnoteId, caret = null) {
+      if (!this.isMarkdownRenderingEnabled()) return;
+      this.editingFootnoteId = footnoteId;
+      const item = this.findFootnoteItem(footnoteId);
+      if (!item) return;
+      item.querySelector(".bfw-rendered")?.remove();
+      item.removeClass("is-rendered");
+      const textarea = item.querySelector(".bfw-editor");
+      if (!textarea) return;
+      if (this.isFootnoteExpanded(footnoteId)) {
+        this.applyTextareaHeight(textarea, true);
+      }
+      textarea.focus();
+      const value = textarea.value;
+      let position = value.length;
+      if (caret) {
+        const approximate = approximateSourceOffsetFromClick(value, caret.contextText, caret.offsetInContext);
+        if (typeof approximate === "number") {
+          position = Math.max(0, Math.min(value.length, approximate));
+        }
+      }
+      try {
+        textarea.setSelectionRange(position, position);
+      } catch (_error) {
+        // Some input states do not expose a selectable range.
+      }
+    }
+
+    exitFootnoteEditMode(footnoteId) {
+      if (this.editingFootnoteId === footnoteId) {
+        this.editingFootnoteId = null;
+      }
+      if (!this.isMarkdownRenderingEnabled()) return;
+      const item = this.findFootnoteItem(footnoteId);
+      if (!item || item.querySelector(".bfw-rendered")) return;
+      const textarea = item.querySelector(".bfw-editor");
+      if (!textarea) return;
+      const expandButton = item.querySelector(".bfw-expand-button");
+      this.mountRenderedContent(item, textarea, footnoteId, textarea.value, () => {
+        if (expandButton) {
+          this.updateExpandButtonVisibility(this.getMeasurableContentEl(item), expandButton, footnoteId);
+        }
+      });
+    }
+
+    caretContextFromPoint(event) {
+      const doc = event?.target?.ownerDocument || document;
+      let node = null;
+      let offset = 0;
+      if (typeof doc.caretRangeFromPoint === "function") {
+        const range = doc.caretRangeFromPoint(event.clientX, event.clientY);
+        if (range) {
+          node = range.startContainer;
+          offset = range.startOffset;
+        }
+      } else if (typeof doc.caretPositionFromPoint === "function") {
+        const position = doc.caretPositionFromPoint(event.clientX, event.clientY);
+        if (position) {
+          node = position.offsetNode;
+          offset = position.offset;
+        }
+      }
+      if (!node || node.nodeType !== 3) return null;
+      return {
+        contextText: String(node.textContent || ""),
+        offsetInContext: offset,
+      };
+    }
+
+    onRenderedLinkClick(event) {
+      const link = closestElement(event.target, ".bfw-rendered a");
+      if (!link) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const href = link.getAttribute("data-href") || link.getAttribute("href") || "";
+      if (!href || href.startsWith("#")) return;
+      if (link.classList.contains("internal-link")) {
+        this.plugin.app.workspace.openLinkText(href, this.file?.path || "", false);
+      } else {
+        window.open(href);
+      }
     }
 
     captureState() {
@@ -2070,6 +2327,10 @@
     }
 
     async render() {
+      if (this.isEditing()) {
+        this.pendingRender = true;
+        return;
+      }
       const strings = getStrings();
       const previousSearchInput = this.searchInputEl;
       const shouldRestoreSearchFocus = document.activeElement === previousSearchInput;
@@ -2095,6 +2356,7 @@
       this.captureState();
       const file = this.plugin.getCurrentMarkdownFile();
       this.file = file;
+      this.invalidateRenderedArtifacts(file);
       this.contentEl.empty();
       this.contentEl.addClass("better-footnote");
 
@@ -2146,6 +2408,7 @@
       });
       this.searchNextButton.setAttr("title", strings.nextMatch);
       this.listEl = this.contentEl.createDiv({ cls: "bfw-list" });
+      this.listEl.addEventListener("click", (event) => this.onRenderedLinkClick(event));
       this.updateSearchModeButtons();
 
       if (!file) {
@@ -2425,6 +2688,7 @@
     }
 
     renderFootnoteList(footnotes, strings, subtitleEl, fileName) {
+      this.invalidateRenderedArtifacts(this.file);
       const query = this.getEffectiveSearchQuery();
       const visibleFootnotes = filterFootnotes(footnotes, query);
       this.searchMatches = findFootnoteSearchResults(footnotes, query);
@@ -2537,6 +2801,10 @@
       });
       this.markSearchTarget();
       const item = this.findFootnoteItem(result.footnoteId);
+      if (this.isMarkdownRenderingEnabled() && result.match && this.editingFootnoteId !== result.footnoteId) {
+        this.suppressTextareaFocusJump = true;
+        this.enterFootnoteEditMode(result.footnoteId);
+      }
       const textarea = item?.querySelector(".bfw-editor");
       if (!textarea) return;
       this.applyTextareaHeight(textarea, true);
@@ -2619,16 +2887,18 @@
       const item = this.findFootnoteItem(footnoteId);
       if (item) {
         item.toggleClass("is-expanded", expanded);
-        const textarea = item.querySelector(".bfw-editor");
-        this.applyTextareaHeight(textarea, expanded);
+        const contentEl = this.getMeasurableContentEl(item);
+        if (contentEl?.tagName === "TEXTAREA") {
+          this.applyTextareaHeight(contentEl, expanded);
+        }
         const button = item.querySelector(".bfw-expand-button");
         const strings = getStrings();
         if (button) {
           button.setText(expanded ? "△" : "▽");
           button.setAttr("title", expanded ? strings.collapseFootnote : strings.expandFootnote);
-          if (!expanded && textarea) {
+          if (!expanded && contentEl) {
             window.requestAnimationFrame(() => {
-              const hasHiddenContent = textarea.scrollHeight > textarea.clientHeight + 2;
+              const hasHiddenContent = contentEl.scrollHeight > contentEl.clientHeight + 2;
               button.toggleClass("is-hidden", !hasHiddenContent);
             });
           }
@@ -2721,19 +2991,25 @@
       textarea.style.height = `${Math.max(120, textarea.scrollHeight + 2)}px`;
     }
 
-    updateExpandButtonVisibility(textarea, expandButton, footnoteId, strings = getStrings()) {
+    updateExpandButtonVisibility(contentEl, expandButton, footnoteId, strings = getStrings()) {
       window.requestAnimationFrame(() => {
+        if (!contentEl || !expandButton) return;
+        const isTextarea = contentEl.tagName === "TEXTAREA";
         const expanded = this.isFootnoteExpanded(footnoteId);
         if (expanded) {
           expandButton.removeClass("is-hidden");
           expandButton.setText("△");
           expandButton.setAttr("title", strings.collapseFootnote);
-          this.applyTextareaHeight(textarea, true);
+          if (isTextarea) {
+            this.applyTextareaHeight(contentEl, true);
+          }
           return;
         }
 
-        textarea.style.height = "";
-        const hasHiddenContent = textarea.scrollHeight > textarea.clientHeight + 2;
+        if (isTextarea) {
+          contentEl.style.height = "";
+        }
+        const hasHiddenContent = contentEl.scrollHeight > contentEl.clientHeight + 2;
         expandButton.toggleClass("is-hidden", !hasHiddenContent);
         expandButton.setText("▽");
         expandButton.setAttr("title", strings.expandFootnote);
@@ -2835,7 +3111,13 @@
       textarea.dataset.footnoteId = footnote.id;
       textarea.value = footnote.content;
       textarea.setAttr("spellcheck", "true");
-      this.updateExpandButtonVisibility(textarea, expandButton, footnote.id, strings);
+      const useRenderedState = this.isMarkdownRenderingEnabled() && footnote.id !== this.editingFootnoteId;
+      if (useRenderedState) {
+        this.mountRenderedContent(itemEl, textarea, footnote.id, footnote.content, () => {
+          this.updateExpandButtonVisibility(this.getMeasurableContentEl(itemEl), expandButton, footnote.id, strings);
+        });
+      }
+      this.updateExpandButtonVisibility(this.getMeasurableContentEl(itemEl), expandButton, footnote.id, strings);
 
       const footerEl = itemEl.createDiv({ cls: "bfw-footer" });
       const countEl = footerEl.createSpan({ text: this.formatFootnoteCountForDisplay(textarea.value, strings) });
@@ -2845,6 +3127,7 @@
         if (event.target?.closest?.(".bfw-definition-button")) return;
         if (event.target?.closest?.(".bfw-reference-nav")) return;
         if (event.target?.closest?.(".bfw-editor")) return;
+        if (event.target?.closest?.(".bfw-rendered")) return;
         this.activateFootnoteFromSidebar(footnote.id, { selectSearchMatch: true });
       });
 
@@ -2900,10 +3183,19 @@
           event.preventDefault();
           this.flushSave(footnote.id, textarea.value, statusEl, itemEl);
         }
+        if (event.key === "Escape" && !event.isComposing && this.isMarkdownRenderingEnabled()) {
+          event.preventDefault();
+          event.stopPropagation();
+          textarea.blur();
+        }
       });
 
       textarea.addEventListener("blur", () => {
         this.flushSave(footnote.id, textarea.value, statusEl, itemEl).finally(() => {
+          const windowFocused = typeof document.hasFocus === "function" ? document.hasFocus() : true;
+          if (windowFocused && this.isMarkdownRenderingEnabled() && document.activeElement !== textarea) {
+            this.exitFootnoteEditMode(footnote.id);
+          }
           if (this.pendingRender) {
             this.pendingRender = false;
             this.scheduleRender();
@@ -3007,12 +3299,12 @@
       const target = Array.from(items).find((item) => item.dataset.footnoteId === footnoteId);
       if (!target) return;
       this.updateReferenceNavDisplay(footnoteId);
+      const contentEl = this.getMeasurableContentEl(target);
       const textarea = target.querySelector(".bfw-editor");
-      if (options.expandIfClipped && textarea && !this.isFootnoteExpanded(footnoteId) && this.hasHiddenTextareaContent(textarea)) {
+      if (options.expandIfClipped && contentEl && !this.isFootnoteExpanded(footnoteId) && this.hasHiddenContent(contentEl)) {
         this.setFootnoteExpanded(footnoteId, true, { source: options.autoExpandSource || "sync" });
-        this.applyTextareaHeight(textarea, true);
-      } else if (textarea && this.isFootnoteExpanded(footnoteId)) {
-        this.applyTextareaHeight(textarea, true);
+      } else if (contentEl?.tagName === "TEXTAREA" && this.isFootnoteExpanded(footnoteId)) {
+        this.applyTextareaHeight(contentEl, true);
       }
       if (options.scroll) {
         if (options.scrollBlock === "start" && this.listEl) {
@@ -3023,7 +3315,11 @@
         }
       }
       if (options.focusEditor) {
-        textarea?.focus();
+        if (this.isMarkdownRenderingEnabled() && this.editingFootnoteId !== footnoteId) {
+          this.enterFootnoteEditMode(footnoteId);
+        } else {
+          textarea?.focus();
+        }
       }
     }
   }

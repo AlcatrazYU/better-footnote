@@ -258,6 +258,38 @@
   margin-top: 16px;
 }
 
+.bfw-item.is-rendered .bfw-editor {
+  display: none;
+}
+
+.bfw-rendered {
+  height: 112px;
+  overflow: hidden;
+  padding: 8px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  line-height: 1.55;
+  cursor: text;
+}
+
+.bfw-item.is-expanded .bfw-rendered {
+  height: auto;
+  min-height: 120px;
+}
+
+.bfw-rendered .bfw-rendered-inner > :first-child {
+  margin-top: 0;
+}
+
+.bfw-rendered .bfw-rendered-inner > :last-child {
+  margin-bottom: 0;
+}
+
+.bfw-rendered a {
+  cursor: pointer;
+}
+
 .bfw-reference-flash {
   border-radius: 3px;
   background-color: transparent;

@@ -350,4 +350,60 @@ assert.equal(
   assert.equal(scheduler.size(), 0);
 }
 
+{
+  const linkContent = "参见 [Stanford Encyclopedia](https://plato.stanford.edu/) 第三节。";
+  assert.equal(
+    parser.approximateSourceOffsetFromClick(linkContent, "Stanford Encyclopedia", 9),
+    linkContent.indexOf("Stanford Encyclopedia") + 9,
+  );
+
+  const boldContent = "参见 **注意** 的说明。";
+  assert.equal(
+    parser.approximateSourceOffsetFromClick(boldContent, "注意", 1),
+    boldContent.indexOf("注意") + 1,
+  );
+
+  assert.equal(parser.approximateSourceOffsetFromClick("第一条脚注。", "第一条脚注。", 3), 3);
+
+  const partialContent = "补充：注意事项如下。";
+  assert.equal(
+    parser.approximateSourceOffsetFromClick(partialContent, "光标注意事项", 4),
+    partialContent.indexOf("事"),
+  );
+
+  assert.equal(parser.approximateSourceOffsetFromClick("abc", "abc", 99), 3);
+  assert.equal(parser.approximateSourceOffsetFromClick("正文内容", "不存在的文字", 2), null);
+  assert.equal(parser.approximateSourceOffsetFromClick("", "abc", 1), null);
+  assert.equal(parser.approximateSourceOffsetFromClick("内容", "", 0), null);
+  assert.equal(parser.approximateSourceOffsetFromClick("内容", "   ", 1), null);
+}
+
+{
+  const cache = parser.createLruCache({ maxEntries: 2 });
+  cache.set("a", 1);
+  cache.set("b", 2);
+  assert.equal(cache.get("a"), 1);
+  cache.set("c", 3);
+  assert.equal(cache.has("b"), false);
+  assert.equal(cache.has("a"), true);
+  assert.equal(cache.get("c"), 3);
+  assert.equal(cache.size(), 2);
+  cache.set("a", 10);
+  assert.equal(cache.get("a"), 10);
+  assert.equal(cache.size(), 2);
+  assert.equal(cache.delete("a"), true);
+  assert.equal(cache.has("a"), false);
+  cache.clear();
+  assert.equal(cache.size(), 0);
+  assert.equal(cache.get("a"), undefined);
+
+  const defaultCache = parser.createLruCache();
+  for (let index = 0; index < 205; index += 1) {
+    defaultCache.set(`key-${index}`, index);
+  }
+  assert.equal(defaultCache.size(), 200);
+  assert.equal(defaultCache.has("key-4"), false);
+  assert.equal(defaultCache.get("key-204"), 204);
+}
+
 console.log("parser tests passed");

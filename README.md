@@ -61,6 +61,14 @@ Long footnotes stay compact by default. An expand button appears only when the e
 
 The footer of each footnote shows a live count. In Auto mode, English counts words, while Chinese, Japanese, and Korean count characters. You can override this in settings when your writing language differs from the interface language.
 
+## Markdown Rendering (Optional)
+
+By default, footnote cards show the raw Markdown source in an editor box. If your footnotes contain many links or formatted text, turn on `Render Markdown in sidebar` in settings.
+
+When enabled, footnote cards you are not editing show rendered Markdown: links, bold, italics, internal links, and other formatting. Click a link to open it directly; internal `[[wikilinks]]` open in the workspace. Click any other text to edit: the card switches to the Markdown source in place, with the cursor placed near where you clicked. Click back into the note or press `Esc` to save and return to the rendered view. Switching to another app while editing keeps the editing state, so you can look up a reference and come back.
+
+The setting is off by default. Counts always follow the Markdown source, not the rendered text.
+
 ## Multiple References
 
 If the same footnote id appears more than once in the text, Better Footnote keeps one sidebar card for the single footnote definition and shows how many references point to it. When that card is selected, small previous/next buttons cycle through each in-text reference and flash the exact marker.
@@ -148,6 +156,14 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 长脚注默认保持紧凑；只有内容确实显示不全时，才出现展开按钮。因此短脚注不会占用不必要的侧栏空间。
 
 每条脚注左下角会显示实时计数。自动模式下，英文界面统计单词数，中文、日文、韩文界面统计字数。如果写作语言和界面语言不同，可以在设置中改为固定统计字数或单词数。
+
+### Markdown 渲染（可选）
+
+默认情况下，脚注卡片以编辑框显示 Markdown 源码。如果你的脚注里有很多链接或格式文本，可以在设置中开启"侧栏渲染 Markdown"。
+
+开启后，未在编辑的脚注卡片会显示渲染后的 Markdown：链接、粗体、斜体、内部链接等格式。点击链接直接打开；`[[内部链接]]` 会在工作区中打开。点击其他文字即可编辑：卡片原地切换为源码编辑框，光标落在点击位置附近。点回笔记正文或按 `Esc` 会自动保存并恢复渲染显示。编辑中切换到其他应用不会丢失编辑状态，方便查完资料回来继续。
+
+该选项默认关闭。字数统计始终按 Markdown 源码计算，与显示形态无关。
 
 ### 多处引用
 
@@ -237,6 +253,14 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 
 各脚注のフッターにはリアルタイムのカウントが表示されます。自動モードでは、英語 UI は単語数、中国語・日本語・韓国語 UI は文字数を数えます。執筆言語が UI と異なる場合は、設定で文字数または単語数に固定できます。
 
+### Markdown レンダリング（オプション）
+
+初期状態では、脚注カードは Markdown ソースを編集ボックスで表示します。脚注にリンクや書式付きテキストが多い場合は、設定で「サイドバーで Markdown をレンダリング」を有効にできます。
+
+有効にすると、編集していない脚注カードは、リンク、太字、斜体、内部リンクなどを含むレンダリング済みの Markdown で表示されます。リンクをクリックするとそのまま開き、`[[内部リンク]]` はワークスペース内で開きます。それ以外の本文をクリックすると編集に切り替わり、カードはその場でソース表示になり、クリックした位置の近くにカーソルが置かれます。ノート本文をクリックするか `Esc` を押すと保存され、レンダリング表示に戻ります。編集中に他のアプリへ切り替えても編集状態は保持されます。
+
+この設定は初期状態でオフです。カウントは常に Markdown ソースを基準とします。
+
 ### 複数参照
 
 同じ脚注 id が本文中に複数回出てくる場合でも、脚注定義は 1 件なので、Better Footnote はサイドバーに 1 枚のカードだけを表示します。そのカードには参照数が表示され、選択すると前/次ボタンで本文中の各参照マーカーへ循環移動し、移動先を短時間ハイライトします。
@@ -324,6 +348,14 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 긴 각주는 기본적으로 간결하게 표시되며, 실제로 내용이 잘릴 때만 펼치기 버튼을 보여줍니다. 짧은 각주가 불필요하게 공간을 차지하지 않습니다.
 
 각 각주의 하단에는 실시간 계산 값이 표시됩니다. 자동 모드에서는 영어 UI는 단어 수, 중국어·일본어·한국어 UI는 글자 수를 셉니다. 작성 언어가 UI 언어와 다르면 설정에서 글자 수 또는 단어 수로 고정할 수 있습니다.
+
+### Markdown 렌더링(선택)
+
+기본적으로 각주 카드는 Markdown 소스를 편집 상자로 표시합니다. 각주에 링크나 서식 있는 텍스트가 많다면 설정에서 "사이드바에서 Markdown 렌더링"을 켤 수 있습니다.
+
+켜면 편집 중이 아닌 각주 카드가 링크, 굵게, 기울임, 내부 링크 등 서식을 포함한 렌더링된 Markdown으로 표시됩니다. 링크를 클릭하면 바로 열리고, `[[내부 링크]]`는 작업 공간에서 열립니다. 다른 텍스트를 클릭하면 편집으로 전환됩니다. 카드가 그 자리에서 소스 표시로 바뀌고 커서는 클릭한 위치 근처에 놓입니다. 노트 본문을 클릭하거나 `Esc`를 누르면 저장되고 렌더링 표시로 돌아갑니다. 편집 중 다른 앱으로 전환해도 편집 상태가 유지됩니다.
+
+이 설정은 기본적으로 꺼져 있습니다. 글자 수/단어 수는 항상 Markdown 소스를 기준으로 계산됩니다.
 
 ### 여러 참조
 
