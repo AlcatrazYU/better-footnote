@@ -230,6 +230,24 @@ assert.deepEqual(
   ["52"],
 );
 
+{
+  const duplicated = parser.parseFootnotes([
+    "正文引用[^1]，再次引用[^1]，另有[^2]。",
+    "",
+    "[^1]: 原有脚注",
+    "[^2]: 另一条",
+    "[^1]: ",
+  ].join("\n"));
+  assert.equal(duplicated.footnotes.length, 3);
+  const addedByArray = parser.detectAddedFootnotes(duplicated.footnotes, ["1", "2"]);
+  assert.equal(addedByArray.length, 1);
+  assert.equal(addedByArray[0].id, "1");
+  assert.equal(addedByArray[0].content, "");
+  const addedBySet = parser.detectAddedFootnotes(duplicated.footnotes, new Set(["1", "2"]));
+  assert.equal(addedBySet.length, 1);
+  assert.equal(parser.detectAddedFootnotes(duplicated.footnotes, ["1", "2", "1"]).length, 0);
+}
+
 const renamedByTidy = parser.parseFootnotes([
   "先引用新增脚注[^1]，再引用旧脚注[^2]。",
   "",

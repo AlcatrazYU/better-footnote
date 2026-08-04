@@ -88,6 +88,7 @@
       deleteNeedsEditor: "Open the source note before deleting a footnote.",
       deleteFailed: "Failed to delete footnote: {message}",
       deletedFootnote: "Deleted footnote [^{id}]. Press {shortcut} to undo.",
+      duplicateFootnoteInserted: "New footnote [^{id}] collides with an existing id. Its marker now references the existing footnote, and an unreferenced duplicate definition was left behind. Consider undoing and using an unused id.",
     },
     zh: {
       title: "Better Footnote",
@@ -153,6 +154,7 @@
       deleteNeedsEditor: "请先打开对应笔记，再删除脚注。",
       deleteFailed: "删除脚注失败：{message}",
       deletedFootnote: "已删除脚注 [^{id}]。按 {shortcut} 可撤销。",
+      duplicateFootnoteInserted: "新脚注编号 [^{id}] 与现有脚注撞号：新标记已成为现有脚注的又一处引用，并留下一条未引用的重复定义。建议撤销后改用未使用的编号。",
     },
     ja: {
       title: "Better Footnote",
@@ -218,6 +220,7 @@
       deleteNeedsEditor: "脚注を削除する前に、元のノートを開いてください。",
       deleteFailed: "脚注の削除に失敗しました: {message}",
       deletedFootnote: "脚注 [^{id}] を削除しました。{shortcut} で取り消せます。",
+      duplicateFootnoteInserted: "新しい脚注 [^{id}] は既存の脚注と番号が重複しています。挿入したマーカーは既存脚注への参照として扱われ、未参照の重複定義が残っています。取り消して未使用の番号を使うことをおすすめします。",
     },
     ko: {
       title: "Better Footnote",
@@ -283,6 +286,7 @@
       deleteNeedsEditor: "각주를 삭제하기 전에 원본 노트를 여세요.",
       deleteFailed: "각주 삭제 실패: {message}",
       deletedFootnote: "각주 [^{id}]를 삭제했습니다. {shortcut}로 되돌릴 수 있습니다.",
+      duplicateFootnoteInserted: "새 각주 [^{id}]가 기존 각주와 번호가 겹칩니다. 삽입한 표시는 기존 각주에 대한 참조로 처리되었고, 참조 없는 중복 정의가 남았습니다. 되돌린 뒤 사용하지 않은 번호를 쓰는 것이 좋습니다.",
     },
   };
 
@@ -501,11 +505,24 @@
     });
   }
 
+  function countFootnoteIdOccurrences(ids) {
+    const counts = new Map();
+    for (const id of ids) {
+      counts.set(id, (counts.get(id) || 0) + 1);
+    }
+    return counts;
+  }
+
   function detectAddedFootnotes(currentFootnotes, knownFootnoteIds, knownFootnoteSnapshots = null) {
     if (!knownFootnoteIds) return [];
+    const knownCounts = countFootnoteIdOccurrences(Array.from(knownFootnoteIds));
+    const seenCounts = new Map();
     return currentFootnotes.filter((footnote) => {
-      if (knownFootnoteIds.has(footnote.id)) return false;
-      if (isKnownFootnoteBySnapshot(footnote, knownFootnoteSnapshots)) return false;
+      const seen = (seenCounts.get(footnote.id) || 0) + 1;
+      seenCounts.set(footnote.id, seen);
+      const knownCount = knownCounts.get(footnote.id) || 0;
+      if (seen <= knownCount) return false;
+      if (knownCount === 0 && isKnownFootnoteBySnapshot(footnote, knownFootnoteSnapshots)) return false;
       return true;
     });
   }
@@ -1322,7 +1339,7 @@
         callback: () => this.activateView(),
       });
 
-      this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.onWorkspaceContextChanged()));
+      this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => this.onWorkspaceContextChanged(leaf)));
       this.registerEvent(this.app.workspace.on("file-open", () => this.onWorkspaceContextChanged()));
       this.registerEvent(this.app.workspace.on("editor-change", () => this.onEditorChanged()));
       this.registerEvent(this.app.vault.on("modify", (file) => {
@@ -1333,9 +1350,12 @@
       this.registerDomEvent(document, "pointerdown", (event) => this.onDocumentPointerDown(event));
       this.registerDomEvent(document, "selectionchange", () => this.scheduleCursorSync());
       this.registerDomEvent(document, "keyup", (event) => {
-        this.scheduleCursorSync({ force: isCursorNavigationKey(event) });
+        this.scheduleCursorSync({ force: isCursorNavigationKey(event) && isMarkdownEditorTarget(event.target) });
       });
-      this.registerDomEvent(document, "mouseup", () => this.scheduleCursorSync({ force: true }));
+      this.registerDomEvent(document, "mouseup", (event) => {
+        if (!isMarkdownEditorTarget(event.target)) return;
+        this.scheduleCursorSync({ force: true });
+      });
 
       this.app.workspace.onLayoutReady(() => {
         this.trackCurrentMarkdownFile();
@@ -1379,7 +1399,10 @@
       this.views.delete(view);
     }
 
-    onWorkspaceContextChanged() {
+    onWorkspaceContextChanged(leaf = null) {
+      if (leaf?.view?.getViewType?.() === VIEW_TYPE) {
+        return;
+      }
       this.trackCurrentMarkdownFile();
       this.refreshViews();
       this.scheduleCursorSync({ force: true });
@@ -1415,12 +1438,20 @@
         this.markTypingActive();
       } else if (isCommandLikeEditorKeydown(event)) {
         this.clearTypingActive();
+        if (isCursorNavigationKey(event)) {
+          this.suppressCursorSyncUntil = 0;
+        }
       }
     }
 
     onDocumentPointerDown(event) {
       if (!isBetterFootnoteTarget(event?.target)) {
         this.clearTypingActive();
+        if (isMarkdownEditorTarget(event?.target)) {
+          this.suppressCursorSyncUntil = 0;
+        }
+      } else {
+        this.suppressCursorSyncFromSidebarJump();
       }
     }
 
@@ -2080,6 +2111,8 @@
       this.markdownRenderComponents = [];
       this.markdownRenderCache = createLruCache({ maxEntries: 200 });
       this.renderCacheFilePath = "";
+      this.pointerDownInside = false;
+      this.pendingEditExitFootnoteId = null;
     }
 
     formatFootnoteCountForDisplay(text, strings = getStrings()) {
@@ -2101,6 +2134,40 @@
     async onOpen() {
       this.plugin.registerFootnoteView(this);
       this.contentEl.addClass("better-footnote");
+      this.registerDomEvent(this.contentEl, "pointerdown", () => {
+        this.pointerDownInside = true;
+      });
+      const releasePointer = () => {
+        if (!this.pointerDownInside) return;
+        this.pointerDownInside = false;
+        const pendingExitId = this.pendingEditExitFootnoteId;
+        if (pendingExitId) {
+          window.setTimeout(() => {
+            if (this.pendingEditExitFootnoteId !== pendingExitId) return;
+            if (this.pointerDownInside) return;
+            this.pendingEditExitFootnoteId = null;
+            const item = this.findFootnoteItem(pendingExitId);
+            const editorEl = item?.querySelector(".bfw-editor");
+            if (editorEl && document.activeElement === editorEl) return;
+            const anchorItem = this.activeFootnoteId ? this.findFootnoteItem(this.activeFootnoteId) : null;
+            const anchorTopBefore = anchorItem ? anchorItem.getBoundingClientRect().top : null;
+            this.finishEditExit(pendingExitId);
+            if (anchorItem && anchorTopBefore !== null && this.listEl) {
+              const delta = anchorItem.getBoundingClientRect().top - anchorTopBefore;
+              if (delta !== 0) {
+                this.listEl.scrollTop += delta;
+              }
+            }
+          }, 40);
+        }
+        if (this.pendingRender) {
+          this.pendingRender = false;
+          this.scheduleRender();
+        }
+      };
+      this.registerDomEvent(document, "pointerup", releasePointer);
+      this.registerDomEvent(document, "pointercancel", releasePointer);
+      this.registerDomEvent(window, "blur", releasePointer);
       this.scheduleRender(0);
     }
 
@@ -2225,9 +2292,8 @@
       item.removeClass("is-rendered");
       const textarea = item.querySelector(".bfw-editor");
       if (!textarea) return;
-      if (this.isFootnoteExpanded(footnoteId)) {
-        this.applyTextareaHeight(textarea, true);
-      }
+      textarea.readOnly = false;
+      this.applyTextareaHeight(textarea, this.isFootnoteExpanded(footnoteId));
       textarea.focus();
       const value = textarea.value;
       let position = value.length;
@@ -2244,6 +2310,14 @@
       }
     }
 
+    finishEditExit(footnoteId) {
+      if (this.isMarkdownRenderingEnabled()) {
+        this.exitFootnoteEditMode(footnoteId);
+      } else if (this.syncExpandedFootnoteIds.has(footnoteId)) {
+        this.setFootnoteExpanded(footnoteId, false);
+      }
+    }
+
     exitFootnoteEditMode(footnoteId) {
       if (this.editingFootnoteId === footnoteId) {
         this.editingFootnoteId = null;
@@ -2253,6 +2327,9 @@
       if (!item || item.querySelector(".bfw-rendered")) return;
       const textarea = item.querySelector(".bfw-editor");
       if (!textarea) return;
+      if (this.syncExpandedFootnoteIds.has(footnoteId)) {
+        this.setFootnoteExpanded(footnoteId, false);
+      }
       const expandButton = item.querySelector(".bfw-expand-button");
       this.mountRenderedContent(item, textarea, footnoteId, textarea.value, () => {
         if (expandButton) {
@@ -2327,7 +2404,7 @@
     }
 
     async render() {
-      if (this.isEditing()) {
+      if (this.isEditing() || this.pointerDownInside) {
         this.pendingRender = true;
         return;
       }
@@ -2436,7 +2513,7 @@
       const orderedFootnotes = parsed.footnotes;
       const savedState = this.stateByFile.get(file.path) || {};
       const previousKnownFootnoteIds = Array.isArray(savedState.knownFootnoteIds)
-        ? new Set(savedState.knownFootnoteIds)
+        ? savedState.knownFootnoteIds
         : null;
       let addedFootnote = choosePrimaryAddedFootnote(
         detectAddedFootnotes(orderedFootnotes, previousKnownFootnoteIds, savedState.knownFootnoteSnapshots),
@@ -2481,13 +2558,18 @@
         nextState.activeSnapshot = createFootnoteSnapshot(restoredDeletedFootnote);
         nextState.autoFocusRendersRemaining = 0;
       } else if (addedFootnote) {
-        nextState.activeId = addedFootnote.id;
-        nextState.activeSnapshot = createFootnoteSnapshot(addedFootnote);
-        nextState.autoFocusRendersRemaining = Math.max(
-          Number(savedState.autoFocusRendersRemaining || 0),
-          1,
-        );
-        this.plugin.scheduleTidyFootnotesForNewFootnote(file, addedFootnote);
+        const isDuplicateDefinition = orderedFootnotes.filter((item) => item.id === addedFootnote.id).length > 1;
+        if (isDuplicateDefinition) {
+          new Notice(t(strings, "duplicateFootnoteInserted", { id: addedFootnote.id }), 10000);
+        } else {
+          nextState.activeId = addedFootnote.id;
+          nextState.activeSnapshot = createFootnoteSnapshot(addedFootnote);
+          nextState.autoFocusRendersRemaining = Math.max(
+            Number(savedState.autoFocusRendersRemaining || 0),
+            1,
+          );
+          this.plugin.scheduleTidyFootnotesForNewFootnote(file, addedFootnote);
+        }
       }
       this.stateByFile.set(file.path, nextState);
 
@@ -2516,13 +2598,15 @@
         return;
       }
 
-      this.searchInputEl.addEventListener("input", () => {
-        if (!this.searchInputEl.value.trim()) {
+      const handleSearchInputChanged = () => {
+        const currentState = this.stateByFile.get(file.path) || {};
+        if ((currentState.searchQuery || "") === this.searchInputEl.value) return;
+        const cleared = !this.searchInputEl.value.trim();
+        if (cleared) {
           this.collapseSearchExpandedFootnotes();
         }
         this.searchPaused = false;
         this.pausedSearchMatchIndex = -1;
-        const currentState = this.stateByFile.get(file.path) || {};
         this.stateByFile.set(file.path, {
           ...currentState,
           searchQuery: this.searchInputEl.value,
@@ -2533,7 +2617,12 @@
         });
         this.searchMatchIndex = -1;
         renderFilteredList();
-      });
+        if (cleared) {
+          this.scrollActiveFootnoteIntoView();
+        }
+      };
+      this.searchInputEl.addEventListener("input", handleSearchInputChanged);
+      this.searchInputEl.addEventListener("search", handleSearchInputChanged);
 
       this.searchInputEl.addEventListener("keydown", (event) => {
         if (event.key !== "Enter") return;
@@ -2559,6 +2648,7 @@
         });
         this.searchMatchIndex = -1;
         renderFilteredList();
+        this.scrollActiveFootnoteIntoView();
         this.searchInputEl.focus();
       });
 
@@ -2618,8 +2708,15 @@
       }
     }
 
-    pauseSearchModeForEditorSync() {
+    pauseSearchModeForEditorSync(footnoteId = null) {
       if (!this.getRawSearchQuery().trim() || this.searchPaused) return;
+      if (footnoteId && this.hasActiveSearch()) {
+        const visibleFootnotes = filterFootnotes(this.currentFootnotes, this.getEffectiveSearchQuery());
+        if (visibleFootnotes.some((footnote) => footnote.id === footnoteId)) {
+          this.selectFirstSearchMatchForFootnote(footnoteId, { scroll: false, focusMatch: false });
+          return;
+        }
+      }
       this.pausedSearchMatchIndex = this.searchMatchIndex;
       this.searchPaused = true;
       this.collapseSearchExpandedFootnotes();
@@ -2783,6 +2880,21 @@
       this.applySearchMatch(this.searchMatches[this.searchMatchIndex]);
     }
 
+    scrollActiveFootnoteIntoView() {
+      if (!this.activeFootnoteId || !this.listEl) return;
+      const target = this.findFootnoteItem(this.activeFootnoteId);
+      if (!target) return;
+      const top = Math.max(0, target.offsetTop - this.listEl.offsetTop);
+      this.listEl.scrollTo({ top, behavior: "auto" });
+      if (this.file) {
+        const currentState = this.stateByFile.get(this.file.path) || {};
+        this.stateByFile.set(this.file.path, {
+          ...currentState,
+          scrollTop: this.listEl.scrollTop,
+        });
+      }
+    }
+
     markSearchTarget() {
       for (const item of this.contentEl.querySelectorAll(".bfw-item")) {
         item.removeClass("is-search-target");
@@ -2794,23 +2906,29 @@
 
     applySearchMatch(result, options = {}) {
       if (!result) return;
-      this.setFootnoteExpanded(result.footnoteId, true, { source: "search" });
+      const targetItem = this.findFootnoteItem(result.footnoteId);
+      const measurableEl = this.getMeasurableContentEl(targetItem);
+      if (measurableEl && !this.isFootnoteExpanded(result.footnoteId) && this.hasHiddenContent(measurableEl)) {
+        this.setFootnoteExpanded(result.footnoteId, true, { source: "search" });
+      }
       this.focusFootnote(result.footnoteId, {
         scroll: options.scroll !== false,
         focusEditor: false,
       });
       this.markSearchTarget();
       const item = this.findFootnoteItem(result.footnoteId);
+      if (options.focusMatch === false) return;
       if (this.isMarkdownRenderingEnabled() && result.match && this.editingFootnoteId !== result.footnoteId) {
         this.suppressTextareaFocusJump = true;
         this.enterFootnoteEditMode(result.footnoteId);
       }
       const textarea = item?.querySelector(".bfw-editor");
       if (!textarea) return;
-      this.applyTextareaHeight(textarea, true);
+      this.applyTextareaHeight(textarea, this.isFootnoteExpanded(result.footnoteId));
       const match = result.match;
       if (!match) return;
       this.suppressTextareaFocusJump = true;
+      textarea.readOnly = true;
       textarea.focus({ preventScroll: true });
       textarea.setSelectionRange(match.start, match.end, "forward");
       this.scrollTextareaToSelection(textarea, match.start);
@@ -2984,7 +3102,8 @@
     applyTextareaHeight(textarea, expanded) {
       if (!textarea) return;
       if (!expanded) {
-        textarea.style.height = "";
+        textarea.style.height = "auto";
+        textarea.style.height = `${Math.max(44, Math.min(112, textarea.scrollHeight + 2))}px`;
         return;
       }
       textarea.style.height = "auto";
@@ -3006,10 +3125,15 @@
           return;
         }
 
+        let hasHiddenContent;
         if (isTextarea) {
-          contentEl.style.height = "";
+          contentEl.style.height = "auto";
+          const naturalHeight = contentEl.scrollHeight + 2;
+          contentEl.style.height = `${Math.max(44, Math.min(112, naturalHeight))}px`;
+          hasHiddenContent = naturalHeight > 114;
+        } else {
+          hasHiddenContent = contentEl.scrollHeight > contentEl.clientHeight + 2;
         }
-        const hasHiddenContent = contentEl.scrollHeight > contentEl.clientHeight + 2;
         expandButton.toggleClass("is-hidden", !hasHiddenContent);
         expandButton.setText("▽");
         expandButton.setAttr("title", strings.expandFootnote);
@@ -3160,6 +3284,9 @@
           return;
         }
         this.activateFootnoteFromSidebar(footnote.id, { selectSearchMatch: false });
+        if (!this.isFootnoteExpanded(footnote.id) && this.hasHiddenTextareaContent(textarea)) {
+          this.setFootnoteExpanded(footnote.id, true, { source: "sync" });
+        }
         window.setTimeout(() => {
           if (document.activeElement !== textarea) {
             textarea.focus();
@@ -3178,7 +3305,27 @@
         this.queueSave(footnote.id, textarea.value, statusEl, itemEl);
       });
 
+      textarea.addEventListener("mousedown", () => {
+        if (textarea.readOnly) {
+          textarea.readOnly = false;
+        }
+      });
+
       textarea.addEventListener("keydown", (event) => {
+        if (textarea.readOnly && !event.isComposing) {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            this.navigateSearch(event.shiftKey ? -1 : 1);
+            return;
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            textarea.readOnly = false;
+            this.searchInputEl?.focus();
+            return;
+          }
+        }
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
           event.preventDefault();
           this.flushSave(footnote.id, textarea.value, statusEl, itemEl);
@@ -3191,10 +3338,15 @@
       });
 
       textarea.addEventListener("blur", () => {
+        textarea.readOnly = false;
         this.flushSave(footnote.id, textarea.value, statusEl, itemEl).finally(() => {
           const windowFocused = typeof document.hasFocus === "function" ? document.hasFocus() : true;
-          if (windowFocused && this.isMarkdownRenderingEnabled() && document.activeElement !== textarea) {
-            this.exitFootnoteEditMode(footnote.id);
+          if (windowFocused && document.activeElement !== textarea) {
+            if (this.pointerDownInside) {
+              this.pendingEditExitFootnoteId = footnote.id;
+            } else {
+              this.finishEditExit(footnote.id);
+            }
           }
           if (this.pendingRender) {
             this.pendingRender = false;
@@ -3266,7 +3418,7 @@
 
     focusFootnote(footnoteId, options = {}) {
       if (options.fromCursor) {
-        this.pauseSearchModeForEditorSync();
+        this.pauseSearchModeForEditorSync(footnoteId);
       }
       this.activeFootnoteId = footnoteId;
       if (options.autoExpandSource === "sync") {

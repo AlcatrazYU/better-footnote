@@ -214,7 +214,7 @@
 .bfw-editor {
   width: 100%;
   height: 112px;
-  min-height: 88px;
+  min-height: 44px;
   resize: vertical;
   padding: 8px;
   border: 0;
@@ -233,6 +233,11 @@
 .bfw-editor:focus {
   outline: 2px solid var(--interactive-accent);
   outline-offset: -2px;
+}
+
+.bfw-item.is-active .bfw-editor:focus,
+.bfw-item.is-search-target .bfw-editor:focus {
+  outline: none;
 }
 
 .bfw-footer {
@@ -263,7 +268,9 @@
 }
 
 .bfw-rendered {
-  height: 112px;
+  height: auto;
+  min-height: 40px;
+  max-height: 112px;
   overflow: hidden;
   padding: 8px;
   background: var(--background-primary);
@@ -274,7 +281,7 @@
 }
 
 .bfw-item.is-expanded .bfw-rendered {
-  height: auto;
+  max-height: none;
   min-height: 120px;
 }
 
