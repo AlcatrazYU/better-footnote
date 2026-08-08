@@ -65,7 +65,7 @@ The footer of each footnote shows a live count. In Auto mode, English counts wor
 
 By default, footnote cards show the raw Markdown source in an editor box. If your footnotes contain many links or formatted text, turn on `Render Markdown in sidebar` in settings.
 
-When enabled, footnote cards you are not editing show rendered Markdown: links, bold, italics, internal links, and other formatting. Click a link to open it directly; internal `[[wikilinks]]` open in the workspace. Click any other text to edit: the card switches to the Markdown source in place, with the cursor placed near where you clicked. Click back into the note or press `Esc` to save and return to the rendered view. Switching to another app while editing keeps the editing state, so you can look up a reference and come back.
+When enabled, footnote cards you are not editing show rendered Markdown: links, bold, italics, internal links, and other formatting. Click a link to open it directly; internal `[[wikilinks]]` open in the workspace. Click any other text to edit: the card switches in place to an embedded live preview editor, so formatting stays rendered while you type and the Markdown syntax unfolds around the cursor, just like editing the note itself. The cursor lands near where you clicked. Click back into the note or press `Esc` to save and return to the rendered view. Switching to another app while editing keeps the editing state, so you can look up a reference and come back. If the live preview editor is unavailable, the card falls back to the plain source editor automatically.
 
 The setting is off by default. Counts always follow the Markdown source, not the rendered text.
 
@@ -161,7 +161,7 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 
 默认情况下，脚注卡片以编辑框显示 Markdown 源码。如果你的脚注里有很多链接或格式文本，可以在设置中开启"侧栏渲染 Markdown"。
 
-开启后，未在编辑的脚注卡片会显示渲染后的 Markdown：链接、粗体、斜体、内部链接等格式。点击链接直接打开；`[[内部链接]]` 会在工作区中打开。点击其他文字即可编辑：卡片原地切换为源码编辑框，光标落在点击位置附近。点回笔记正文或按 `Esc` 会自动保存并恢复渲染显示。编辑中切换到其他应用不会丢失编辑状态，方便查完资料回来继续。
+开启后，未在编辑的脚注卡片会显示渲染后的 Markdown：链接、粗体、斜体、内部链接等格式。点击链接直接打开；`[[内部链接]]` 会在工作区中打开。点击其他文字即可编辑：卡片原地切换为嵌入式实时预览编辑器，输入时格式保持渲染、光标附近的 Markdown 语法自动展开，与编辑笔记正文的体验一致；光标落在点击位置附近。点回笔记正文或按 `Esc` 会自动保存并恢复渲染显示。编辑中切换到其他应用不会丢失编辑状态，方便查完资料回来继续。若实时预览编辑器不可用，卡片会自动回退为源码编辑框。
 
 该选项默认关闭。字数统计始终按 Markdown 源码计算，与显示形态无关。
 
@@ -257,7 +257,7 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 
 初期状態では、脚注カードは Markdown ソースを編集ボックスで表示します。脚注にリンクや書式付きテキストが多い場合は、設定で「サイドバーで Markdown をレンダリング」を有効にできます。
 
-有効にすると、編集していない脚注カードは、リンク、太字、斜体、内部リンクなどを含むレンダリング済みの Markdown で表示されます。リンクをクリックするとそのまま開き、`[[内部リンク]]` はワークスペース内で開きます。それ以外の本文をクリックすると編集に切り替わり、カードはその場でソース表示になり、クリックした位置の近くにカーソルが置かれます。ノート本文をクリックするか `Esc` を押すと保存され、レンダリング表示に戻ります。編集中に他のアプリへ切り替えても編集状態は保持されます。
+有効にすると、編集していない脚注カードは、リンク、太字、斜体、内部リンクなどを含むレンダリング済みの Markdown で表示されます。リンクをクリックするとそのまま開き、`[[内部リンク]]` はワークスペース内で開きます。それ以外の本文をクリックすると編集に切り替わり、カードはその場で埋め込みライブプレビューエディタになります。入力中も書式はレンダリングされたまま、カーソル付近の Markdown 記法だけが展開され、ノート本文を編集するのと同じ感覚で使えます。カーソルはクリックした位置の近くに置かれます。ノート本文をクリックするか `Esc` を押すと保存され、レンダリング表示に戻ります。編集中に他のアプリへ切り替えても編集状態は保持されます。ライブプレビューエディタが利用できない場合は、自動的にソース編集ボックスへ戻ります。
 
 この設定は初期状態でオフです。カウントは常に Markdown ソースを基準とします。
 
@@ -353,7 +353,7 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 
 기본적으로 각주 카드는 Markdown 소스를 편집 상자로 표시합니다. 각주에 링크나 서식 있는 텍스트가 많다면 설정에서 "사이드바에서 Markdown 렌더링"을 켤 수 있습니다.
 
-켜면 편집 중이 아닌 각주 카드가 링크, 굵게, 기울임, 내부 링크 등 서식을 포함한 렌더링된 Markdown으로 표시됩니다. 링크를 클릭하면 바로 열리고, `[[내부 링크]]`는 작업 공간에서 열립니다. 다른 텍스트를 클릭하면 편집으로 전환됩니다. 카드가 그 자리에서 소스 표시로 바뀌고 커서는 클릭한 위치 근처에 놓입니다. 노트 본문을 클릭하거나 `Esc`를 누르면 저장되고 렌더링 표시로 돌아갑니다. 편집 중 다른 앱으로 전환해도 편집 상태가 유지됩니다.
+켜면 편집 중이 아닌 각주 카드가 링크, 굵게, 기울임, 내부 링크 등 서식을 포함한 렌더링된 Markdown으로 표시됩니다. 링크를 클릭하면 바로 열리고, `[[내부 링크]]`는 작업 공간에서 열립니다. 다른 텍스트를 클릭하면 편집으로 전환됩니다. 카드가 그 자리에서 내장 라이브 프리뷰 편집기로 바뀌어, 입력하는 동안에도 서식은 렌더링된 채 유지되고 커서 주변의 Markdown 문법만 펼쳐집니다. 노트 본문을 편집하는 것과 같은 감각입니다. 커서는 클릭한 위치 근처에 놓입니다. 노트 본문을 클릭하거나 `Esc`를 누르면 저장되고 렌더링 표시로 돌아갑니다. 편집 중 다른 앱으로 전환해도 편집 상태가 유지됩니다. 라이브 프리뷰 편집기를 사용할 수 없는 경우에는 자동으로 소스 편집 상자로 돌아갑니다.
 
 이 설정은 기본적으로 꺼져 있습니다. 글자 수/단어 수는 항상 Markdown 소스를 기준으로 계산됩니다.
 

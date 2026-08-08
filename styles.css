@@ -267,6 +267,52 @@
   display: none;
 }
 
+.bfw-item.is-live .bfw-editor {
+  display: none;
+}
+
+.bfw-live-host {
+  /* Mirror .bfw-rendered geometry exactly so entering edit mode causes zero reflow. */
+  min-height: 40px;
+  max-height: 112px;
+  overflow-y: auto;
+  padding: 0;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  cursor: text;
+  /* The embedded editor consumes the main editor's font variables; without
+     this override, entering edit mode visibly enlarges the text in place. */
+  --font-text-size: var(--font-ui-small);
+  font-size: var(--font-ui-small);
+  line-height: 1.55;
+}
+
+.bfw-item.is-expanded .bfw-live-host {
+  max-height: none;
+  min-height: 120px;
+}
+
+.bfw-live-host .cm-editor {
+  background: transparent;
+  font-size: var(--font-ui-small);
+}
+
+.bfw-live-host .cm-editor .cm-content {
+  padding: 8px;
+  font-size: var(--font-ui-small);
+  font-family: var(--font-text);
+  line-height: 1.55;
+}
+
+.bfw-live-host .cm-line {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.bfw-live-host .cm-editor.cm-focused {
+  outline: none;
+}
+
 .bfw-rendered {
   height: auto;
   min-height: 40px;
