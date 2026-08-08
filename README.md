@@ -94,6 +94,12 @@ This integration closes Obsidian's built-in floating footnote editor after inser
 3. Open a Markdown note with standard footnote definitions such as `[^1]: Reference text` or `[^citation]: Reference text`.
 4. Edit or search footnotes in the right sidebar. Changes are saved automatically.
 
+## Support
+
+Better Footnote is free and will stay free. If it saves you time in your academic writing, you can buy me a coffee:
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/alcatrazyu)
+
 ## Languages
 
 The interface follows Obsidian's language first, then the system language, and falls back to English. English, Chinese, Japanese, and Korean UI strings are included.
@@ -189,6 +195,10 @@ Better Footnote 可以选择性地与 [Tidy Footnotes](https://community.obsidia
 2. 在命令面板中运行 `Open Better Footnote`。
 3. 打开包含标准脚注定义的 Markdown 笔记，例如 `[^1]: 引用内容` 或 `[^citation]: 引用内容`。
 4. 在右侧边栏编辑或搜索脚注。修改会自动保存。
+
+### 请我喝杯咖啡
+
+Better Footnote 永久免费。如果它为你的学术写作省下了时间，欢迎在 [Ko-fi](https://ko-fi.com/alcatrazyu) 上请我喝一杯咖啡。
 
 ### 语言
 
@@ -286,6 +296,10 @@ Better Footnote は、必要に応じて [Tidy Footnotes](https://community.obsi
 3. `[^1]: Reference text` や `[^citation]: Reference text` のような標準脚注定義を含む Markdown ノートを開きます。
 4. 右サイドバーで脚注を編集または検索します。変更は自動保存されます。
 
+### サポート
+
+Better Footnote は無料で、今後も無料のままです。学術的な執筆の時間短縮に役立ったら、[Ko-fi](https://ko-fi.com/alcatrazyu) でコーヒーを一杯ごちそうしていただけると嬉しいです。
+
 ### 言語
 
 UI は Obsidian の言語、次にシステム言語を参照し、最後に英語へフォールバックします。英語、中国語、日本語、韓国語の UI 文言を含みます。
@@ -381,6 +395,10 @@ Better Footnote는 선택적으로 [Tidy Footnotes](https://community.obsidian.m
 2. 명령 팔레트에서 `Open Better Footnote`를 실행합니다.
 3. `[^1]: Reference text` 또는 `[^citation]: Reference text` 같은 표준 각주 정의가 포함된 Markdown 노트를 엽니다.
 4. 오른쪽 사이드바에서 각주를 편집하거나 검색합니다. 변경 사항은 자동 저장됩니다.
+
+### 후원
+
+Better Footnote는 무료이며 앞으로도 무료입니다. 학술 글쓰기에 도움이 되었다면 [Ko-fi](https://ko-fi.com/alcatrazyu)에서 커피 한 잔으로 응원해 주세요.
 
 ### 언어
 
