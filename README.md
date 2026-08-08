@@ -4,6 +4,10 @@ English | [中文](#中文) | [日本語](#日本語) | [한국어](#한국어)
 
 A footnote sidebar workspace for academic and long-form writing in Obsidian.
 
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/alcatrazyu)
+
+☕ Better Footnote is free and will stay free. If it saves you time in your writing, you can [buy me a coffee](https://ko-fi.com/alcatrazyu).
+
 Better Footnote gathers the footnotes in the current note into a stable right sidebar. It lets you edit, search, expand, and delete footnotes directly, while moving between in-text footnote markers, sidebar cards, and footnote definitions without losing your place.
 
 ## Why Use It
@@ -93,12 +97,6 @@ This integration closes Obsidian's built-in floating footnote editor after inser
 2. Run `Open Better Footnote` from the command palette.
 3. Open a Markdown note with standard footnote definitions such as `[^1]: Reference text` or `[^citation]: Reference text`.
 4. Edit or search footnotes in the right sidebar. Changes are saved automatically.
-
-## Support
-
-Better Footnote is free and will stay free. If it saves you time in your academic writing, you can buy me a coffee:
-
-[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/alcatrazyu)
 
 ## Languages
 
