@@ -8,6 +8,9 @@
   const FLASH_SELECTION_MS = 1400;
   const AUTO_TIDY_DELAY_MS = 250;
   const SIDEBAR_JUMP_CURSOR_SUPPRESS_MS = 1200;
+  // Content cropped by no more than this many pixels (descender zone of the
+  // last line) is treated as fully visible: no expand arrow, no auto-expand.
+  const CLIPPED_CONTENT_TOLERANCE_PX = 8;
   const DELETED_FOOTNOTE_RESTORE_TTL_MS = 10 * 60 * 1000;
   const RESTORED_DELETED_FOOTNOTE_CURSOR_SUPPRESS_MS = 5000;
   const MAX_DELETED_FOOTNOTE_RESTORE_RECORDS = 50;
@@ -2332,7 +2335,7 @@
       if (el.tagName === "TEXTAREA") {
         return this.hasHiddenTextareaContent(el);
       }
-      return el.scrollHeight > el.clientHeight + 2;
+      return el.scrollHeight > el.clientHeight + CLIPPED_CONTENT_TOLERANCE_PX;
     }
 
     renderMarkdownIntoContainer(container, content, onReady) {
@@ -2486,6 +2489,33 @@
       });
     }
 
+    resetHijackedActiveEditor(controller) {
+      // Data-safety guard (1.5.4 incident): while the embedded editor holds
+      // workspace.activeEditor, the app-wide contract lies ("file = the real
+      // note, editor = a one-footnote buffer") and any consumer that writes an
+      // active editor's content back to its file can wipe the note. Guarded
+      // CAS-style reset; takes the controller by value so that stale timers
+      // can still sweep after this.liveEditor has moved on.
+      try {
+        const workspace = this.plugin.app.workspace;
+        if (workspace.activeEditor === controller) {
+          workspace.activeEditor = null;
+        }
+      } catch (_error) {
+        // The workspace may itself be tearing down.
+      }
+    }
+
+    scheduleHijackSweep(controller) {
+      // The internal editor may assign activeEditor via setTimeout (Kanban's
+      // own recipe does), so synchronous resets alone can be outrun. A single
+      // 0ms sweep can still lose the timer race against the assignment (N33
+      // watchdog observed ~20-100ms windows under load), hence a short chain.
+      for (const delay of [0, 60, 180]) {
+        window.setTimeout(() => this.resetHijackedActiveEditor(controller), delay);
+      }
+    }
+
     tryMountLiveEditor(item, textarea, footnoteId, caret) {
       if (!this.plugin.isLivePreviewEditorAvailable()) return false;
       const resolution = this.plugin.resolveInternalMarkdownEditorClass();
@@ -2494,10 +2524,14 @@
       const host = document.createElement("div");
       host.className = "bfw-live-host";
       let instance = null;
+      let controller = null;
+      let sentinel = null;
+      let releaseController = null;
       try {
         const app = this.plugin.app;
         const file = this.file;
-        const controller = {
+        let released = false;
+        controller = {
           app,
           showSearch: () => {},
           toggleMode: () => {},
@@ -2510,12 +2544,17 @@
           },
           // Fixed snapshot on purpose: resolving through getActiveFile() recurses
           // once the workspace points activeEditor back at this controller.
+          // After teardown the controller is neutered (released): a dangling
+          // reference captured by third parties has no file left to write to.
           get file() {
-            return file;
+            return released ? null : file;
           },
           get path() {
-            return file?.path ?? "";
+            return released ? "" : file?.path ?? "";
           },
+        };
+        releaseController = () => {
+          released = true;
         };
         instance = new resolution.EditorClass(app, host, controller);
         this.addChild(instance);
@@ -2530,12 +2569,20 @@
           instance,
           host,
           controller,
+          releaseController,
           footnoteId,
           textarea,
           itemEl: item,
           isTearingDown: false,
+          hijackSentinel: null,
         };
         this.liveEditor = live;
+        // Path-independent guarantee while mounted: whatever internal code
+        // path assigns activeEditor (sync, setTimeout, composition handlers),
+        // the sentinel sweeps it within 90 ms — tighter than the 100 ms
+        // hijack-exposure veto line in the N33 protocol. Cleared in teardown.
+        sentinel = window.setInterval(() => this.resetHijackedActiveEditor(controller), 90);
+        live.hijackSentinel = sentinel;
         this.attachLiveEditorEvents(live);
         instance.cm.focus();
         const value = textarea.value;
@@ -2551,15 +2598,30 @@
         } catch (_error) {
           // A rejected selection leaves the caret at the start; editing still works.
         }
+        this.resetHijackedActiveEditor(controller);
+        this.scheduleHijackSweep(controller);
         return true;
       } catch (error) {
         console.warn("Better Footnote: live editor mount failed, falling back to plain text editing.", error);
         this.plugin.disableLivePreviewEditorForSession("mount");
         this.liveEditor = null;
+        if (sentinel !== null) {
+          window.clearInterval(sentinel);
+        }
+        if (controller) {
+          this.resetHijackedActiveEditor(controller);
+          this.scheduleHijackSweep(controller);
+        }
         try {
           if (instance) this.removeChild(instance);
         } catch (_error) {
           // The instance may not have been attached yet.
+        }
+        try {
+          // Neuter only after the instance is unloaded, mirroring teardown order.
+          releaseController?.();
+        } catch (_inner) {
+          // Neutering is best-effort.
         }
         host.remove();
         item.removeClass("is-live");
@@ -2583,6 +2645,9 @@
       instance.cm.dispatch({
         effects: StateEffect.appendConfig.of(
           EditorView.updateListener.of((update) => {
+            // Unconditional guard first: CM emits updates on focus/selection
+            // changes too, making this a free extra sweep of the hijack.
+            this.resetHijackedActiveEditor(live.controller);
             if (!update.docChanged || live.isTearingDown) return;
             const value = mirror();
             this.applyEditSurfaceInput(footnoteId, value, { itemEl, countEl, statusEl, strings });
@@ -2591,10 +2656,14 @@
         ),
       });
       host.addEventListener("focusin", () => {
+        this.resetHijackedActiveEditor(live.controller);
+        this.scheduleHijackSweep(live.controller);
         if (live.isTearingDown) return;
         this.applyEditSurfaceFocus(footnoteId, host);
       });
       host.addEventListener("focusout", (event) => {
+        this.resetHijackedActiveEditor(live.controller);
+        this.scheduleHijackSweep(live.controller);
         if (live.isTearingDown) return;
         const next = event.relatedTarget;
         if (next && host.contains(next)) return;
@@ -2617,6 +2686,12 @@
           if (event.key === "Escape") {
             event.preventDefault();
             event.stopPropagation();
+            // Esc means "close the card, leave my note alone". Entering edit
+            // mode parked the main-editor cursor on this footnote's reference;
+            // without re-arming the suppression window, the post-exit cursor
+            // sync reads that stale position and re-expands the card we just
+            // collapsed (collapse-then-expand flicker on slow exits).
+            this.plugin.suppressCursorSyncFromSidebarJump();
             this.exitFootnoteEditMode(footnoteId);
             return;
           }
@@ -2627,6 +2702,10 @@
         },
         { capture: true }
       );
+      // The live layout may clip content that the rendered layout did not
+      // (and vice versa); measure once at mount so the expand button state
+      // matches the editor's reality, not the rendered card's.
+      this.updateExpandButtonVisibility(host, expandButton, footnoteId, strings);
     }
 
     exitLiveEditedFootnote(options = {}) {
@@ -2663,13 +2742,14 @@
       } catch (_error) {
         // Reading the buffer mid-destroy may fail; the last mirrored value stands.
       }
-      try {
-        if (this.plugin.app.workspace.activeEditor === live.controller) {
-          this.plugin.app.workspace.activeEditor = null;
-        }
-      } catch (_error) {
-        // The workspace may itself be tearing down.
+      if (live.hijackSentinel !== null) {
+        window.clearInterval(live.hijackSentinel);
+        live.hijackSentinel = null;
       }
+      this.resetHijackedActiveEditor(live.controller);
+      // A setTimeout-delayed assignment may land after this synchronous reset;
+      // sweep once more on the next macrotask.
+      this.scheduleHijackSweep(live.controller);
       try {
         this.removeChild(live.instance);
       } catch (_error) {
@@ -2678,6 +2758,13 @@
         } catch (_inner) {
           // Double-unload is harmless.
         }
+      }
+      // Neuter the controller after unload: any dangling reference captured by
+      // third parties now sees file=null and has nothing left to write to.
+      try {
+        live.releaseController?.();
+      } catch (_error) {
+        // Releasing is best-effort.
       }
       try {
         live.host.remove();
@@ -3370,7 +3457,7 @@
           button.setAttr("title", expanded ? strings.collapseFootnote : strings.expandFootnote);
           if (!expanded && contentEl) {
             window.requestAnimationFrame(() => {
-              const hasHiddenContent = contentEl.scrollHeight > contentEl.clientHeight + 2;
+              const hasHiddenContent = contentEl.scrollHeight > contentEl.clientHeight + CLIPPED_CONTENT_TOLERANCE_PX;
               button.toggleClass("is-hidden", !hasHiddenContent);
             });
           }
@@ -3484,9 +3571,9 @@
           contentEl.style.height = "auto";
           const naturalHeight = contentEl.scrollHeight + 2;
           contentEl.style.height = `${Math.max(44, Math.min(112, naturalHeight))}px`;
-          hasHiddenContent = naturalHeight > 114;
+          hasHiddenContent = naturalHeight > 112 + CLIPPED_CONTENT_TOLERANCE_PX;
         } else {
-          hasHiddenContent = contentEl.scrollHeight > contentEl.clientHeight + 2;
+          hasHiddenContent = contentEl.scrollHeight > contentEl.clientHeight + CLIPPED_CONTENT_TOLERANCE_PX;
         }
         expandButton.toggleClass("is-hidden", !hasHiddenContent);
         expandButton.setText("▽");
@@ -3498,7 +3585,7 @@
       if (!textarea) return false;
       const previousHeight = textarea.style.height;
       textarea.style.height = "";
-      const hasHiddenContent = textarea.scrollHeight > textarea.clientHeight + 2;
+      const hasHiddenContent = textarea.scrollHeight > textarea.clientHeight + CLIPPED_CONTENT_TOLERANCE_PX;
       textarea.style.height = previousHeight;
       return hasHiddenContent;
     }
@@ -3679,6 +3766,9 @@
         if (event.key === "Escape" && !event.isComposing && this.isMarkdownRenderingEnabled()) {
           event.preventDefault();
           event.stopPropagation();
+          // Same echo guard as the live editor's Escape branch: the exit must
+          // not let the parked cursor position re-expand the card via sync.
+          this.plugin.suppressCursorSyncFromSidebarJump();
           textarea.blur();
         }
       });

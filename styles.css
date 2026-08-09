@@ -276,6 +276,10 @@
   min-height: 40px;
   max-height: 112px;
   overflow-y: auto;
+  /* A classic scrollbar only ever appears in the edit state (the rendered card
+     clips instead), stealing ~15px of text width and reflowing every line.
+     Hide the rail; wheel scrolling and caret-follow still work. */
+  scrollbar-width: none;
   padding: 0;
   background: var(--background-primary);
   color: var(--text-normal);
@@ -285,6 +289,10 @@
   --font-text-size: var(--font-ui-small);
   font-size: var(--font-ui-small);
   line-height: 1.55;
+}
+
+.bfw-live-host::-webkit-scrollbar {
+  display: none;
 }
 
 .bfw-item.is-expanded .bfw-live-host {
@@ -307,6 +315,23 @@
 .bfw-live-host .cm-line {
   padding-left: 0;
   padding-right: 0;
+}
+
+/* Typography parity: the rendered card and the live editor are two layout
+   engines; any text-metric property left to either engine's defaults can make
+   them wrap differently (e.g. long unbroken strings). Every layout-affecting
+   property below is therefore pinned to one explicit value on BOTH sides.
+   Wrap rules follow the editor (its white-space is untouchable); identity
+   values (font, size, line-height) follow the card's established look. */
+.bfw-item .bfw-rendered,
+.bfw-item .bfw-live-host .cm-editor .cm-content {
+  font-family: var(--font-text);
+  font-size: var(--font-ui-small);
+  line-height: 1.55;
+  letter-spacing: normal;
+  hyphens: none;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .bfw-live-host .cm-editor.cm-focused {
