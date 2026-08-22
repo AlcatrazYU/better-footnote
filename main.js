@@ -69,6 +69,8 @@
       openSourceForDefinition: "Open the source note to jump to a footnote definition.",
       noReferenceFound: "No reference found for [^{id}].",
       footnoteNotFound: "Footnote [^{id}] was not found.",
+      saveConflict: "Footnote [^{id}] changed in the note after this card was opened, so this edit was not saved to avoid overwriting it. Your text is kept below:",
+      saveConflictStatus: "Not saved: note changed",
       unreferenced: "Unreferenced",
       commandOpen: "Open Better Footnote",
       ribbonOpen: "Open Better Footnote",
@@ -135,6 +137,8 @@
       openSourceForDefinition: "请先打开源笔记，再跳到脚注定义位置。",
       noReferenceFound: "没有找到 [^{id}] 的正文引用。",
       footnoteNotFound: "没有找到脚注 [^{id}]。",
+      saveConflict: "脚注 [^{id}] 在打开这张卡片之后已在笔记中被修改，为避免覆盖，本次编辑未保存。你的文字保留在下方：",
+      saveConflictStatus: "未保存：笔记已变更",
       unreferenced: "未引用",
       commandOpen: "打开 Better Footnote",
       ribbonOpen: "打开 Better Footnote",
@@ -201,6 +205,8 @@
       openSourceForDefinition: "脚注定義へ移動するには、元のノートを開いてください。",
       noReferenceFound: "[^{id}] の本文参照が見つかりません。",
       footnoteNotFound: "脚注 [^{id}] が見つかりません。",
+      saveConflict: "脚注 [^{id}] はこのカードを開いた後にノート側で変更されました。上書きを避けるため、今回の編集は保存していません。入力した文字は下に残しています：",
+      saveConflictStatus: "未保存: ノートが変更されました",
       unreferenced: "未参照",
       commandOpen: "Better Footnote を開く",
       ribbonOpen: "Better Footnote を開く",
@@ -267,6 +273,8 @@
       openSourceForDefinition: "각주 정의로 이동하려면 원본 노트를 여세요.",
       noReferenceFound: "[^{id}]의 본문 참조를 찾지 못했습니다.",
       footnoteNotFound: "각주 [^{id}]를 찾지 못했습니다.",
+      saveConflict: "각주 [^{id}]가 이 카드를 연 뒤 노트에서 변경되었습니다. 덮어쓰기를 막기 위해 이번 편집은 저장하지 않았습니다. 입력한 내용은 아래에 남겨 두었습니다:",
+      saveConflictStatus: "저장 안 됨: 노트가 변경됨",
       unreferenced: "참조 없음",
       commandOpen: "Better Footnote 열기",
       ribbonOpen: "Better Footnote 열기",
@@ -848,7 +856,7 @@
     };
   }
 
-  function replaceFootnoteContent(rawText, id, content) {
+  function replaceFootnoteContent(rawText, id, content, options = {}) {
     const text = normalizeLineEndings(rawText);
     const parsed = parseFootnotes(text);
     const footnote = parsed.footnotes.find((item) => item.id === id);
@@ -861,6 +869,19 @@
     }
 
     const block = buildFootnoteBlock(footnote, content);
+    // What the note will hold after the write, read back through the parser so
+    // it compares like-for-like with later parses of the note (the baseline).
+    const landed = parseFootnotes(block).footnotes[0]?.content ?? normalizeLineEndings(content);
+    if (landed === footnote.content) {
+      return { changed: false, text, reason: "already-current", footnote, content: landed };
+    }
+    // Optimistic check: the caller says what the footnote contained when the
+    // edit started. Anything else means the note moved on (or this is not the
+    // note the caller thinks it is), so refuse rather than overwrite.
+    const expected = options.expectedContent;
+    if (typeof expected === "string" && footnote.content !== expected) {
+      return { changed: false, text, reason: "content-mismatch", footnote, content: footnote.content };
+    }
     return {
       changed: true,
       text: `${text.slice(0, footnote.definitionStart)}${block}${text.slice(footnote.definitionEnd)}`,
@@ -868,6 +889,7 @@
       start: footnote.definitionStart,
       end: footnote.definitionEnd,
       footnote,
+      content: landed,
     };
   }
 
@@ -1929,7 +1951,17 @@
       return normalizeLineEndings(await this.app.vault.cachedRead(file));
     }
 
-    async saveFootnote(file, id, content) {
+    describeSaveResult(result, id, strings) {
+      if (result.reason === "already-current") {
+        return { ok: true, message: strings.saved, content: result.content };
+      }
+      if (result.reason === "content-mismatch") {
+        return { ok: false, conflict: true, message: strings.saveConflictStatus };
+      }
+      return { ok: false, message: t(strings, "footnoteNotFound", { id }) };
+    }
+
+    async saveFootnote(file, id, content, expectedContent) {
       const strings = getStrings();
       if (!file) {
         return { ok: false, message: strings.noActiveFileSave };
@@ -1939,9 +1971,9 @@
       if (markdownView?.editor && typeof markdownView.editor.getValue === "function") {
         const editor = markdownView.editor;
         const text = normalizeLineEndings(editor.getValue());
-        const result = replaceFootnoteContent(text, id, content);
+        const result = replaceFootnoteContent(text, id, content, { expectedContent });
         if (!result.changed) {
-          return { ok: false, message: t(strings, "footnoteNotFound", { id }) };
+          return this.describeSaveResult(result, id, strings);
         }
         const from = editorPositionFromOffset(editor, text, result.start);
         const to = editorPositionFromOffset(editor, text, result.end);
@@ -1951,16 +1983,31 @@
         } finally {
           this.suppressEditStamp = false;
         }
-        return { ok: true, message: strings.saved };
+        // The next baseline is what actually landed (editor extensions may
+        // rewrite a transaction), not what was sent.
+        const after = parseFootnotes(normalizeLineEndings(editor.getValue())).footnotes
+          .find((item) => item.id === id);
+        return { ok: true, message: strings.saved, content: after ? after.content : result.content };
       }
 
-      const text = normalizeLineEndings(await this.app.vault.read(file));
-      const result = replaceFootnoteContent(text, id, content);
-      if (!result.changed) {
-        return { ok: false, message: t(strings, "footnoteNotFound", { id }) };
+      // No settled editor holds the note: write through the vault. vault.process
+      // serialises with Obsidian's own writes and reads/compares/writes in one
+      // step; returning the input unchanged performs no write at all.
+      let outcome = null;
+      const apply = (data) => {
+        outcome = replaceFootnoteContent(data, id, content, { expectedContent });
+        return outcome.changed ? outcome.text : data;
+      };
+      if (typeof this.app.vault.process === "function") {
+        await this.app.vault.process(file, apply);
+      } else {
+        const next = apply(await this.app.vault.read(file));
+        if (outcome.changed) await this.app.vault.modify(file, next);
       }
-      await this.app.vault.modify(file, result.text);
-      return { ok: true, message: strings.saved };
+      if (!outcome.changed) {
+        return this.describeSaveResult(outcome, id, strings);
+      }
+      return { ok: true, message: strings.saved, content: outcome.content };
     }
 
     getDeleteFootnoteDetails(file, footnoteId) {
@@ -3897,6 +3944,7 @@
     }
 
     queueSave(footnoteId, content, statusEl, itemEl) {
+      if (this.cardTargets.get(itemEl)?.conflicted) return;
       const existing = this.saveTimers.get(footnoteId);
       if (existing) {
         window.clearTimeout(existing);
@@ -3914,6 +3962,9 @@
         window.clearTimeout(existing);
         this.saveTimers.delete(footnoteId);
       }
+      if (this.cardTargets.get(itemEl)?.conflicted) {
+        return { ok: false, conflict: true, message: getStrings().saveConflictStatus };
+      }
       if (!existing && !itemEl.classList.contains("is-dirty")) {
         return { ok: true, message: statusEl.getText?.() || getStrings().saved };
       }
@@ -3923,24 +3974,65 @@
     async saveFootnoteNow(footnoteId, content, statusEl, itemEl) {
       const strings = getStrings();
       const target = this.cardTargets.get(itemEl) || { file: this.file, footnote: null };
+      if (target.conflicted) return;
       const generation = this.renderGeneration;
-      try {
-        const result = await this.plugin.saveFootnote(target.file, footnoteId, content);
-        if (result.ok) {
-          itemEl.removeClass("is-dirty");
-          statusEl?.setText(result.message);
-          // Book-keep only while the sidebar still shows this card's note and
-          // the list has not been rebuilt since the save started; otherwise the
-          // previous note's state would be recorded under the current note.
-          if (generation === this.renderGeneration && this.file?.path === target.file?.path) {
-            this.captureState();
+      const run = async () => {
+        if (target.conflicted) return;
+        try {
+          // The footnote object is shared with the list, so its content is the
+          // live baseline: what this card last saw in the note.
+          const expected = target.footnote ? target.footnote.content : undefined;
+          const result = await this.plugin.saveFootnote(target.file, footnoteId, content, expected);
+          if (result.ok) {
+            itemEl.removeClass("is-dirty");
+            statusEl?.setText(result.message);
+            if (target.footnote && typeof result.content === "string") {
+              target.footnote.content = result.content;
+            }
+            // Book-keep only while the sidebar still shows this card's note and
+            // the list has not been rebuilt since the save started; otherwise the
+            // previous note's state would be recorded under the current note.
+            if (generation === this.renderGeneration && this.file?.path === target.file?.path) {
+              this.captureState();
+            }
+          } else {
+            statusEl?.setText(result.message);
+            if (result.conflict) {
+              this.handleSaveConflict(footnoteId, content, itemEl, target);
+            }
           }
-        } else {
-          statusEl?.setText(result.message);
+        } catch (error) {
+          statusEl?.setText(t(strings, "saveError", { message: error.message }));
         }
-      } catch (error) {
-        statusEl?.setText(t(strings, "saveError", { message: error.message }));
+      };
+      // Saves for one card run strictly in order, so each one compares against
+      // the baseline left by the previous one instead of racing it.
+      target.inFlight = (target.inFlight || Promise.resolve()).then(run, run);
+      return target.inFlight;
+    }
+
+    handleSaveConflict(footnoteId, rejectedText, itemEl, target) {
+      // The note no longer holds what this card started from. Stop writing,
+      // hand the user's text back in a notice they can copy from, and return
+      // the card to what the note actually says.
+      if (target) target.conflicted = true;
+      itemEl.removeClass("is-dirty");
+      const strings = getStrings();
+      const fragment = document.createDocumentFragment();
+      fragment.createDiv({ text: t(strings, "saveConflict", { id: footnoteId }) });
+      const keep = fragment.createEl("textarea", {
+        cls: "bfw-conflict-text",
+        attr: { readonly: "true", rows: "4" },
+      });
+      keep.value = rejectedText;
+      for (const type of ["pointerdown", "mousedown", "click"]) {
+        keep.addEventListener(type, (event) => event.stopPropagation());
       }
+      new Notice(fragment, 0);
+      if (this.editingFootnoteId === footnoteId) {
+        this.exitFootnoteEditMode(footnoteId);
+      }
+      this.scheduleRender();
     }
 
     activateFootnoteFromSidebar(footnoteId, options = {}) {

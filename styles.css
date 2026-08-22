@@ -389,3 +389,10 @@
     box-shadow: 0 0 0 0 transparent;
   }
 }
+
+.bfw-conflict-text {
+  width: 100%;
+  margin-top: 6px;
+  font-size: var(--font-ui-smaller);
+  font-family: var(--font-text);
+}

@@ -424,4 +424,33 @@ assert.equal(
   assert.equal(defaultCache.get("key-204"), 204);
 }
 
+{
+  const base = parser.parseFootnotes(sample);
+  const noteContent = base.footnotes[1].content;
+  const ok = parser.replaceFootnoteContent(sample, "note", "新内容", { expectedContent: noteContent });
+  assert.equal(ok.changed, true);
+  assert.equal(ok.content, "新内容");
+  assert.equal(parser.parseFootnotes(ok.text).footnotes[1].content, ok.content);
+
+  const stale = parser.replaceFootnoteContent(sample, "note", "新内容", { expectedContent: "别处改过的内容" });
+  assert.equal(stale.changed, false);
+  assert.equal(stale.reason, "content-mismatch");
+  assert.equal(stale.content, noteContent);
+
+  const same = parser.replaceFootnoteContent(sample, "note", noteContent, { expectedContent: "别处改过的内容" });
+  assert.equal(same.changed, false);
+  assert.equal(same.reason, "already-current");
+  assert.equal(same.content, noteContent);
+
+  const multi = parser.replaceFootnoteContent(sample, "1", "第一段\n\n第二段\n第三段", { expectedContent: base.footnotes[0].content });
+  assert.equal(multi.changed, true);
+  assert.equal(parser.parseFootnotes(multi.text).footnotes[0].content, multi.content);
+  const again = parser.replaceFootnoteContent(multi.text, "1", "第一段\n\n第二段\n第三段", { expectedContent: multi.content });
+  assert.equal(again.changed, false);
+  assert.equal(again.reason, "already-current");
+
+  const missing = parser.replaceFootnoteContent(sample, "nope", "x", { expectedContent: "x" });
+  assert.equal(missing.reason, "missing-footnote");
+}
+
 console.log("parser tests passed");
