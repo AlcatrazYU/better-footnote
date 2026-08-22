@@ -1347,7 +1347,7 @@
       });
 
       this.registerEvent(this.app.workspace.on("active-leaf-change", (leaf) => this.onWorkspaceContextChanged(leaf)));
-      this.registerEvent(this.app.workspace.on("file-open", () => this.onWorkspaceContextChanged()));
+      this.registerEvent(this.app.workspace.on("file-open", (file) => this.onActiveFileChanged(file)));
       this.registerEvent(this.app.workspace.on("editor-change", (editor, info) => this.onEditorChanged(editor, info)));
       this.registerEvent(this.app.vault.on("modify", (file) => {
         if (isMarkdownFile(file)) this.onVaultFileModified(file);
@@ -1404,6 +1404,16 @@
 
     unregisterFootnoteView(view) {
       this.views.delete(view);
+    }
+
+    onActiveFileChanged(file) {
+      // Obsidian announces the active file through this argument: a Markdown
+      // note, a non-Markdown file (PDF, canvas...) or null (empty tab, graph).
+      // Trust it both ways, like the core Outline/Backlinks views do, so the
+      // sidebar follows the note being looked at and lets go otherwise.
+      // stateByFile is untouched, so returning restores scroll and active card.
+      this.lastMarkdownFile = isMarkdownFile(file) ? file : null;
+      this.onWorkspaceContextChanged();
     }
 
     onWorkspaceContextChanged(leaf = null) {
@@ -2317,9 +2327,14 @@
       this.markdownRenderComponents = [];
       const path = file?.path || "";
       if (path !== this.renderCacheFilePath) {
-        this.renderCacheFilePath = path;
-        this.markdownRenderCache.clear();
         this.editingFootnoteId = null;
+        // Leaving for a non-Markdown view (file === null) keeps the previous
+        // note's cache so coming back restores the scroll position against
+        // already-sized cards; switching to another note still clears it.
+        if (file) {
+          this.renderCacheFilePath = path;
+          this.markdownRenderCache.clear();
+        }
       }
     }
 
