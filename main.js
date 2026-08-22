@@ -97,6 +97,7 @@
       deleteCancel: "Cancel",
       deleteConfirm: "Delete footnote",
       deleteNeedsEditor: "Open the source note before deleting a footnote.",
+      switchToEditingView: "Switch the note to editing view first.",
       deleteFailed: "Failed to delete footnote: {message}",
       deletedFootnote: "Deleted footnote [^{id}]. Press {shortcut} to undo.",
       duplicateFootnoteInserted: "New footnote [^{id}] collides with an existing id. Its marker now references the existing footnote, and an unreferenced duplicate definition was left behind. Consider undoing and using an unused id.",
@@ -165,6 +166,7 @@
       deleteCancel: "取消",
       deleteConfirm: "删除脚注",
       deleteNeedsEditor: "请先打开对应笔记，再删除脚注。",
+      switchToEditingView: "请先把笔记切换到编辑视图。",
       deleteFailed: "删除脚注失败：{message}",
       deletedFootnote: "已删除脚注 [^{id}]。按 {shortcut} 可撤销。",
       duplicateFootnoteInserted: "新脚注编号 [^{id}] 与现有脚注撞号：新标记已成为现有脚注的又一处引用，并留下一条未引用的重复定义。建议撤销后改用未使用的编号。",
@@ -233,6 +235,7 @@
       deleteCancel: "キャンセル",
       deleteConfirm: "脚注を削除",
       deleteNeedsEditor: "脚注を削除する前に、元のノートを開いてください。",
+      switchToEditingView: "先にノートを編集ビューに切り替えてください。",
       deleteFailed: "脚注の削除に失敗しました: {message}",
       deletedFootnote: "脚注 [^{id}] を削除しました。{shortcut} で取り消せます。",
       duplicateFootnoteInserted: "新しい脚注 [^{id}] は既存の脚注と番号が重複しています。挿入したマーカーは既存脚注への参照として扱われ、未参照の重複定義が残っています。取り消して未使用の番号を使うことをおすすめします。",
@@ -301,6 +304,7 @@
       deleteCancel: "취소",
       deleteConfirm: "각주 삭제",
       deleteNeedsEditor: "각주를 삭제하기 전에 원본 노트를 여세요.",
+      switchToEditingView: "먼저 노트를 편집 보기로 전환하세요.",
       deleteFailed: "각주 삭제 실패: {message}",
       deletedFootnote: "각주 [^{id}]를 삭제했습니다. {shortcut}로 되돌릴 수 있습니다.",
       duplicateFootnoteInserted: "새 각주 [^{id}]가 기존 각주와 번호가 겹칩니다. 삽입한 표시는 기존 각주에 대한 참조로 처리되었고, 참조 없는 중복 정의가 남았습니다. 되돌린 뒤 사용하지 않은 번호를 쓰는 것이 좋습니다.",
@@ -1963,6 +1967,18 @@
       return view?.leaf?.working !== true;
     }
 
+    isFileOpenInReadingView(file) {
+      if (!file) return false;
+      let found = false;
+      this.app.workspace.iterateAllLeaves((leaf) => {
+        if (!found && leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path
+          && leaf.view.getMode?.() === "preview") {
+          found = true;
+        }
+      });
+      return found;
+    }
+
     findMarkdownViewForFile(file) {
       if (!file) return null;
       let found = null;
@@ -2057,7 +2073,7 @@
       const markdownView = this.findMarkdownViewForFile(file);
       const editor = markdownView?.editor;
       if (!editor || typeof editor.getValue !== "function") {
-        return { ok: false, message: strings.deleteNeedsEditor };
+        return { ok: false, message: this.isFileOpenInReadingView(file) ? strings.switchToEditingView : strings.deleteNeedsEditor };
       }
       const result = deleteFootnoteFromText(editor.getValue(), footnoteId);
       if (!result.changed) {
@@ -2096,7 +2112,7 @@
       const markdownView = this.findMarkdownViewForFile(file);
       const editor = markdownView?.editor;
       if (!editor || typeof editor.getValue !== "function") {
-        new Notice(strings.deleteNeedsEditor);
+        new Notice(this.isFileOpenInReadingView(file) ? strings.switchToEditingView : strings.deleteNeedsEditor);
         return false;
       }
 
@@ -2108,7 +2124,7 @@
           return false;
         }
         if (!this.applyEditorDeleteTransaction(editor, text, result.ranges)) {
-          new Notice(strings.deleteNeedsEditor);
+          new Notice(this.isFileOpenInReadingView(file) ? strings.switchToEditingView : strings.deleteNeedsEditor);
           return false;
         }
         this.rememberDeletedFootnote(file, result.footnote);
@@ -2173,7 +2189,7 @@
       const strings = getStrings();
       const markdownView = this.findMarkdownViewForFile(file);
       if (!markdownView?.editor) {
-        new Notice(strings.openSourceForReference);
+        if (!this.isFileOpenInReadingView(file)) new Notice(strings.openSourceForReference);
         return false;
       }
       const text = normalizeLineEndings(markdownView.editor.getValue());
@@ -2192,7 +2208,7 @@
       const strings = getStrings();
       const markdownView = this.findMarkdownViewForFile(file);
       if (!markdownView?.editor) {
-        new Notice(strings.openSourceForDefinition);
+        if (!this.isFileOpenInReadingView(file)) new Notice(strings.openSourceForDefinition);
         return false;
       }
       const text = normalizeLineEndings(markdownView.editor.getValue());
