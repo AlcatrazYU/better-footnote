@@ -8,6 +8,12 @@
   const FLASH_SELECTION_MS = 1400;
   const AUTO_TIDY_DELAY_MS = 250;
   const SIDEBAR_JUMP_CURSOR_SUPPRESS_MS = 1200;
+  // A newly detected footnote triggers automatic Tidy / auto-focus only when the
+  // note's own editor reported a change within this window...
+  const NOTE_EDIT_TRUST_MS = 5000;
+  // ...and that change followed real keyboard/pointer input within this window
+  // (rules out Sync merges, scripts, and views that are still loading a file).
+  const USER_INPUT_TRUST_MS = 1500;
   // Content cropped by no more than this many pixels (descender zone of the
   // last line) is treated as fully visible: no expand arrow, no auto-expand.
   const CLIPPED_CONTENT_TOLERANCE_PX = 8;
@@ -1313,6 +1319,9 @@
       this.internalEditorResolution = null;
       this.views = new Set();
       this.lastMarkdownFile = null;
+      this.noteEditorEdits = new Map(); // path -> timestamp of the last trusted editor change
+      this.lastUserInputAt = 0;
+      this.suppressEditStamp = false;
       this.cursorSyncTimer = null;
       this.flashSelectionTimer = null;
       this.pendingTidyKeys = new Set();
@@ -1382,6 +1391,7 @@
       this.pendingTidyKeys.clear();
       this.recentlyDeletedFootnotesByFile.clear();
       this.restoredDeletedFootnoteCursorSuppressionsByFile.clear();
+      this.noteEditorEdits.clear();
     }
 
     async saveSettings() {
@@ -1429,6 +1439,19 @@
       // Typing inside our own embedded sidebar editor also fires the global
       // editor-change event; listening to our own keystrokes is pure churn.
       if (this.isOwnLiveEditorContext(editor, info)) return;
+      // File loads never dispatch editor-change (Obsidian swaps the state), so a
+      // MarkdownView here means a real transaction in that view. Trust it as a
+      // user edit only when it followed keyboard/pointer input, the view is not
+      // mid-way through loading another file, and it is not our own write-back.
+      if (
+        !this.suppressEditStamp
+        && info instanceof MarkdownView
+        && isMarkdownFile(info.file)
+        && info.leaf?.working !== true
+        && Date.now() - this.lastUserInputAt < USER_INPUT_TRUST_MS
+      ) {
+        this.noteEditorEdits.set(info.file.path, Date.now());
+      }
       const file = this.trackCurrentMarkdownFile();
       if (!file) return;
       if (this.isTypingActive()) {
@@ -1511,13 +1534,30 @@
       return resolution;
     }
 
+    noteUserInput(event) {
+      if (isBetterFootnoteTarget(event?.target)) return;
+      this.lastUserInputAt = Date.now();
+    }
+
+    hasRecentNoteEditorEdit(file) {
+      const at = this.noteEditorEdits.get(file?.path);
+      if (typeof at !== "number") return false;
+      if (Date.now() - at > NOTE_EDIT_TRUST_MS) {
+        this.noteEditorEdits.delete(file.path);
+        return false;
+      }
+      return true;
+    }
+
     onEditorTextInputEvent(event) {
+      this.noteUserInput(event);
       if (isEditorTextInputEvent(event)) {
         this.markTypingActive();
       }
     }
 
     onEditorKeydown(event) {
+      this.noteUserInput(event);
       if (isEditorTextInputEvent(event)) {
         this.markTypingActive();
       } else if (isCommandLikeEditorKeydown(event)) {
@@ -1529,6 +1569,7 @@
     }
 
     onDocumentPointerDown(event) {
+      this.noteUserInput(event);
       if (!isBetterFootnoteTarget(event?.target)) {
         this.clearTypingActive();
         if (isMarkdownEditorTarget(event?.target)) {
@@ -1883,7 +1924,12 @@
         }
         const from = editorPositionFromOffset(editor, text, result.start);
         const to = editorPositionFromOffset(editor, text, result.end);
-        editor.replaceRange(result.block, from, to);
+        this.suppressEditStamp = true;
+        try {
+          editor.replaceRange(result.block, from, to);
+        } finally {
+          this.suppressEditStamp = false;
+        }
         return { ok: true, message: strings.saved };
       }
 
@@ -2980,6 +3026,11 @@
       const parsed = parseFootnotes(text);
       const orderedFootnotes = parsed.footnotes;
       const savedState = this.stateByFile.get(file.path) || {};
+      // Only a change made in this note's own editor by the user may authorise
+      // an automatic whole-note rewrite (Tidy) or focus-stealing auto-edit.
+      // Footnotes that merely appeared (file switch, Sync, scripts) are
+      // highlighted and nothing more.
+      const editedInOwnEditor = this.plugin.hasRecentNoteEditorEdit(file);
       const previousKnownFootnoteIds = Array.isArray(savedState.knownFootnoteIds)
         ? savedState.knownFootnoteIds
         : null;
@@ -3032,11 +3083,15 @@
         } else {
           nextState.activeId = addedFootnote.id;
           nextState.activeSnapshot = createFootnoteSnapshot(addedFootnote);
-          nextState.autoFocusRendersRemaining = Math.max(
-            Number(savedState.autoFocusRendersRemaining || 0),
-            1,
-          );
-          this.plugin.scheduleTidyFootnotesForNewFootnote(file, addedFootnote);
+          if (editedInOwnEditor) {
+            nextState.autoFocusRendersRemaining = Math.max(
+              Number(savedState.autoFocusRendersRemaining || 0),
+              1,
+            );
+            this.plugin.scheduleTidyFootnotesForNewFootnote(file, addedFootnote);
+          } else {
+            nextState.autoFocusRendersRemaining = 0;
+          }
         }
       }
       this.stateByFile.set(file.path, nextState);
@@ -3129,7 +3184,9 @@
       this.searchPreviousButton.addEventListener("click", () => this.navigateSearch(-1));
       this.searchNextButton.addEventListener("click", () => this.navigateSearch(1));
 
-      const waitForTidyBeforeFocus = Boolean(addedFootnote && this.plugin.settings?.autoTidyAfterNewFootnote);
+      const waitForTidyBeforeFocus = Boolean(
+        addedFootnote && editedInOwnEditor && this.plugin.settings?.autoTidyAfterNewFootnote,
+      );
 
       renderFilteredList();
       this.listEl.scrollTop = savedState.scrollTop || 0;
