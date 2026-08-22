@@ -1472,6 +1472,12 @@
         && info.leaf?.working !== true
         && Date.now() - this.lastUserInputAt < USER_INPUT_TRUST_MS
       ) {
+        if (this.noteEditorEdits.size > 256) {
+          const now = Date.now();
+          for (const [path, at] of this.noteEditorEdits) {
+            if (now - at > NOTE_EDIT_TRUST_MS) this.noteEditorEdits.delete(path);
+          }
+        }
         this.noteEditorEdits.set(info.file.path, Date.now());
       }
       const file = this.trackCurrentMarkdownFile();
@@ -4007,7 +4013,7 @@
       };
       // Saves for one card run strictly in order, so each one compares against
       // the baseline left by the previous one instead of racing it.
-      target.inFlight = (target.inFlight || Promise.resolve()).then(run, run);
+      target.inFlight = target.inFlight ? target.inFlight.then(run, run) : run();
       return target.inFlight;
     }
 
