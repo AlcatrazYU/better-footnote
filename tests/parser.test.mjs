@@ -467,4 +467,9 @@ assert.equal(
   assert.equal(parser.deletedFootnoteRecordMatchesFootnote(filledRecord, filledMoved), true);
 }
 
+{
+  const moved = parser.parseFootnotes(["恢复空脚注[^1]。", "", "补一行。", "", "[^1]: "].join("\n")).footnotes[0];
+  assert.equal(parser.deletedFootnoteRecordMatchesFootnote(deletedEmptyRecord, moved), false);
+}
+
 console.log("parser tests passed");

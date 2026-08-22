@@ -82,7 +82,7 @@
       renderMarkdownName: "Render Markdown in sidebar",
       renderMarkdownDesc: "When enabled, footnote cards you are not editing show rendered Markdown, including links, bold, and other formatting. Click a link to open it. Click the text to edit in an embedded live preview editor that keeps formatting rendered while you type; if it is unavailable, the card falls back to a plain source editor.",
       autoTidyName: "Auto tidy after a new footnote",
-      autoTidyDesc: "Requires Tidy Footnotes. After you insert a new footnote in the note's own editor, Better Footnote runs Tidy Footnotes automatically (footnotes that arrive from Sync or scripts are only highlighted). This closes Obsidian's built-in floating footnote editor; use the Better Footnote sidebar to edit the footnote.",
+      autoTidyDesc: "Requires Tidy Footnotes. After you insert a new footnote in the note's own editor, Better Footnote runs Tidy Footnotes automatically (footnotes that arrive from Sync or from scripts that write the file directly are only highlighted). This closes Obsidian's built-in floating footnote editor; use the Better Footnote sidebar to edit the footnote.",
       tidyInstallName: "Tidy Footnotes integration",
       tidyInstallDesc: "Install and enable Tidy Footnotes before using automatic tidying.",
       tidyInstallButton: "Open plugin page",
@@ -150,7 +150,7 @@
       renderMarkdownName: "侧栏渲染 Markdown",
       renderMarkdownDesc: "开启后，未在编辑的脚注卡片会显示渲染后的 Markdown，包括链接、粗体等格式。点击链接直接打开；点击文字进入嵌入式实时预览编辑器，输入时格式保持渲染。若实时预览编辑器不可用，卡片会自动回退为源码编辑框。",
       autoTidyName: "新增脚注后自动整理编号",
-      autoTidyDesc: "需要先安装并启用 Tidy Footnotes。当你在这篇笔记的编辑器里插入新脚注后，Better Footnote 会自动运行 Tidy Footnotes（同步或脚本带来的新脚注只会高亮，不会自动整理）。启用后会关闭 Obsidian 自带的脚注悬浮编辑框，请在 Better Footnote 侧栏中编辑脚注。",
+      autoTidyDesc: "需要先安装并启用 Tidy Footnotes。当你在这篇笔记的编辑器里插入新脚注后，Better Footnote 会自动运行 Tidy Footnotes（同步或直接写文件的脚本带来的新脚注只会高亮，不会自动整理）。启用后会关闭 Obsidian 自带的脚注悬浮编辑框，请在 Better Footnote 侧栏中编辑脚注。",
       tidyInstallName: "Tidy Footnotes 集成",
       tidyInstallDesc: "使用自动整理前，请先安装并启用 Tidy Footnotes。",
       tidyInstallButton: "打开插件页面",
@@ -218,7 +218,7 @@
       renderMarkdownName: "サイドバーで Markdown をレンダリング",
       renderMarkdownDesc: "有効にすると、編集していない脚注カードはリンクや太字などを含むレンダリング済みの Markdown で表示されます。リンクをクリックすると開きます。本文をクリックすると埋め込みライブプレビューエディタで編集でき、入力中も書式はレンダリングされたままです。利用できない場合は自動的にソース編集ボックスへ戻ります。",
       autoTidyName: "新しい脚注の後に自動整理",
-      autoTidyDesc: "Tidy Footnotes のインストールと有効化が必要です。このノートのエディタで新しい脚注を挿入すると、Better Footnote が Tidy Footnotes を自動実行します（同期やスクリプトで増えた脚注はハイライトのみで、自動整理はしません）。有効にすると Obsidian 標準の脚注フローティング編集欄を閉じるため、脚注は Better Footnote サイドバーで編集してください。",
+      autoTidyDesc: "Tidy Footnotes のインストールと有効化が必要です。このノートのエディタで新しい脚注を挿入すると、Better Footnote が Tidy Footnotes を自動実行します（同期やファイルを直接書き換えるスクリプトで増えた脚注はハイライトのみで、自動整理はしません）。有効にすると Obsidian 標準の脚注フローティング編集欄を閉じるため、脚注は Better Footnote サイドバーで編集してください。",
       tidyInstallName: "Tidy Footnotes 連携",
       tidyInstallDesc: "自動整理を使う前に、Tidy Footnotes をインストールして有効化してください。",
       tidyInstallButton: "プラグインページを開く",
@@ -286,7 +286,7 @@
       renderMarkdownName: "사이드바에서 Markdown 렌더링",
       renderMarkdownDesc: "켜면 편집 중이 아닌 각주 카드가 링크, 굵게 등 서식을 포함한 렌더링된 Markdown으로 표시됩니다. 링크를 클릭하면 링크가 열립니다. 본문을 클릭하면 내장 라이브 프리뷰 편집기에서 편집할 수 있으며 입력 중에도 서식이 렌더링된 채 유지됩니다. 사용할 수 없는 경우 자동으로 소스 편집 상자로 돌아갑니다.",
       autoTidyName: "새 각주 뒤 자동 정리",
-      autoTidyDesc: "Tidy Footnotes를 먼저 설치하고 활성화해야 합니다. 이 노트의 편집기에서 새 각주를 삽입하면 Better Footnote가 Tidy Footnotes를 자동으로 실행합니다(동기화나 스크립트로 들어온 각주는 강조 표시만 합니다). 이 기능을 켜면 Obsidian 기본 각주 플로팅 편집 창을 닫으므로, 각주는 Better Footnote 사이드바에서 편집하세요.",
+      autoTidyDesc: "Tidy Footnotes를 먼저 설치하고 활성화해야 합니다. 이 노트의 편집기에서 새 각주를 삽입하면 Better Footnote가 Tidy Footnotes를 자동으로 실행합니다(동기화나 파일을 직접 쓰는 스크립트로 들어온 각주는 강조 표시만 합니다). 이 기능을 켜면 Obsidian 기본 각주 플로팅 편집 창을 닫으므로, 각주는 Better Footnote 사이드바에서 편집하세요.",
       tidyInstallName: "Tidy Footnotes 연동",
       tidyInstallDesc: "자동 정리를 사용하기 전에 Tidy Footnotes를 설치하고 활성화하세요.",
       tidyInstallButton: "플러그인 페이지 열기",
@@ -577,10 +577,10 @@
     // like an undo. Treat it as restored only when it reappears at the same
     // reference position (or, if unreferenced, the same definition position).
     const snapshot = record.snapshot || {};
-    if (typeof snapshot.firstReferenceStart === "number" || typeof footnote.firstReferenceStart === "number") {
-      return snapshot.firstReferenceStart === footnote.firstReferenceStart;
-    }
-    return snapshot.definitionStart === footnote.definitionStart;
+    const sameReference = typeof snapshot.firstReferenceStart === "number" || typeof footnote.firstReferenceStart === "number"
+      ? snapshot.firstReferenceStart === footnote.firstReferenceStart
+      : true;
+    return sameReference && snapshot.definitionStart === footnote.definitionStart;
   }
 
   function normalizeReferenceIndex(footnote, index = 0) {
@@ -1967,11 +1967,15 @@
       if (!file) return null;
       let found = null;
       this.app.workspace.iterateAllLeaves((leaf) => {
+        // A note shown in Reading view keeps a hidden editor whose changes are
+        // discarded when the mode switches back, so it does not count either:
+        // reads and writes then go through the file, which Obsidian merges in.
         if (
           !found
           && leaf.view instanceof MarkdownView
           && leaf.view.file?.path === file.path
           && this.isMarkdownViewSettled(leaf.view)
+          && leaf.view.getMode?.() !== "preview"
         ) {
           found = leaf.view;
         }
@@ -2076,7 +2080,12 @@
       }
       new ConfirmDeleteFootnoteModal(this.app, details, () => {
         this.suppressCursorSyncFromSidebarJump();
-        this.deleteFootnoteFromEditor(file, footnoteId);
+        this.suppressEditStamp = true;
+        try {
+          this.deleteFootnoteFromEditor(file, footnoteId);
+        } finally {
+          this.suppressEditStamp = false;
+        }
       }, () => {
         this.suppressCursorSyncFromSidebarJump();
       }).open();
@@ -2564,6 +2573,13 @@
     }
 
     enterFootnoteEditMode(footnoteId, caret = null, options = {}) {
+      {
+        const conflictedItem = this.findFootnoteItem(footnoteId);
+        if (conflictedItem && this.cardTargets.get(conflictedItem)?.conflicted) {
+          this.scheduleRender(0);
+          return;
+        }
+      }
       if (!this.isMarkdownRenderingEnabled()) return;
       this.editingFootnoteId = footnoteId;
       const item = this.findFootnoteItem(footnoteId);
@@ -3055,6 +3071,7 @@
       const file = this.plugin.getCurrentMarkdownFile();
       this.file = file;
       this.invalidateRenderedArtifacts(file);
+      const generation = this.renderGeneration;
       this.contentEl.empty();
       this.contentEl.addClass("better-footnote");
 
@@ -3131,7 +3148,7 @@
       }
       // The note changed while the text was being read: a newer render owns
       // the DOM now, and building this list would pin its cards to that note.
-      if (this.file !== file) return;
+      if (this.file !== file || generation !== this.renderGeneration) return;
 
       const parsed = parseFootnotes(text);
       const orderedFootnotes = parsed.footnotes;
@@ -4095,6 +4112,14 @@
       }
       const notice = new Notice(fragment, 0);
       closeButton.addEventListener("click", () => notice.hide());
+      // The card is inert until the next render rebuilds it from the note: its
+      // surface shows the note's version rather than the rejected text, and it
+      // cannot be re-entered for editing in the meantime.
+      itemEl.addClass("is-conflicted");
+      const surface = itemEl.querySelector(".bfw-editor");
+      if (surface && target?.footnote && typeof target.footnote.content === "string") {
+        surface.value = target.footnote.content;
+      }
       // Leave the dead buffer: the live card exits edit mode, the plain editor
       // gives up focus so its blur path rebuilds the card from the note.
       const sameNote = this.file?.path === target?.file?.path;
