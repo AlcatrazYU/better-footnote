@@ -2204,6 +2204,10 @@
       this.pointerDownInside = false;
       this.pendingEditExitFootnoteId = null;
       this.liveEditor = null;
+      // itemEl -> { file, footnote }. A card remembers the note it was built
+      // from, so a save can never be redirected by the sidebar moving on to
+      // another note while the write is still pending.
+      this.cardTargets = new WeakMap();
     }
 
     formatFootnoteCountForDisplay(text, strings = getStrings()) {
@@ -2266,6 +2270,16 @@
 
     async onClose() {
       this.captureState();
+      // Pending plain-editor saves are written now rather than dropped; the
+      // live card, if any, is flushed by its own teardown below.
+      for (const footnoteId of Array.from(this.saveTimers.keys())) {
+        if (this.liveEditor?.footnoteId === footnoteId) continue;
+        const item = this.findFootnoteItem(footnoteId);
+        const textarea = item?.querySelector(".bfw-editor");
+        const statusEl = item?.querySelector(".bfw-status");
+        if (!item || !textarea || !statusEl) continue;
+        this.flushSave(footnoteId, textarea.value, statusEl, item);
+      }
       for (const timer of this.saveTimers.values()) {
         window.clearTimeout(timer);
       }
@@ -2959,6 +2973,9 @@
         restoreSearchFocus();
         return;
       }
+      // The note changed while the text was being read: a newer render owns
+      // the DOM now, and building this list would pin its cards to that note.
+      if (this.file !== file) return;
 
       const parsed = parseFootnotes(text);
       const orderedFootnotes = parsed.footnotes;
@@ -3608,6 +3625,7 @@
     renderFootnoteItem(footnote, strings = getStrings()) {
       const itemEl = this.listEl.createDiv({ cls: "bfw-item" });
       itemEl.dataset.footnoteId = footnote.id;
+      this.cardTargets.set(itemEl, { file: this.file, footnote });
       const isExpanded = this.isFootnoteExpanded(footnote.id);
       if (footnote.id === this.activeFootnoteId) {
         itemEl.addClass("is-active");
@@ -3826,17 +3844,24 @@
 
     async saveFootnoteNow(footnoteId, content, statusEl, itemEl) {
       const strings = getStrings();
+      const target = this.cardTargets.get(itemEl) || { file: this.file, footnote: null };
+      const generation = this.renderGeneration;
       try {
-        const result = await this.plugin.saveFootnote(this.file, footnoteId, content);
+        const result = await this.plugin.saveFootnote(target.file, footnoteId, content);
         if (result.ok) {
           itemEl.removeClass("is-dirty");
-          statusEl.setText(result.message);
-          this.captureState();
+          statusEl?.setText(result.message);
+          // Book-keep only while the sidebar still shows this card's note and
+          // the list has not been rebuilt since the save started; otherwise the
+          // previous note's state would be recorded under the current note.
+          if (generation === this.renderGeneration && this.file?.path === target.file?.path) {
+            this.captureState();
+          }
         } else {
-          statusEl.setText(result.message);
+          statusEl?.setText(result.message);
         }
       } catch (error) {
-        statusEl.setText(t(strings, "saveError", { message: error.message }));
+        statusEl?.setText(t(strings, "saveError", { message: error.message }));
       }
     }
 
