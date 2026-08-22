@@ -1646,6 +1646,7 @@
       }
 
       const markdownView = this.getActiveMarkdownView() || this.findMarkdownViewForFile(this.lastMarkdownFile);
+      if (!this.isMarkdownViewSettled(markdownView)) return;
       const editor = markdownView?.editor;
       if (!editor || typeof editor.getValue !== "function") return;
 
@@ -1851,7 +1852,9 @@
       }
 
       try {
-        const markdownView = this.findMarkdownViewForFile(file || this.lastMarkdownFile) || this.getActiveMarkdownView();
+        // Never fall back to whichever note happens to be active: Tidy rewrites
+        // the whole document, so a missing editor means a notice, not a guess.
+        const markdownView = this.findMarkdownViewForFile(file);
         if (command.editorCallback) {
           if (!markdownView?.editor) {
             new Notice(strings.tidyCommandNoEditor);
@@ -1886,14 +1889,30 @@
     }
 
     getActiveMarkdownView() {
+      // Deliberately not filtered by isMarkdownViewSettled: the sidebar must
+      // follow the new note immediately. Reads go through getTextForFile, which
+      // refuses a loading view, and writes target the card's own note.
       return this.app.workspace.getActiveViewOfType(MarkdownView);
+    }
+
+    isMarkdownViewSettled(view) {
+      // While a leaf swaps files, Obsidian sets view.file to the new note before
+      // the new text has been read, so the editor still holds the previous
+      // note (or nothing). WorkspaceLeaf.working is true for exactly that span
+      // (stable across 1.8 to 1.13); a missing flag counts as settled.
+      return view?.leaf?.working !== true;
     }
 
     findMarkdownViewForFile(file) {
       if (!file) return null;
       let found = null;
       this.app.workspace.iterateAllLeaves((leaf) => {
-        if (!found && leaf.view instanceof MarkdownView && leaf.view.file?.path === file.path) {
+        if (
+          !found
+          && leaf.view instanceof MarkdownView
+          && leaf.view.file?.path === file.path
+          && this.isMarkdownViewSettled(leaf.view)
+        ) {
           found = leaf.view;
         }
       });
@@ -1901,6 +1920,8 @@
     }
 
     async getTextForFile(file) {
+      // A view that is still loading this file is filtered out above, so the
+      // text then comes from disk instead of a stale editor buffer.
       const markdownView = this.findMarkdownViewForFile(file);
       if (markdownView?.editor && typeof markdownView.editor.getValue === "function") {
         return normalizeLineEndings(markdownView.editor.getValue());
