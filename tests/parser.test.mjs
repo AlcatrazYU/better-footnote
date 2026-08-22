@@ -76,11 +76,16 @@ assert.equal(deletedEmpty.referenceCount, 1);
 assert.equal(deletedEmpty.contentIsBlank, true);
 assert.equal(deletedEmpty.text.includes("[^empty]"), false);
 
+// Restore records carry the deleted footnote's snapshot (position included):
+// an empty footnote only counts as restored when it reappears where it was.
+const emptyOriginalDoc = [
+  "恢复空脚注[^1]。",
+  "",
+  "[^1]: ",
+].join("\n");
 const deletedEmptyRecord = {
   id: "1",
-  snapshot: {
-    contentFingerprint: "",
-  },
+  snapshot: parser.createFootnoteSnapshot(parser.parseFootnotes(emptyOriginalDoc).footnotes[0]),
 };
 const reusedNumberedFootnote = parser.parseFootnotes([
   "原来的脚注重新编号为[^1]。",
@@ -89,11 +94,7 @@ const reusedNumberedFootnote = parser.parseFootnotes([
 ].join("\n")).footnotes[0];
 assert.equal(parser.deletedFootnoteRecordMatchesFootnote(deletedEmptyRecord, reusedNumberedFootnote), false);
 
-const restoredEmptyFootnote = parser.parseFootnotes([
-  "恢复空脚注[^1]。",
-  "",
-  "[^1]: ",
-].join("\n")).footnotes[0];
+const restoredEmptyFootnote = parser.parseFootnotes(emptyOriginalDoc).footnotes[0];
 assert.equal(parser.deletedFootnoteRecordMatchesFootnote(deletedEmptyRecord, restoredEmptyFootnote), true);
 
 const cursor = sample.indexOf("[^note]") + 2;
@@ -451,6 +452,19 @@ assert.equal(
 
   const missing = parser.replaceFootnoteContent(sample, "nope", "x", { expectedContent: "x" });
   assert.equal(missing.reason, "missing-footnote");
+}
+
+{
+  const doc = "正文[^7]。\n\n[^7]: \n";
+  const emptyFootnote = parser.parseFootnotes(doc).footnotes[0];
+  const record = { id: "7", snapshot: parser.createFootnoteSnapshot(emptyFootnote) };
+  assert.equal(parser.deletedFootnoteRecordMatchesFootnote(record, emptyFootnote), true);
+  const elsewhere = parser.parseFootnotes("开头一句。\n\n再来正文[^7]。\n\n[^7]: \n").footnotes[0];
+  assert.equal(parser.deletedFootnoteRecordMatchesFootnote(record, elsewhere), false);
+  const filled = parser.parseFootnotes("正文[^7]。\n\n[^7]: 有内容\n").footnotes[0];
+  const filledRecord = { id: "7", snapshot: parser.createFootnoteSnapshot(filled) };
+  const filledMoved = parser.parseFootnotes("开头一句。\n\n正文[^7]。\n\n[^7]: 有内容\n").footnotes[0];
+  assert.equal(parser.deletedFootnoteRecordMatchesFootnote(filledRecord, filledMoved), true);
 }
 
 console.log("parser tests passed");
