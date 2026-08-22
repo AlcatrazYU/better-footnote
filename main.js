@@ -11,12 +11,8 @@
   // A newly detected footnote triggers automatic Tidy / auto-focus only when the
   // note's own editor reported a change within this window...
   const NOTE_EDIT_TRUST_MS = 5000;
-  // ...and that change followed real keyboard/pointer input within this window
-  // (rules out Sync merges, scripts, and views that are still loading a file).
-  const USER_INPUT_TRUST_MS = 1500;
-  const TRUSTED_INPUT_EVENT_TYPES = new Set([
-    "keydown", "beforeinput", "input", "pointerdown", "mousedown", "click", "contextmenu", "touchstart", "paste", "drop",
-  ]);
+  // ...and that change was a real editor transaction, not Obsidian merging an
+  // external modification (Sync, scripts) into the open note.
   // Content cropped by no more than this many pixels (descender zone of the
   // last line) is treated as fully visible: no expand arrow, no auto-expand.
   const CLIPPED_CONTENT_TOLERANCE_PX = 8;
@@ -1238,6 +1234,7 @@
   }
 
   const { Component, ItemView, MarkdownRenderer, MarkdownView, Menu, Modal, Notice, Plugin, PluginSettingTab, Setting } = obsidian;
+  const editorInfoField = obsidian.editorInfoField || null;
   const { StateEffect, StateField } = codemirrorState || {};
   const { Decoration, EditorView } = codemirrorView || {};
   const flashFootnoteReferenceEffect = StateEffect?.define?.();
@@ -1357,8 +1354,8 @@
       this.views = new Set();
       this.lastMarkdownFile = null;
       this.noteEditorEdits = new Map(); // path -> timestamp of the last trusted editor change
-      this.lastUserInputAt = 0;
       this.suppressEditStamp = false;
+      this.editTrustExtensionActive = false;
       this.cursorSyncTimer = null;
       this.flashSelectionTimer = null;
       this.pendingTidyKeys = new Set();
@@ -1378,6 +1375,11 @@
 
       this.registerView(VIEW_TYPE, (leaf) => new BetterFootnoteView(leaf, this));
       this.addSettingTab(new BetterFootnoteSettingTab(this.app, this));
+      const editTrustExtension = this.createEditTrustExtension();
+      if (editTrustExtension) {
+        this.registerEditorExtension(editTrustExtension);
+        this.editTrustExtensionActive = true;
+      }
       if (footnoteReferenceHighlightField) {
         this.registerEditorExtension(footnoteReferenceHighlightField);
       }
@@ -1397,10 +1399,6 @@
       this.registerEvent(this.app.workspace.on("editor-change", (editor, info) => this.onEditorChanged(editor, info)));
       this.registerEvent(this.app.vault.on("modify", (file) => {
         if (isMarkdownFile(file)) this.onVaultFileModified(file);
-      }));
-      this.registerDomEvent(window, "keydown", (event) => this.noteUserInput(event), { capture: true });
-      this.registerEvent(this.app.workspace.on("window-open", (_workspaceWindow, win) => {
-        if (win && win.document) this.registerUserInputListeners(win);
       }));
       this.registerDomEvent(document, "beforeinput", (event) => this.onEditorTextInputEvent(event));
       this.registerDomEvent(document, "keydown", (event) => this.onEditorKeydown(event));
@@ -1480,24 +1478,11 @@
       // Typing inside our own embedded sidebar editor also fires the global
       // editor-change event; listening to our own keystrokes is pure churn.
       if (this.isOwnLiveEditorContext(editor, info)) return;
-      // File loads never dispatch editor-change (Obsidian swaps the state), so a
-      // MarkdownView here means a real transaction in that view. Trust it as a
-      // user edit only when it followed keyboard/pointer input, the view is not
-      // mid-way through loading another file, and it is not our own write-back.
-      if (
-        !this.suppressEditStamp
-        && info instanceof MarkdownView
-        && isMarkdownFile(info.file)
-        && info.leaf?.working !== true
-        && (Date.now() - this.lastUserInputAt < USER_INPUT_TRUST_MS || this.isInsideTrustedUserEvent(info))
-      ) {
-        if (this.noteEditorEdits.size > 256) {
-          const now = Date.now();
-          for (const [path, at] of this.noteEditorEdits) {
-            if (now - at > NOTE_EDIT_TRUST_MS) this.noteEditorEdits.delete(path);
-          }
-        }
-        this.noteEditorEdits.set(info.file.path, Date.now());
+      // Trust stamps normally come from the editor extension (inside the
+      // transaction, where external merges are recognisable). Without it, fall
+      // back to trusting any change in a settled note editor.
+      if (!this.editTrustExtensionActive && !this.suppressEditStamp) {
+        this.stampTrustedNoteEdit(info);
       }
       const file = this.trackCurrentMarkdownFile();
       if (!file) return;
@@ -1581,35 +1566,40 @@
       return resolution;
     }
 
-    noteUserInput(event) {
-      if (isBetterFootnoteTarget(event?.target)) return;
-      this.lastUserInputAt = Date.now();
+    createEditTrustExtension() {
+      // Every change in a note's own editor is a transaction. Obsidian merges
+      // external modifications (Sync, scripts writing the file) with the
+      // "set" user event; everything else (typing, paste, undo, commands from
+      // hotkeys, menus, the command palette, other plugins) is the user's own
+      // edit. Stamping here, inside the transaction, does not depend on any
+      // DOM input event, so native menus and popout windows are covered too.
+      const EditorView = codemirrorView?.EditorView;
+      const Transaction = codemirrorState?.Transaction;
+      if (!EditorView?.updateListener || !Transaction?.userEvent || !editorInfoField) return null;
+      return EditorView.updateListener.of((update) => {
+        if (!update.docChanged || this.suppressEditStamp) return;
+        const externalMerge = update.transactions.length > 0
+          && update.transactions.every((tr) => tr.annotation(Transaction.userEvent) === "set");
+        if (externalMerge) return;
+        let info = null;
+        try {
+          info = update.state.field(editorInfoField, false);
+        } catch (_error) {
+          info = null;
+        }
+        this.stampTrustedNoteEdit(info);
+      });
     }
 
-    registerUserInputListeners(win) {
-      // Hotkeys are handled by Obsidian in the window capture phase and stopped
-      // there, so document-level listeners never see them; a capture listener
-      // on the window itself still runs. Pointer and text input bubble normally.
-      this.registerDomEvent(win, "keydown", (event) => this.noteUserInput(event), { capture: true });
-      this.registerDomEvent(win.document, "beforeinput", (event) => this.noteUserInput(event));
-      this.registerDomEvent(win.document, "pointerdown", (event) => this.noteUserInput(event));
-    }
-
-    isInsideTrustedUserEvent(info) {
-      // A command executed synchronously from a hotkey or the command palette
-      // runs while that key event is still being dispatched.
-      try {
-        const win = info?.containerEl?.ownerDocument?.defaultView || window;
-        const event = win.event;
-        return Boolean(
-          event
-          && event.isTrusted === true
-          && TRUSTED_INPUT_EVENT_TYPES.has(event.type)
-          && !isBetterFootnoteTarget(event.target),
-        );
-      } catch (_error) {
-        return false;
+    stampTrustedNoteEdit(info) {
+      if (!(info instanceof MarkdownView) || !isMarkdownFile(info.file) || info.leaf?.working === true) return;
+      if (this.noteEditorEdits.size > 256) {
+        const now = Date.now();
+        for (const [path, at] of this.noteEditorEdits) {
+          if (now - at > NOTE_EDIT_TRUST_MS) this.noteEditorEdits.delete(path);
+        }
       }
+      this.noteEditorEdits.set(info.file.path, Date.now());
     }
 
     hasRecentNoteEditorEdit(file) {
@@ -1623,14 +1613,12 @@
     }
 
     onEditorTextInputEvent(event) {
-      this.noteUserInput(event);
       if (isEditorTextInputEvent(event)) {
         this.markTypingActive();
       }
     }
 
     onEditorKeydown(event) {
-      this.noteUserInput(event);
       if (isEditorTextInputEvent(event)) {
         this.markTypingActive();
       } else if (isCommandLikeEditorKeydown(event)) {
@@ -1642,7 +1630,6 @@
     }
 
     onDocumentPointerDown(event) {
-      this.noteUserInput(event);
       if (!isBetterFootnoteTarget(event?.target)) {
         this.clearTypingActive();
         if (isMarkdownEditorTarget(event?.target)) {
