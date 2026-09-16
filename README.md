@@ -10,6 +10,13 @@ A footnote sidebar workspace for academic and long-form writing in Obsidian.
 
 Better Footnote gathers the footnotes in the current note into a stable right sidebar. It lets you edit, search, expand, and delete footnotes directly, while moving between in-text footnote markers, sidebar cards, and footnote definitions without losing your place.
 
+## Quick Start
+
+1. Install and enable Better Footnote from Obsidian's Community plugins.
+2. Open the sidebar: click this icon in Obsidian's left ribbon ![Better Footnote ribbon icon](docs/assets/ribbon-icon.svg), or run `Open Better Footnote` from the command palette.
+3. Open a Markdown note with standard footnote definitions such as `[^1]: Reference text` or `[^citation]: Reference text`.
+4. Edit or search footnotes in the right sidebar. Changes are saved automatically.
+
 ## Why Use It
 
 Obsidian footnotes are flexible, but they become hard to work with in long notes, papers, and research drafts:
@@ -91,13 +98,6 @@ Better Footnote can optionally work with [Tidy Footnotes](https://community.obsi
 
 This integration closes Obsidian's built-in floating footnote editor after insertion, because the Better Footnote sidebar becomes the editing surface. Deleting an in-text reference does not automatically run Tidy Footnotes; the sidebar keeps the definition visible, marks it as unreferenced, and lets you tidy manually when you are ready.
 
-## Quick Start
-
-1. Install and enable Better Footnote from Obsidian's Community plugins.
-2. Run `Open Better Footnote` from the command palette.
-3. Open a Markdown note with standard footnote definitions such as `[^1]: Reference text` or `[^citation]: Reference text`.
-4. Edit or search footnotes in the right sidebar. Changes are saved automatically.
-
 ## Languages
 
 The interface follows Obsidian's language first, then the system language, and falls back to English. English, Chinese, Japanese, and Korean UI strings are included.
@@ -105,6 +105,13 @@ The interface follows Obsidian's language first, then the system language, and f
 ## 中文
 
 Better Footnote 是一个用于 Obsidian 的脚注侧栏工作台。它面向长文、论文和研究笔记：把当前笔记里的脚注集中放到右侧边栏，让你可以直接编辑、搜索、展开、删除脚注，并在正文脚注标记、侧栏脚注卡片和文末脚注定义之间快速定位。
+
+### 快速开始
+
+1. 在 Obsidian 第三方插件中安装并启用 Better Footnote。
+2. 打开侧栏：点击 Obsidian 左侧图标条里的这个图标 ![Better Footnote 图标](docs/assets/ribbon-icon.svg)，或者在命令面板中运行 `Open Better Footnote`。
+3. 打开包含标准脚注定义的 Markdown 笔记，例如 `[^1]: 引用内容` 或 `[^citation]: 引用内容`。
+4. 在右侧边栏编辑或搜索脚注。修改会自动保存。
 
 ### 为什么需要它
 
@@ -187,13 +194,6 @@ Better Footnote 可以选择性地与 [Tidy Footnotes](https://community.obsidia
 
 启用这一联动后，Better Footnote 会关闭 Obsidian 自带的脚注悬浮编辑框，因为脚注编辑入口会转移到 Better Footnote 侧栏。删除正文中的脚注引用时不会自动运行 Tidy Footnotes；侧栏会保留对应脚注定义，标记为“未引用”，你可以在确认后手动整理编号。
 
-### 快速开始
-
-1. 在 Obsidian 第三方插件中安装并启用 Better Footnote。
-2. 在命令面板中运行 `Open Better Footnote`。
-3. 打开包含标准脚注定义的 Markdown 笔记，例如 `[^1]: 引用内容` 或 `[^citation]: 引用内容`。
-4. 在右侧边栏编辑或搜索脚注。修改会自动保存。
-
 ### 请我喝杯咖啡
 
 Better Footnote 永久免费。如果它为你的学术写作省下了时间，欢迎在 [Ko-fi](https://ko-fi.com/alcatrazyu) 上请我喝一杯咖啡。
@@ -205,6 +205,13 @@ Better Footnote 永久免费。如果它为你的学术写作省下了时间，�
 ## 日本語
 
 Better Footnote は、Obsidian の脚注サイドバー作業スペースです。長いノート、論文、研究メモで使う脚注を右サイドバーにまとめ、脚注の編集、検索、展開、削除、そして本文中の脚注マーカー、サイドバーのカード、文末の脚注定義の間の移動をしやすくします。
+
+### 使い方
+
+1. Obsidian の Community plugins から Better Footnote をインストールして有効化します。
+2. サイドバーを開く: Obsidian 左側のリボンにあるこのアイコンをクリックするか ![Better Footnote アイコン](docs/assets/ribbon-icon.svg)、コマンドパレットで `Open Better Footnote` を実行します。
+3. `[^1]: Reference text` や `[^citation]: Reference text` のような標準脚注定義を含む Markdown ノートを開きます。
+4. 右サイドバーで脚注を編集または検索します。変更は自動保存されます。
 
 ### なぜ使うのか
 
@@ -287,13 +294,6 @@ Better Footnote は、必要に応じて [Tidy Footnotes](https://community.obsi
 
 この連携を有効にすると、Obsidian 標準の脚注フローティング編集欄は閉じられます。脚注の編集は Better Footnote サイドバーで行う前提です。本文中の脚注参照を削除しても Tidy Footnotes は自動実行されません。サイドバーは定義を残して「未参照」と表示し、必要なタイミングで手動整理できます。
 
-### 使い方
-
-1. Obsidian の Community plugins から Better Footnote をインストールして有効化します。
-2. コマンドパレットで `Open Better Footnote` を実行します。
-3. `[^1]: Reference text` や `[^citation]: Reference text` のような標準脚注定義を含む Markdown ノートを開きます。
-4. 右サイドバーで脚注を編集または検索します。変更は自動保存されます。
-
 ### サポート
 
 Better Footnote は無料で、今後も無料のままです。学術的な執筆の時間短縮に役立ったら、[Ko-fi](https://ko-fi.com/alcatrazyu) でコーヒーを一杯ごちそうしていただけると嬉しいです。
@@ -305,6 +305,13 @@ UI は Obsidian の言語、次にシステム言語を参照し、最後に英�
 ## 한국어
 
 Better Footnote는 Obsidian용 각주 사이드바 작업 공간입니다. 긴 노트, 논문, 연구 초안의 각주를 오른쪽 사이드바에 모아 두고, 각주를 직접 편집, 검색, 펼치기, 삭제할 수 있으며 본문 각주 표시, 사이드바 카드, 문서 끝의 각주 정의 사이를 빠르게 오갈 수 있습니다.
+
+### 빠른 시작
+
+1. Obsidian Community plugins에서 Better Footnote를 설치하고 활성화합니다.
+2. 사이드바 열기: Obsidian 왼쪽 리본에 있는 이 아이콘을 클릭하거나 ![Better Footnote 아이콘](docs/assets/ribbon-icon.svg), 명령 팔레트에서 `Open Better Footnote`를 실행합니다.
+3. `[^1]: Reference text` 또는 `[^citation]: Reference text` 같은 표준 각주 정의가 포함된 Markdown 노트를 엽니다.
+4. 오른쪽 사이드바에서 각주를 편집하거나 검색합니다. 변경 사항은 자동 저장됩니다.
 
 ### 왜 필요한가
 
@@ -386,13 +393,6 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 Better Footnote는 선택적으로 [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes)와 연동할 수 있습니다. Tidy Footnotes를 설치하고 활성화하면, 노트에서 새 각주를 삽입한 뒤 자동으로 실행해 번호와 각주 정의 순서를 정리할 수 있습니다(동기화나 파일을 직접 쓰는 스크립트로 들어온 각주는 강조 표시만 합니다).
 
 이 연동을 켜면 Obsidian 기본 각주 플로팅 편집 창은 닫힙니다. 각주 편집은 Better Footnote 사이드바에서 하는 흐름을 기준으로 합니다. 본문 각주 참조를 삭제해도 Tidy Footnotes는 자동 실행되지 않습니다. 사이드바는 해당 정의를 유지하고 “참조 없음”으로 표시하며, 필요할 때 수동으로 정리할 수 있습니다.
-
-### 빠른 시작
-
-1. Obsidian Community plugins에서 Better Footnote를 설치하고 활성화합니다.
-2. 명령 팔레트에서 `Open Better Footnote`를 실행합니다.
-3. `[^1]: Reference text` 또는 `[^citation]: Reference text` 같은 표준 각주 정의가 포함된 Markdown 노트를 엽니다.
-4. 오른쪽 사이드바에서 각주를 편집하거나 검색합니다. 변경 사항은 자동 저장됩니다.
 
 ### 후원
 
