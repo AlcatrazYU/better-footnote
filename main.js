@@ -9,10 +9,9 @@
   const AUTO_TIDY_DELAY_MS = 250;
   const SIDEBAR_JUMP_CURSOR_SUPPRESS_MS = 1200;
   // A newly detected footnote triggers automatic Tidy / auto-focus only when the
-  // note's own editor reported a change within this window...
+  // note's own editor reported a user transaction (not Obsidian merging an
+  // external modification) within this window.
   const NOTE_EDIT_TRUST_MS = 5000;
-  // ...and that change was a real editor transaction, not Obsidian merging an
-  // external modification (Sync, scripts) into the open note.
   // Content cropped by no more than this many pixels (descender zone of the
   // last line) is treated as fully visible: no expand arrow, no auto-expand.
   const CLIPPED_CONTENT_TOLERANCE_PX = 8;
@@ -70,7 +69,11 @@
       footnoteNotFound: "Footnote [^{id}] was not found.",
       saveConflict: "Footnote [^{id}] changed in the note after this card was opened, so this edit was not saved to avoid overwriting it. Your text is kept below:",
       saveConflictStatus: "Not saved: note changed",
+      saveMissing: "Footnote [^{id}] no longer exists in the note (it may have been renumbered or deleted elsewhere), so this edit was not saved. Your text is kept below:",
       unreferenced: "Unreferenced",
+      duplicateNumberBadge: "Number in use",
+      duplicateNumberHint: "Give this definition a new number in the Footnote area.",
+      autoTidyPausedDuplicate: "Two footnote definitions share a number, so automatic tidy was paused.",
       commandOpen: "Open Better Footnote",
       ribbonOpen: "Open Better Footnote",
       settingsTitle: "Better Footnote",
@@ -139,7 +142,11 @@
       footnoteNotFound: "没有找到脚注 [^{id}]。",
       saveConflict: "脚注 [^{id}] 在打开这张卡片之后已在笔记中被修改，为避免覆盖，本次编辑未保存。你的文字保留在下方：",
       saveConflictStatus: "未保存：笔记已变更",
+      saveMissing: "脚注 [^{id}] 已不在笔记中（可能在别处被重新编号或删除），因此本次编辑未保存。你的文字保留在下方：",
       unreferenced: "未引用",
+      duplicateNumberBadge: "编号已占用",
+      duplicateNumberHint: "请到脚注区给这条定义换一个新编号。",
+      autoTidyPausedDuplicate: "有编号相同的脚注定义，已暂停自动整理。",
       commandOpen: "打开 Better Footnote",
       ribbonOpen: "打开 Better Footnote",
       settingsTitle: "Better Footnote",
@@ -208,7 +215,11 @@
       footnoteNotFound: "脚注 [^{id}] が見つかりません。",
       saveConflict: "脚注 [^{id}] はこのカードを開いた後にノート側で変更されました。上書きを避けるため、今回の編集は保存していません。入力した文字は下に残しています：",
       saveConflictStatus: "未保存: ノートが変更されました",
+      saveMissing: "脚注 [^{id}] はノートにもうありません（別の場所で番号が変わったか削除された可能性があります）。そのため今回の編集は保存していません。入力した文字は下に残しています：",
       unreferenced: "未参照",
+      duplicateNumberBadge: "番号使用中",
+      duplicateNumberHint: "脚注欄でこの定義に新しい番号を付けてください。",
+      autoTidyPausedDuplicate: "同じ番号の脚注定義があるため、自動整理を一時停止しました。",
       commandOpen: "Better Footnote を開く",
       ribbonOpen: "Better Footnote を開く",
       settingsTitle: "Better Footnote",
@@ -277,7 +288,11 @@
       footnoteNotFound: "각주 [^{id}]를 찾지 못했습니다.",
       saveConflict: "각주 [^{id}]가 이 카드를 연 뒤 노트에서 변경되었습니다. 덮어쓰기를 막기 위해 이번 편집은 저장하지 않았습니다. 입력한 내용은 아래에 남겨 두었습니다:",
       saveConflictStatus: "저장 안 됨: 노트가 변경됨",
+      saveMissing: "각주 [^{id}]가 노트에 더 이상 없습니다(다른 곳에서 번호가 바뀌었거나 삭제되었을 수 있습니다). 그래서 이번 편집은 저장하지 않았습니다. 입력한 내용은 아래에 남겨 두었습니다:",
       unreferenced: "참조 없음",
+      duplicateNumberBadge: "번호 사용 중",
+      duplicateNumberHint: "각주 영역에서 이 정의에 새 번호를 붙여 주세요.",
+      autoTidyPausedDuplicate: "번호가 같은 각주 정의가 있어 자동 정리를 일시 중지했습니다.",
       commandOpen: "Better Footnote 열기",
       ribbonOpen: "Better Footnote 열기",
       settingsTitle: "Better Footnote",
@@ -462,27 +477,42 @@
   }
 
   function getContentSearchTokens(query) {
-    return Array.from(new Set(String(query ?? "").toLocaleLowerCase().trim().split(/\s+/).filter(Boolean)));
+    const tokens = [];
+    const seen = new Set();
+    for (const token of String(query ?? "").trim().split(/\s+/).filter(Boolean)) {
+      const key = token.toLocaleLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      tokens.push(token);
+    }
+    return tokens;
   }
 
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  // Matched on the original text, so offsets stay exact even where lowercasing
+  // would change the length (U+0130 lowercases to two code units).
   function findFootnoteContentMatches(footnote, query) {
     const tokens = getContentSearchTokens(query);
     if (tokens.length === 0) return [];
     const content = String(footnote.content || "");
-    const haystack = content.toLocaleLowerCase();
     const matches = [];
     for (const token of tokens) {
-      let start = 0;
-      while (start < haystack.length) {
-        const index = haystack.indexOf(token, start);
-        if (index === -1) break;
+      const pattern = new RegExp(escapeRegExp(token), "giu");
+      let match;
+      while ((match = pattern.exec(content)) !== null) {
+        if (match[0].length === 0) {
+          pattern.lastIndex += 1;
+          continue;
+        }
         matches.push({
           footnoteId: footnote.id,
-          start: index,
-          end: index + token.length,
-          text: content.slice(index, index + token.length),
+          start: match.index,
+          end: match.index + match[0].length,
+          text: match[0],
         });
-        start = index + Math.max(token.length, 1);
       }
     }
     return matches.sort((left, right) => left.start - right.start || right.end - left.end);
@@ -538,12 +568,19 @@
     if (!knownFootnoteIds) return [];
     const knownCounts = countFootnoteIdOccurrences(Array.from(knownFootnoteIds));
     const seenCounts = new Map();
+    // Only a footnote whose id has disappeared can have been renamed (Tidy):
+    // a snapshot of an id still present must not vouch for a new neighbour
+    // inserted right before it at the same offset.
+    const currentIds = new Set(currentFootnotes.map((footnote) => footnote.id));
+    const renameCandidates = Array.isArray(knownFootnoteSnapshots)
+      ? knownFootnoteSnapshots.filter((snapshot) => snapshot && !currentIds.has(snapshot.id))
+      : null;
     return currentFootnotes.filter((footnote) => {
       const seen = (seenCounts.get(footnote.id) || 0) + 1;
       seenCounts.set(footnote.id, seen);
       const knownCount = knownCounts.get(footnote.id) || 0;
       if (seen <= knownCount) return false;
-      if (knownCount === 0 && isKnownFootnoteBySnapshot(footnote, knownFootnoteSnapshots)) return false;
+      if (knownCount === 0 && isKnownFootnoteBySnapshot(footnote, renameCandidates)) return false;
       return true;
     });
   }
@@ -758,6 +795,125 @@
     return line;
   }
 
+  // Spans where footnote syntax is only text: front matter, fenced code,
+  // inline code, Obsidian and HTML comments, math. Only closed spans count, so
+  // typing an opening fence or %% never makes the footnotes below it vanish.
+  function getMarkdownExclusionZones(text, lineStarts = getLineStarts(text)) {
+    const blocks = [];
+    const lines = text.split("\n");
+    let firstLine = 0;
+    if (lines[0] === "---") {
+      for (let index = 1; index < lines.length; index += 1) {
+        if (lines[index] === "---" || lines[index] === "...") {
+          blocks.push({ start: 0, end: lineStarts[index] + lines[index].length });
+          firstLine = index + 1;
+          break;
+        }
+      }
+    }
+    let fence = null;
+    for (let index = firstLine; index < lines.length; index += 1) {
+      const line = lines[index];
+      if (!fence) {
+        const open = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+        if (open && !(open[1][0] === "`" && open[2].includes("`"))) {
+          fence = { char: open[1][0], length: open[1].length, start: lineStarts[index] };
+        }
+        continue;
+      }
+      const close = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
+      if (close && close[1][0] === fence.char && close[1].length >= fence.length) {
+        blocks.push({ start: fence.start, end: lineStarts[index] + line.length });
+        fence = null;
+      }
+    }
+
+    const zones = blocks.slice();
+    const tokenPattern = /\\|`+|%%|<!--|\$\$/g;
+    const blankLinePattern = /\n[ \t]*\n/g;
+    let position = 0;
+    let blockIndex = 0;
+    while (position < text.length) {
+      while (blockIndex < blocks.length && blocks[blockIndex].end <= position) blockIndex += 1;
+      const block = blocks[blockIndex];
+      if (block && position >= block.start) {
+        position = block.end;
+        continue;
+      }
+      const limit = block ? block.start : text.length;
+      tokenPattern.lastIndex = position;
+      const token = tokenPattern.exec(text);
+      if (!token || token.index >= limit) {
+        position = limit;
+        continue;
+      }
+      const at = token.index;
+      const value = token[0];
+      if (value === "\\") {
+        position = at + 2;
+        continue;
+      }
+      let end = -1;
+      if (value[0] === "`") {
+        blankLinePattern.lastIndex = at;
+        const blank = blankLinePattern.exec(text);
+        const paragraphEnd = Math.min(limit, blank ? blank.index : text.length);
+        const runPattern = /`+/g;
+        runPattern.lastIndex = at + value.length;
+        let run;
+        while ((run = runPattern.exec(text)) !== null && run.index < paragraphEnd) {
+          if (run[0].length === value.length) {
+            end = run.index + run[0].length;
+            break;
+          }
+        }
+      } else {
+        const closer = value === "<!--" ? "-->" : value;
+        const found = text.indexOf(closer, at + value.length);
+        if (found !== -1) end = found + closer.length;
+      }
+      if (end === -1) {
+        position = at + value.length;
+        continue;
+      }
+      zones.push({ start: at, end });
+      position = end;
+    }
+    zones.sort((left, right) => left.start - right.start);
+    const merged = [];
+    for (const zone of zones) {
+      const last = merged[merged.length - 1];
+      if (last && zone.start <= last.end) {
+        last.end = Math.max(last.end, zone.end);
+      } else {
+        merged.push({ start: zone.start, end: zone.end });
+      }
+    }
+    return merged;
+  }
+
+  function isOffsetInZones(zones, offset) {
+    let low = 0;
+    let high = zones.length - 1;
+    while (low <= high) {
+      const mid = (low + high) >> 1;
+      if (offset < zones[mid].start) {
+        high = mid - 1;
+      } else if (offset >= zones[mid].end) {
+        low = mid + 1;
+      } else {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function isEscapedAt(text, offset) {
+    let count = 0;
+    for (let index = offset - 1; index >= 0 && text.charCodeAt(index) === 92; index -= 1) count += 1;
+    return count % 2 === 1;
+  }
+
   function buildFootnoteBlock(footnote, content) {
     const lines = normalizeLineEndings(content).split("\n");
     const firstLine = lines.shift() ?? "";
@@ -770,14 +926,21 @@
     const text = normalizeLineEndings(rawText);
     const lines = text.split("\n");
     const lineStarts = getLineStarts(text);
+    const zones = getMarkdownExclusionZones(text, lineStarts);
     const definitions = [];
     const references = [];
     const definitionById = new Map();
+    const occurrenceById = new Map();
+    const hiddenDefinitionIds = [];
 
     for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
       const line = lines[lineIndex];
       const match = line.match(/^( {0,3})\[\^([^\]\n]+)]:[ \t]?(.*)$/);
       if (!match) continue;
+      if (isOffsetInZones(zones, lineStarts[lineIndex])) {
+        hiddenDefinitionIds.push(match[2]);
+        continue;
+      }
 
       const indent = match[1] || "";
       const id = match[2];
@@ -797,9 +960,12 @@
       }
 
       const definitionEnd = lineStarts[endLineIndex] + lines[endLineIndex].length;
+      const occurrence = occurrenceById.get(id) || 0;
+      occurrenceById.set(id, occurrence + 1);
       const footnote = {
         id,
         indent,
+        occurrence,
         index: definitions.length + 1,
         line: lineIndex + 1,
         endLine: endLineIndex + 1,
@@ -823,6 +989,7 @@
     let referenceMatch;
     while ((referenceMatch = referencePattern.exec(text)) !== null) {
       const start = referenceMatch.index;
+      if (isOffsetInZones(zones, start) || isEscapedAt(text, start)) continue;
       const end = start + referenceMatch[0].length;
       const id = referenceMatch[1];
       const lineIndex = lineIndexFromOffset(lineStarts, start);
@@ -866,13 +1033,29 @@
       definitions,
       references,
       footnotes: definitions,
+      hiddenDefinitionIds,
     };
+  }
+
+  // Ids the sidebar has seen, including definitions hidden in code: when a
+  // fence pairing shifts while typing, a hidden example definition that turns
+  // visible is not a newly inserted footnote.
+  function listKnownFootnoteIds(parsed) {
+    return [
+      ...(parsed?.footnotes || []).map((footnote) => footnote.id),
+      ...(parsed?.hiddenDefinitionIds || []),
+    ];
+  }
+
+  function findFootnoteDefinition(parsed, id, occurrence = 0) {
+    const wanted = Number.isInteger(occurrence) && occurrence > 0 ? occurrence : 0;
+    return parsed.footnotes.find((item) => item.id === id && item.occurrence === wanted) || null;
   }
 
   function replaceFootnoteContent(rawText, id, content, options = {}) {
     const text = normalizeLineEndings(rawText);
     const parsed = parseFootnotes(text);
-    const footnote = parsed.footnotes.find((item) => item.id === id);
+    const footnote = findFootnoteDefinition(parsed, id, options.occurrence);
     if (!footnote) {
       return {
         changed: false,
@@ -946,10 +1129,12 @@
     return nextText;
   }
 
-  function deleteFootnoteFromText(rawText, id) {
+  function deleteFootnoteFromText(rawText, id, options = {}) {
     const text = normalizeLineEndings(rawText);
     const parsed = parseFootnotes(text);
-    const footnote = parsed.footnotes.find((item) => item.id === id);
+    // References belong to the first definition of an id; a later duplicate
+    // definition is removed on its own and leaves every reference in place.
+    const footnote = findFootnoteDefinition(parsed, id, options.occurrence);
     if (!footnote) {
       return {
         changed: false,
@@ -959,7 +1144,7 @@
     }
 
     const ranges = [
-      ...footnote.references.map((reference) => ({
+      ...(footnote.occurrence === 0 ? footnote.references : []).map((reference) => ({
         start: reference.start,
         end: reference.end,
       })),
@@ -972,7 +1157,7 @@
       text: nextText,
       footnote,
       ranges: normalizedRanges,
-      referenceCount: footnote.referenceCount,
+      referenceCount: footnote.occurrence === 0 ? footnote.referenceCount : 0,
       contentIsBlank: !String(footnote.content || "").trim(),
     };
   }
@@ -1167,6 +1352,8 @@
         getStrings,
         normalizeLanguageTag,
         parseFootnotes,
+        getMarkdownExclusionZones,
+        listKnownFootnoteIds,
         orderFootnotesByReference,
         detectAddedFootnotes,
         resolveActiveFootnoteId,
@@ -1198,6 +1385,8 @@
     if (typeof module !== "undefined" && module.exports) {
       module.exports = {
         parseFootnotes,
+        getMarkdownExclusionZones,
+        listKnownFootnoteIds,
         replaceFootnoteContent,
         findReferenceAtOffset,
         findDefinitionAtOffset,
@@ -1711,6 +1900,10 @@
 
       const markdownView = this.getActiveMarkdownView() || this.findMarkdownViewForFile(this.lastMarkdownFile);
       if (!this.isMarkdownViewSettled(markdownView)) return;
+      // Reading view keeps a hidden editor whose cursor is wherever editing
+      // last left it; a click in the rendered note must not pull the sidebar
+      // back to that stale position.
+      if (markdownView?.getMode?.() === "preview") return;
       const editor = markdownView?.editor;
       if (!editor || typeof editor.getValue !== "function") return;
 
@@ -1919,6 +2112,13 @@
         // Never fall back to whichever note happens to be active: Tidy rewrites
         // the whole document, so a missing editor means a notice, not a guess.
         const markdownView = this.findMarkdownViewForFile(file);
+        // Tidy keeps only the last of several definitions sharing a number,
+        // which would silently replace the real one: never run it then.
+        const textForCheck = markdownView?.editor ? markdownView.editor.getValue() : "";
+        if (parseFootnotes(textForCheck).footnotes.some((footnote) => footnote.occurrence > 0)) {
+          new Notice(strings.autoTidyPausedDuplicate);
+          return false;
+        }
         if (command.editorCallback) {
           if (!markdownView?.editor) {
             new Notice(strings.tidyCommandNoEditor);
@@ -1926,6 +2126,12 @@
           }
           command.editorCallback(markdownView.editor, markdownView);
           return true;
+        }
+        // A command without an editor callback runs against whatever note is
+        // active; only allow it when that is this note.
+        if (!file || this.app.workspace.getActiveFile()?.path !== file.path) {
+          new Notice(strings.tidyCommandNoEditor);
+          return false;
         }
         this.app.commands.executeCommandById(commandId);
         return true;
@@ -2016,10 +2222,10 @@
       if (result.reason === "content-mismatch") {
         return { ok: false, conflict: true, message: strings.saveConflictStatus };
       }
-      return { ok: false, message: t(strings, "footnoteNotFound", { id }) };
+      return { ok: false, missing: true, message: t(strings, "footnoteNotFound", { id }) };
     }
 
-    async saveFootnote(file, id, content, expectedContent) {
+    async saveFootnote(file, id, content, expectedContent, occurrence = 0) {
       const strings = getStrings();
       if (!file) {
         return { ok: false, message: strings.noActiveFileSave };
@@ -2029,7 +2235,7 @@
       if (markdownView?.editor && typeof markdownView.editor.getValue === "function") {
         const editor = markdownView.editor;
         const text = normalizeLineEndings(editor.getValue());
-        const result = replaceFootnoteContent(text, id, content, { expectedContent });
+        const result = replaceFootnoteContent(text, id, content, { expectedContent, occurrence });
         if (!result.changed) {
           return this.describeSaveResult(result, id, strings);
         }
@@ -2043,8 +2249,7 @@
         }
         // The next baseline is what actually landed (editor extensions may
         // rewrite a transaction), not what was sent.
-        const after = parseFootnotes(normalizeLineEndings(editor.getValue())).footnotes
-          .find((item) => item.id === id);
+        const after = findFootnoteDefinition(parseFootnotes(normalizeLineEndings(editor.getValue())), id, occurrence);
         return { ok: true, message: strings.saved, content: after ? after.content : result.content };
       }
 
@@ -2053,7 +2258,7 @@
       // step; returning the input unchanged performs no write at all.
       let outcome = null;
       const apply = (data) => {
-        outcome = replaceFootnoteContent(data, id, content, { expectedContent });
+        outcome = replaceFootnoteContent(data, id, content, { expectedContent, occurrence });
         return outcome.changed ? outcome.text : data;
       };
       if (typeof this.app.vault.process === "function") {
@@ -2068,14 +2273,14 @@
       return { ok: true, message: strings.saved, content: outcome.content };
     }
 
-    getDeleteFootnoteDetails(file, footnoteId) {
+    getDeleteFootnoteDetails(file, footnoteId, occurrence = 0) {
       const strings = getStrings();
       const markdownView = this.findMarkdownViewForFile(file);
       const editor = markdownView?.editor;
       if (!editor || typeof editor.getValue !== "function") {
         return { ok: false, message: this.isFileOpenInReadingView(file) ? strings.switchToEditingView : strings.deleteNeedsEditor };
       }
-      const result = deleteFootnoteFromText(editor.getValue(), footnoteId);
+      const result = deleteFootnoteFromText(editor.getValue(), footnoteId, { occurrence });
       if (!result.changed) {
         return { ok: false, message: t(strings, "footnoteNotFound", { id: footnoteId }) };
       }
@@ -2087,9 +2292,9 @@
       };
     }
 
-    confirmDeleteFootnote(file, footnoteId) {
+    confirmDeleteFootnote(file, footnoteId, occurrence = 0) {
       this.suppressCursorSyncFromSidebarJump();
-      const details = this.getDeleteFootnoteDetails(file, footnoteId);
+      const details = this.getDeleteFootnoteDetails(file, footnoteId, occurrence);
       if (!details.ok) {
         new Notice(details.message);
         return;
@@ -2098,7 +2303,7 @@
         this.suppressCursorSyncFromSidebarJump();
         this.suppressEditStamp = true;
         try {
-          this.deleteFootnoteFromEditor(file, footnoteId);
+          this.deleteFootnoteFromEditor(file, footnoteId, occurrence);
         } finally {
           this.suppressEditStamp = false;
         }
@@ -2107,7 +2312,7 @@
       }).open();
     }
 
-    deleteFootnoteFromEditor(file, footnoteId) {
+    deleteFootnoteFromEditor(file, footnoteId, occurrence = 0) {
       const strings = getStrings();
       const markdownView = this.findMarkdownViewForFile(file);
       const editor = markdownView?.editor;
@@ -2118,7 +2323,7 @@
 
       try {
         const text = normalizeLineEndings(editor.getValue());
-        const result = deleteFootnoteFromText(text, footnoteId);
+        const result = deleteFootnoteFromText(text, footnoteId, { occurrence });
         if (!result.changed) {
           new Notice(t(strings, "footnoteNotFound", { id: footnoteId }));
           return false;
@@ -2213,7 +2418,7 @@
       }
       const text = normalizeLineEndings(markdownView.editor.getValue());
       const parsed = parseFootnotes(text);
-      const footnote = parsed.footnotes.find((item) => item.id === footnoteId);
+      const footnote = findFootnoteDefinition(parsed, footnoteId, options.occurrence);
       if (!footnote) {
         new Notice(t(strings, "footnoteNotFound", { id: footnoteId }));
         return false;
@@ -2365,6 +2570,7 @@
       this.searchPreviousButton = null;
       this.searchNextButton = null;
       this.currentFootnotes = [];
+      this.currentHiddenDefinitionIds = [];
       this.searchPaused = false;
       this.searchMatches = [];
       this.searchMatchIndex = -1;
@@ -2666,12 +2872,12 @@
       });
     }
 
-    applyEditSurfaceFocus(footnoteId, measurableEl) {
+    applyEditSurfaceFocus(footnoteId, measurableEl, occurrence = 0) {
       if (this.suppressTextareaFocusJump) {
         this.focusFootnote(footnoteId, { scroll: false, focusEditor: false });
         return false;
       }
-      this.activateFootnoteFromSidebar(footnoteId, { selectSearchMatch: false });
+      this.activateFootnoteFromSidebar(footnoteId, { selectSearchMatch: false, occurrence });
       if (!this.isFootnoteExpanded(footnoteId) && this.hasHiddenContent(measurableEl)) {
         this.setFootnoteExpanded(footnoteId, true, { source: "sync" });
       }
@@ -2788,6 +2994,7 @@
           controller,
           releaseController,
           footnoteId,
+          occurrence: this.cardTargets.get(item)?.footnote?.occurrence || 0,
           textarea,
           itemEl: item,
           isTearingDown: false,
@@ -2876,7 +3083,7 @@
         this.resetHijackedActiveEditor(live.controller);
         this.scheduleHijackSweep(live.controller);
         if (live.isTearingDown) return;
-        this.applyEditSurfaceFocus(footnoteId, host);
+        this.applyEditSurfaceFocus(footnoteId, host, live.occurrence);
       });
       host.addEventListener("focusout", (event) => {
         this.resetHijackedActiveEditor(live.controller);
@@ -3050,7 +3257,7 @@
         expandedIds: Array.from(this.expandedFootnoteIds),
         searchExpandedIds: Array.from(this.searchExpandedFootnoteIds),
         syncExpandedIds: Array.from(this.syncExpandedFootnoteIds),
-        knownFootnoteIds: this.currentFootnotes.map((footnote) => footnote.id),
+        knownFootnoteIds: [...this.currentFootnotes.map((footnote) => footnote.id), ...this.currentHiddenDefinitionIds],
         knownFootnoteSnapshots: this.currentFootnotes.map((footnote) => createFootnoteSnapshot(footnote)),
         autoFocusRendersRemaining: currentState.autoFocusRendersRemaining || 0,
       });
@@ -3187,6 +3394,7 @@
         this.plugin.hideActiveDeleteNotice();
       }
       this.currentFootnotes = orderedFootnotes;
+      this.currentHiddenDefinitionIds = parsed.hiddenDefinitionIds || [];
       this.expandedFootnoteIds = new Set(savedState.expandedIds || []);
       this.searchExpandedFootnoteIds = new Set(savedState.searchExpandedIds || []);
       this.syncExpandedFootnoteIds = new Set(savedState.syncExpandedIds || []);
@@ -3212,7 +3420,7 @@
         activeSnapshot: createFootnoteSnapshot(
           orderedFootnotes.find((footnote) => footnote.id === this.activeFootnoteId),
         ) || savedState.activeSnapshot || null,
-        knownFootnoteIds: orderedFootnotes.map((footnote) => footnote.id),
+        knownFootnoteIds: listKnownFootnoteIds(parsed),
         knownFootnoteSnapshots: orderedFootnotes.map((footnote) => createFootnoteSnapshot(footnote)),
       };
       if (restoredDeletedFootnote) {
@@ -3247,7 +3455,7 @@
       if (orderedFootnotes.length === 0) {
         this.stateByFile.set(file.path, {
           ...nextState,
-          knownFootnoteIds: [],
+          knownFootnoteIds: listKnownFootnoteIds(parsed),
           knownFootnoteSnapshots: [],
         });
         subtitleEl.setText(t(strings, "footnoteCount", {
@@ -3838,7 +4046,11 @@
       const idBlockEl = headerEl.createDiv({ cls: "bfw-id-block" });
       const idEl = idBlockEl.createDiv({ cls: "bfw-id", text: String(footnote.id) });
       idEl.setAttr("title", `[^${footnote.id}]`);
-      if (footnote.referenceCount === 0) {
+      const isExtraDefinition = footnote.occurrence > 0;
+      if (isExtraDefinition) {
+        itemEl.addClass("is-duplicate");
+        idBlockEl.createSpan({ cls: "bfw-duplicate-badge", text: strings.duplicateNumberBadge });
+      } else if (footnote.referenceCount === 0) {
         const unreferencedEl = idBlockEl.createSpan({ cls: "bfw-unreferenced", text: strings.unreferenced });
         unreferencedEl.setAttr("title", strings.noReferenceFound ? t(strings, "noReferenceFound", { id: footnote.id }) : strings.unreferenced);
       }
@@ -3886,10 +4098,40 @@
       definitionButton.addEventListener("click", (event) => {
         event.stopPropagation();
         this.plugin.suppressCursorSyncFromSidebarJump();
-        this.plugin.jumpToFootnoteDefinition(this.file, footnote.id);
+        this.plugin.jumpToFootnoteDefinition(this.file, footnote.id, { occurrence: footnote.occurrence });
         this.focusFootnote(footnote.id, { scroll: false, focusEditor: false });
         this.plugin.suppressCursorSyncFromSidebarJump();
       });
+      if (isExtraDefinition) {
+        // A later definition that reuses a number conflicts with the first one
+        // (reading view shows only one of them, Tidy keeps only the last), so it
+        // is not editable here, only pointed out until it gets its own number.
+        itemEl.createDiv({ cls: "bfw-duplicate-hint", text: strings.duplicateNumberHint });
+        if (String(footnote.content || "").trim()) {
+          itemEl.createDiv({ cls: "bfw-duplicate-content", text: footnote.content });
+        }
+        itemEl.addEventListener("click", (event) => {
+          if (event.target?.closest?.(".bfw-definition-button")) return;
+          this.activateFootnoteFromSidebar(footnote.id, { occurrence: footnote.occurrence });
+        });
+        itemEl.addEventListener("contextmenu", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          this.plugin.suppressCursorSyncFromSidebarJump();
+          const menu = new Menu();
+          menu.addItem((item) => {
+            item
+              .setTitle(strings.deleteFootnoteMenu)
+              .setIcon("trash-2")
+              .onClick(() => {
+                this.plugin.suppressCursorSyncFromSidebarJump();
+                this.plugin.confirmDeleteFootnote(this.file, footnote.id, footnote.occurrence);
+              });
+          });
+          menu.showAtMouseEvent(event);
+        });
+        return;
+      }
       const expandButton = actionsEl.createEl("button", {
         cls: "bfw-button bfw-expand-button is-hidden",
         text: isExpanded ? "△" : "▽",
@@ -3927,7 +4169,7 @@
         if (event.target?.closest?.(".bfw-editor")) return;
         if (event.target?.closest?.(".bfw-rendered")) return;
         if (event.target?.closest?.(".bfw-live-host")) return;
-        this.activateFootnoteFromSidebar(footnote.id, { selectSearchMatch: true });
+        this.activateFootnoteFromSidebar(footnote.id, { selectSearchMatch: true, occurrence: footnote.occurrence });
       });
 
       itemEl.addEventListener("contextmenu", (event) => {
@@ -3948,14 +4190,14 @@
                 window.clearTimeout(pendingSave);
                 this.saveTimers.delete(footnote.id);
               }
-              this.plugin.confirmDeleteFootnote(this.file, footnote.id);
+              this.plugin.confirmDeleteFootnote(this.file, footnote.id, footnote.occurrence);
             });
         });
         menu.showAtMouseEvent(event);
       });
 
       textarea.addEventListener("focus", () => {
-        if (!this.applyEditSurfaceFocus(footnote.id, textarea)) return;
+        if (!this.applyEditSurfaceFocus(footnote.id, textarea, footnote.occurrence)) return;
         window.setTimeout(() => {
           if (document.activeElement !== textarea) {
             textarea.focus();
@@ -4049,8 +4291,10 @@
 
     async saveFootnoteNow(footnoteId, content, statusEl, itemEl) {
       const strings = getStrings();
-      const target = this.cardTargets.get(itemEl) || { file: this.file, footnote: null };
-      if (target.conflicted) return;
+      // Every card registers its target when it is built; a save without one
+      // has no note it can safely be written to.
+      const target = this.cardTargets.get(itemEl);
+      if (!target || target.conflicted) return;
       const generation = this.renderGeneration;
       const run = async () => {
         if (target.conflicted) return;
@@ -4058,7 +4302,8 @@
           // The footnote object is shared with the list, so its content is the
           // live baseline: what this card last saw in the note.
           const expected = target.footnote ? target.footnote.content : undefined;
-          const result = await this.plugin.saveFootnote(target.file, footnoteId, content, expected);
+          const occurrence = target.footnote?.occurrence || 0;
+          const result = await this.plugin.saveFootnote(target.file, footnoteId, content, expected, occurrence);
           if (result.ok) {
             itemEl.removeClass("is-dirty");
             statusEl?.setText(result.message);
@@ -4075,6 +4320,10 @@
             statusEl?.setText(result.message);
             if (result.conflict) {
               this.handleSaveConflict(footnoteId, content, itemEl, target);
+            } else if (result.missing && normalizeLineEndings(content) !== (target.footnote?.content ?? "")) {
+              // The footnote was renumbered or removed while this card held an
+              // unsaved edit: never drop the text silently.
+              this.handleSaveConflict(footnoteId, content, itemEl, target, "saveMissing");
             }
           }
         } catch (error) {
@@ -4091,7 +4340,7 @@
       return chained;
     }
 
-    handleSaveConflict(footnoteId, rejectedText, itemEl, target) {
+    handleSaveConflict(footnoteId, rejectedText, itemEl, target, messageKey = "saveConflict") {
       // The note no longer holds what this card started from. Stop writing,
       // hand the user's text back in a notice they can copy from, and return
       // the card to what the note actually says.
@@ -4114,7 +4363,7 @@
       }
       const fragment = document.createDocumentFragment();
       const box = fragment.createDiv({ cls: "bfw-conflict-notice" });
-      box.createDiv({ text: t(strings, "saveConflict", { id: footnoteId }) });
+      box.createDiv({ text: t(strings, messageKey, { id: footnoteId }) });
       const keep = box.createEl("textarea", {
         cls: "bfw-conflict-text",
         attr: { readonly: "true", rows: "4" },
@@ -4152,7 +4401,11 @@
     activateFootnoteFromSidebar(footnoteId, options = {}) {
       this.plugin.suppressCursorSyncFromSidebarJump();
       this.focusFootnote(footnoteId, { scroll: false, focusEditor: false });
-      const footnote = this.currentFootnotes.find((item) => item.id === footnoteId);
+      const occurrence = options.occurrence || 0;
+      // A later definition of a duplicated id has no references of its own:
+      // its card leads to its own definition, not to the first one's markers.
+      const footnote = this.currentFootnotes.find((item) => item.id === footnoteId && (item.occurrence || 0) === occurrence)
+        || this.currentFootnotes.find((item) => item.id === footnoteId);
       if (footnote?.referenceCount > 0) {
         this.plugin.jumpToFootnoteReference(this.file, footnoteId, {
           focus: false,
@@ -4160,7 +4413,7 @@
           referenceIndex: this.getFootnoteReferenceIndex(footnote),
         });
       } else {
-        this.plugin.jumpToFootnoteDefinition(this.file, footnoteId, { focus: false });
+        this.plugin.jumpToFootnoteDefinition(this.file, footnoteId, { focus: false, occurrence: footnote?.occurrence || 0 });
       }
       this.plugin.suppressCursorSyncFromSidebarJump();
       if (options.selectSearchMatch) {

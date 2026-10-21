@@ -472,4 +472,134 @@ assert.equal(
   assert.equal(parser.deletedFootnoteRecordMatchesFootnote(deletedEmptyRecord, moved), false);
 }
 
+// Footnote syntax inside code, comments, math, front matter or behind an
+// escape is not a footnote: no card, no reference, never touched by edits.
+{
+  const ids = (text) => parser.parseFootnotes(text).footnotes.map((footnote) => footnote.id);
+  const refs = (text) => parser.parseFootnotes(text).references.map((reference) => reference.id);
+
+  const fenced = [
+    "Real.[^1]",
+    "",
+    "```md",
+    "Example.[^code]",
+    "",
+    "[^code]: Example definition.",
+    "```",
+    "",
+    "Also `[^1]` inline code.",
+    "",
+    "[^1]: Real footnote.",
+  ].join("\n");
+  assert.deepEqual(ids(fenced), ["1"]);
+  assert.deepEqual(refs(fenced), ["1"]);
+  assert.equal(parser.parseFootnotes(fenced).footnotes[0].referenceCount, 1);
+  const deletedReal = parser.deleteFootnoteFromText(fenced, "1");
+  assert.ok(deletedReal.text.includes("Example.[^code]\n\n[^code]: Example definition."));
+  assert.ok(deletedReal.text.includes("Also `[^1]` inline code."));
+  assert.equal(deletedReal.text.includes("[^1]:"), false);
+  assert.equal(parser.deleteFootnoteFromText(fenced, "code").reason, "missing-footnote");
+
+  assert.deepEqual(ids("~~~\n[^a]: x\n~~~\n\nText.[^b]\n\n[^b]: y"), ["b"]);
+  assert.deepEqual(ids("````\n```\n[^a]: still code\n````\n\n[^b]: y"), ["b"]);
+  // Unclosed blocks are ignored, so opening a fence while typing does not
+  // make every footnote below it vanish until the fence is closed.
+  assert.deepEqual(ids("Text.[^1]\n\n```js\nlet x = 1;\n\n[^1]: Real."), ["1"]);
+  assert.deepEqual(refs("Text.[^1]\n\n```js\nlet x = 1;\n\n[^1]: Real."), ["1"]);
+
+  assert.deepEqual(refs("A ``code ` [^1] span`` and [^2]."), ["2"]);
+  assert.deepEqual(refs("A lone ` backtick and [^1]."), ["1"]);
+  assert.deepEqual(refs("Open `tick\n\nnew paragraph [^1] and `close`."), ["1"]);
+
+  assert.deepEqual(refs("Real.[^1] %% draft [^2] %% end."), ["1"]);
+  assert.deepEqual(ids("%%\n[^2]: hidden\n%%\n\n[^1]: shown"), ["1"]);
+  assert.deepEqual(refs("Real.[^1] %% unclosed [^2]"), ["1", "2"]);
+  assert.deepEqual(refs("Real.[^1] <!-- todo [^2] --> end."), ["1"]);
+  assert.deepEqual(refs("Real.[^1]\n\n$$\nx[^2]\n$$\n\nAfter.[^3]"), ["1", "3"]);
+  assert.deepEqual(refs("Inline $$x[^2]$$ display.[^1]"), ["1"]);
+  assert.deepEqual(refs("---\naliases: [\"[^9]\"]\n---\nReal.[^1]"), ["1"]);
+  assert.deepEqual(refs("---\nnot closed [^9]\nReal.[^1]"), ["9", "1"]);
+  assert.deepEqual(refs("Not a ref: \\[^2] but [^1] is, and \\\\[^3] too."), ["1", "3"]);
+
+  // A code example that reuses the real id no longer steals its references
+  // or receives its edits.
+  const sameId = ["Real.[^1]", "", "```", "[^1]: Real footnote.", "```", "", "[^1]: Real footnote."].join("\n");
+  const sameIdParsed = parser.parseFootnotes(sameId);
+  assert.equal(sameIdParsed.footnotes.length, 1);
+  assert.equal(sameIdParsed.footnotes[0].line, 7);
+  assert.equal(sameIdParsed.footnotes[0].referenceCount, 1);
+  const edited = parser.replaceFootnoteContent(sameId, "1", "Edited.", { expectedContent: "Real footnote." });
+  assert.equal(edited.changed, true);
+  assert.ok(edited.text.includes("```\n[^1]: Real footnote.\n```"));
+  assert.ok(edited.text.endsWith("[^1]: Edited."));
+
+  // Definitions hidden in code still count as known, so a fence pairing that
+  // shifts while typing is not mistaken for a newly inserted footnote.
+  const before = ["Text.[^1]", "", "```", "[^z]: example", "```", "", "[^1]: real"].join("\n");
+  const beforeParsed = parser.parseFootnotes(before);
+  assert.deepEqual(beforeParsed.hiddenDefinitionIds, ["z"]);
+  const knownIds = parser.listKnownFootnoteIds(beforeParsed);
+  assert.deepEqual(knownIds.slice().sort(), ["1", "z"]);
+  const snapshots = beforeParsed.footnotes.map((footnote) => parser.createFootnoteSnapshot(footnote));
+  const shifted = ["Text.[^1]", "", "```", "half typed", "", "```", "[^z]: example", "```", "", "[^1]: real"].join("\n");
+  assert.deepEqual(ids(shifted), ["z", "1"]);
+  assert.deepEqual(parser.detectAddedFootnotes(parser.parseFootnotes(shifted).footnotes, knownIds, snapshots), []);
+  const inserted = `${before}\n[^9]: `.replace("Text.[^1]", "Text.[^1] More.[^9]");
+  assert.deepEqual(parser.detectAddedFootnotes(parser.parseFootnotes(inserted).footnotes, knownIds, snapshots).map((f) => f.id), ["9"]);
+}
+
+// Several definitions with one id: every card addresses its own definition.
+{
+  const collision = ["Sato argues X.[^1] Later.[^1] New point.[^1]", "", "[^1]: Sato 2019, p. 45.", "[^1]: "].join("\n");
+  const parsed = parser.parseFootnotes(collision);
+  assert.deepEqual(parsed.footnotes.map((footnote) => footnote.occurrence), [0, 1]);
+
+  const stray = parser.deleteFootnoteFromText(collision, "1", { occurrence: 1 });
+  assert.equal(stray.changed, true);
+  assert.equal(stray.referenceCount, 0);
+  assert.equal(stray.contentIsBlank, true);
+  assert.equal(stray.text, "Sato argues X.[^1] Later.[^1] New point.[^1]\n\n[^1]: Sato 2019, p. 45.");
+
+  const first = parser.deleteFootnoteFromText(collision, "1");
+  assert.equal(first.referenceCount, 3);
+  assert.equal(first.text, "Sato argues X. Later. New point.\n\n[^1]: ");
+  assert.equal(parser.deleteFootnoteFromText(collision, "1", { occurrence: 2 }).reason, "missing-footnote");
+
+  const writeStray = parser.replaceFootnoteContent(collision, "1", "Stray now has text.", { expectedContent: "", occurrence: 1 });
+  assert.equal(writeStray.changed, true);
+  assert.ok(writeStray.text.endsWith("[^1]: Sato 2019, p. 45.\n[^1]: Stray now has text."));
+  const wrongBase = parser.replaceFootnoteContent(collision, "1", "x", { expectedContent: "Sato 2019, p. 45.", occurrence: 1 });
+  assert.equal(wrongBase.reason, "content-mismatch");
+  assert.equal(parser.replaceFootnoteContent(collision, "1", "x", { occurrence: 3 }).reason, "missing-footnote");
+}
+
+// Search highlights are measured on the original text.
+{
+  const results = parser.findFootnoteSearchResults([{ id: "1", index: 1, displayNumber: 1, content: "İstanbul link here" }], "link");
+  assert.equal(results.length, 1);
+  assert.equal(results[0].match.text, "link");
+  assert.equal(results[0].match.start, 9);
+}
+
+// A footnote inserted right before another marker is still a new footnote,
+// while a Tidy rename (old id gone, same position) is not.
+{
+  const before = parser.parseFootnotes("Alpha.[^1] Beta text[^2] end.\n\n[^1]: one\n[^2]: two").footnotes;
+  const knownIds = before.map((footnote) => footnote.id);
+  const snapshots = before.map((footnote) => parser.createFootnoteSnapshot(footnote));
+  const adjacent = parser.parseFootnotes("Alpha.[^1] Beta text[^3][^2] end.\n\n[^1]: one\n[^2]: two\n[^3]: ").footnotes;
+  assert.deepEqual(parser.detectAddedFootnotes(adjacent, knownIds, snapshots).map((footnote) => footnote.id), ["3"]);
+
+  const renamedBefore = parser.parseFootnotes("A.[^1] B.[^52]\n\n[^1]: one\n[^52]: fifty two").footnotes;
+  const renamed = parser.parseFootnotes("A.[^1] B.[^2]\n\n[^1]: one\n[^2]: fifty two").footnotes;
+  assert.deepEqual(
+    parser.detectAddedFootnotes(
+      renamed,
+      renamedBefore.map((footnote) => footnote.id),
+      renamedBefore.map((footnote) => parser.createFootnoteSnapshot(footnote)),
+    ),
+    [],
+  );
+}
+
 console.log("parser tests passed");

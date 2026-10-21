@@ -164,6 +164,30 @@
   white-space: nowrap;
 }
 
+.bfw-duplicate-badge {
+  color: var(--text-warning);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+
+.bfw-duplicate-hint {
+  color: var(--text-warning);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+  padding: 6px 10px;
+}
+
+.bfw-duplicate-content {
+  color: var(--text-faint);
+  font-size: var(--font-ui-small);
+  line-height: 1.5;
+  max-height: 112px;
+  overflow: hidden;
+  padding: 0 10px 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .bfw-reference-summary {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
@@ -276,10 +300,6 @@
   min-height: 40px;
   max-height: 112px;
   overflow-y: auto;
-  /* A classic scrollbar only ever appears in the edit state (the rendered card
-     clips instead), stealing ~15px of text width and reflowing every line.
-     Hide the rail; wheel scrolling and caret-follow still work. */
-  scrollbar-width: none;
   padding: 0;
   background: var(--background-primary);
   color: var(--text-normal);
@@ -291,6 +311,10 @@
   line-height: 1.55;
 }
 
+/* A classic scrollbar only ever appears in the edit state (the rendered card
+   clips instead), stealing ~15px of text width and reflowing every line.
+   Hide the rail; wheel scrolling and caret-follow still work. The WebKit rule
+   covers Obsidian on every platform. */
 .bfw-live-host::-webkit-scrollbar {
   display: none;
 }

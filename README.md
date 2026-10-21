@@ -56,6 +56,8 @@ Named ids such as `[^citation]` are supported. The sidebar shows the real id, wh
 
 Inline footnotes such as `^[inline text]` are not edited from the sidebar.
 
+Footnote syntax written inside code blocks, inline code, `%%` comments, HTML comments, `$$` math or the properties block is treated as plain text: it gets no card and is never changed when you edit or delete a footnote.
+
 ## Footnote Search
 
 The sidebar search box searches only footnotes. You can filter by number, id, or content without matching unrelated body text.
@@ -151,6 +153,8 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 也支持 `[^citation]` 这类自定义名称脚注。侧栏会显示真实 id；Obsidian 在阅读模式中可能会把它作为普通脚注序列的一部分显示为数字。
 
 暂不在侧栏编辑 `^[inline text]` 这类 inline footnotes。
+
+写在代码块、行内代码、`%%` 注释、HTML 注释、`$$` 公式或属性区里的脚注语法只当作普通文字：不生成卡片，编辑或删除脚注时也不会被改动。
 
 ### 脚注搜索
 
@@ -252,6 +256,8 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 
 `^[inline text]` のような inline footnotes はサイドバーから編集できません。
 
+コードブロック、インラインコード、`%%` コメント、HTML コメント、`$$` 数式、プロパティ欄の中に書かれた脚注記法はただの文字として扱います。カードは作られず、脚注の編集や削除でも変更されません。
+
 ### 脚注検索
 
 サイドバーの検索欄は脚注だけを検索します。脚注番号、id、本文で絞り込めるため、本文中の同じ語句に邪魔されません。
@@ -351,6 +357,8 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 `[^citation]` 같은 이름 있는 각주 id도 지원합니다. 사이드바에는 실제 id가 표시되지만, Obsidian 읽기 모드에서는 일반 각주 번호 흐름에 포함되어 숫자로 표시될 수 있습니다.
 
 `^[inline text]` 형식의 inline footnotes는 사이드바에서 편집할 수 없습니다.
+
+코드 블록, 인라인 코드, `%%` 주석, HTML 주석, `$$` 수식, 속성 영역 안에 쓴 각주 문법은 일반 텍스트로 취급합니다. 카드가 만들어지지 않으며 각주를 편집하거나 삭제해도 바뀌지 않습니다.
 
 ### 각주 검색
 

@@ -6,6 +6,6 @@
   "author": "AlcatrazYU",
   "license": "MIT",
   "scripts": {
-    "test": "node tests/parser.test.mjs"
+    "test": "node tests/parser.test.mjs && node tests/invariants.test.mjs"
   }
 }
