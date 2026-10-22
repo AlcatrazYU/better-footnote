@@ -75,6 +75,10 @@
   font-size: var(--font-ui-small);
 }
 
+.bfw-new-footnote {
+  font-size: var(--font-ui-medium);
+}
+
 .bfw-expand-button {
   flex: 0 0 auto;
   width: 26px;
@@ -156,6 +160,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 1.6.0: the number copies [^id]. */
+.bfw-id.is-copyable {
+  cursor: pointer;
+}
+
+.bfw-id.is-copyable:hover {
+  background: var(--background-modifier-hover);
 }
 
 .bfw-unreferenced {

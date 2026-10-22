@@ -33,7 +33,7 @@ Better Footnote turns footnotes into a right-side editing workspace instead of a
 ## Core Workflow
 
 - Click an in-text `[^id]` marker to select the matching footnote card in the sidebar.
-- Click a sidebar footnote card to jump back to the matching in-text marker and briefly outline it.
+- Click a sidebar footnote card to jump back to the matching in-text marker and briefly outline it. A card that has no marker in the note yet leaves the note where it is.
 - Put the cursor inside a footnote definition near the bottom of the note to select the same footnote in the sidebar.
 - Edit the footnote in the sidebar. Changes are saved back to the Markdown file automatically.
 
@@ -64,6 +64,8 @@ The sidebar search box searches only footnotes. You can filter by number, id, or
 
 If you already know the footnote number or name, type `^` before it to jump directly to that footnote. For example, `^42` only matches footnote `42`, and `^citation` only matches footnote `citation`. Plain `42` remains a normal search across footnote numbers, ids, and content.
 
+Words separated by spaces are searched separately, and each word is highlighted on its own. To search for several words as one phrase, put them in double quotes, for example `"Hey Jude"`; Chinese quotes `“ ”` work too. Chinese and Japanese text typed without spaces is already searched as written.
+
 When the search text appears multiple times, each occurrence is counted separately. Use the up/down buttons to move through exact matches. Better Footnote scrolls to the matching footnote, expands it if needed, and selects the matched text inside the footnote editor so you can see the exact hit.
 
 Clearing the search returns search-expanded footnotes to their compact state.
@@ -81,6 +83,12 @@ By default, footnote cards show the raw Markdown source in an editor box. If you
 When enabled, footnote cards you are not editing show rendered Markdown: links, bold, italics, internal links, and other formatting. Click a link to open it directly; internal `[[wikilinks]]` open in the workspace. Click any other text to edit: the card switches in place to an embedded live preview editor, so formatting stays rendered while you type and the Markdown syntax unfolds around the cursor. The cursor lands near where you clicked. (One known limit: editor hotkeys such as `Ctrl/Cmd+B` do not respond inside the card; type the Markdown syntax directly instead.) Click back into the note or press `Esc` to save and return to the rendered view. Switching to another app while editing keeps the editing state, so you can look up a reference and come back. If the live preview editor is unavailable, the card falls back to the plain source editor automatically.
 
 The setting is off by default. Counts always follow the Markdown source, not the rendered text.
+
+## Draft First, Place Later
+
+You can write a footnote before you decide where it goes. Click `+` beside the search box to add an empty footnote with the next free number after the last footnote definition; its card opens for writing. When you know where it belongs, click the number on the card to copy its marker (such as `[^41]`) and paste it into the note. Clicking the number only copies: the note and your cursor stay where they are, so you can paste right away. You can also copy from the card's right-click menu.
+
+Until its marker is in the note, the card is marked unreferenced, and clicking it leaves the note where it is. `+` is shown while the search box is empty.
 
 ## Multiple References
 
@@ -131,7 +139,7 @@ Better Footnote 的思路是把脚注变成一个稳定的右侧编辑工作区�
 ### 核心工作流
 
 - 点击正文里的 `[^id]` 脚注标记，右侧栏会自动选中对应脚注卡片。
-- 点击右侧栏脚注卡片，正文中的对应脚注标记会跳转并短暂显示紫色框。
+- 点击右侧栏脚注卡片，正文中的对应脚注标记会跳转并短暂显示紫色框。还没有正文引用的卡片点击后，正文保持不动。
 - 在文末脚注定义区点击或移动光标，右侧栏也会同步选中对应脚注。
 - 直接在右侧栏编辑脚注内容，修改会自动保存回 Markdown 文件。
 
@@ -162,6 +170,8 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 
 如果你已经明确知道脚注编号或名称，可以在前面加 `^` 直接定位该条脚注。例如，`^42` 只匹配脚注 `42`，`^citation` 只匹配脚注 `citation`。普通输入 `42` 仍然保持原有搜索逻辑，会搜索脚注序号、id 和脚注内容。
 
+用空格分开的多个词会分别查找、分别高亮。想把几个词当成一整句查找，就用双引号括起来，例如 `"Hey Jude"`，中文引号 `“ ”` 也可以。中文、日文不打空格时，本来就按整串查找。
+
 若同一个词在同一条脚注中出现多次，每一处都会单独计数。点击上/下按钮时，Better Footnote 会跳到对应匹配项，必要时自动展开长脚注，并直接选中脚注编辑框里的匹配文字，让你看到具体命中位置。
 
 清除搜索后，由搜索自动展开的脚注会恢复为紧凑显示。
@@ -179,6 +189,12 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 开启后，未在编辑的脚注卡片会显示渲染后的 Markdown：链接、粗体、斜体、内部链接等格式。点击链接直接打开；`[[内部链接]]` 会在工作区中打开。点击其他文字即可编辑：卡片原地切换为嵌入式实时预览编辑器，输入时格式保持渲染、光标附近的 Markdown 语法自动展开；光标落在点击位置附近。（已知限制：`Ctrl/Cmd+B` 等编辑器快捷键在卡片内不响应，可直接输入 Markdown 语法代替。）点回笔记正文或按 `Esc` 会自动保存并恢复渲染显示。编辑中切换到其他应用不会丢失编辑状态，方便查完资料回来继续。若实时预览编辑器不可用，卡片会自动回退为源码编辑框。
 
 该选项默认关闭。字数统计始终按 Markdown 源码计算，与显示形态无关。
+
+### 先写后放
+
+脚注可以先写，再决定放在哪里。点搜索框旁的 `+`，会在最后一条脚注定义之后加一条下一个编号的空白脚注，卡片直接进入编辑。想好放在哪里后，点卡片上的编号，复制它的引用标记（例如 `[^41]`），再粘贴到正文。点编号只复制，正文和光标都不动，可以直接粘贴。右键卡片也可以复制。
+
+放进正文之前，卡片显示“未引用”，点它不会移动正文。搜索框为空时才显示 `+`。
 
 ### 多处引用
 
@@ -233,7 +249,7 @@ Better Footnote は、脚注をノート末尾に隠れたテキストではな�
 ### 基本の流れ
 
 - 本文中の `[^id]` マーカーをクリックすると、サイドバーの対応する脚注カードが選択されます。
-- サイドバーの脚注カードをクリックすると、本文中の対応する脚注マーカーへ移動し、短時間アウトライン表示します。
+- サイドバーの脚注カードをクリックすると、本文中の対応する脚注マーカーへ移動し、短時間アウトライン表示します。本文にまだ参照がないカードをクリックしても、本文は動きません。
 - 文末の脚注定義内にカーソルを置くと、サイドバーでも同じ脚注が選択されます。
 - サイドバーで脚注を直接編集できます。変更は Markdown ファイルへ自動保存されます。
 
@@ -264,6 +280,8 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 
 探したい脚注番号または名前が分かっている場合は、先頭に `^` を付けるとその脚注だけに直接絞り込めます。たとえば、`^42` は脚注 `42` だけを、`^citation` は脚注 `citation` だけを対象にします。通常の `42` はこれまでどおり、脚注番号、id、脚注本文を検索します。
 
+スペースで区切った語句は別々に検索され、それぞれハイライトされます。複数の語をひと続きの語句として検索するには、`"Hey Jude"` のように二重引用符で囲みます（中国語の引用符 `“ ”` も使えます）。スペースを入れずに書いた日本語や中国語は、もともと入力したとおりの並びで検索されます。
+
 同じ語句が同じ脚注に複数回出る場合も、それぞれ別の一致として数えます。前/次ボタンを押すと該当する一致箇所へ移動します。必要な場合は長い脚注を自動で展開し、脚注エディタ内の一致テキストを選択するため、どこに一致したか確認できます。
 
 検索をクリアすると、検索によって自動展開された脚注はコンパクト表示に戻ります。
@@ -281,6 +299,12 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 有効にすると、編集していない脚注カードは、リンク、太字、斜体、内部リンクなどを含むレンダリング済みの Markdown で表示されます。リンクをクリックするとそのまま開き、`[[内部リンク]]` はワークスペース内で開きます。それ以外の本文をクリックすると編集に切り替わり、カードはその場で埋め込みライブプレビューエディタになります。入力中も書式はレンダリングされたまま、カーソル付近の Markdown 記法だけが展開されます。カーソルはクリックした位置の近くに置かれます。（既知の制限：`Ctrl/Cmd+B` などのエディタホットキーはカード内では反応しません。代わりに Markdown 記法を直接入力してください。）ノート本文をクリックするか `Esc` を押すと保存され、レンダリング表示に戻ります。編集中に他のアプリへ切り替えても編集状態は保持されます。ライブプレビューエディタが利用できない場合は、自動的にソース編集ボックスへ戻ります。
 
 この設定は初期状態でオフです。カウントは常に Markdown ソースを基準とします。
+
+### 先に書いて後で置く
+
+脚注は、置く場所を決める前に書いておけます。検索欄の横の `+` を押すと、最後の脚注定義の後に次の番号の空の脚注が追加され、そのカードがすぐ編集状態になります。置く場所が決まったら、カードの番号をクリックして参照マーカー（例: `[^41]`）をコピーし、本文に貼り付けます。番号のクリックはコピーだけで、本文もカーソルも動かないので、そのまま貼り付けられます。カードの右クリックメニューからもコピーできます。
+
+本文に置くまではカードに「未参照」と表示され、クリックしても本文は動きません。`+` は検索欄が空のときに表示されます。
 
 ### 複数参照
 
@@ -335,7 +359,7 @@ Better Footnote는 각주를 문서 끝에 숨어 있는 텍스트가 아니라 
 ### 기본 흐름
 
 - 본문의 `[^id]` 각주 표시를 클릭하면 사이드바의 해당 각주 카드가 선택됩니다.
-- 사이드바 각주 카드를 클릭하면 본문의 해당 각주 표시로 이동하고 짧게 윤곽선을 표시합니다.
+- 사이드바 각주 카드를 클릭하면 본문의 해당 각주 표시로 이동하고 짧게 윤곽선을 표시합니다. 아직 본문에 참조가 없는 카드를 클릭하면 본문은 그대로 있습니다.
 - 문서 끝의 각주 정의 안에 커서를 두면 사이드바에서도 같은 각주가 선택됩니다.
 - 사이드바에서 각주 내용을 직접 편집할 수 있습니다. 변경 사항은 Markdown 파일에 자동 저장됩니다.
 
@@ -366,6 +390,8 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 
 찾으려는 각주 번호나 이름을 정확히 알고 있다면 앞에 `^`를 붙여 해당 각주만 바로 찾을 수 있습니다. 예를 들어 `^42`는 각주 `42`만, `^citation`은 각주 `citation`만 일치시킵니다. 일반적인 `42` 입력은 기존처럼 각주 번호, id, 각주 내용을 검색합니다.
 
+공백으로 나눈 여러 단어는 따로 검색되고 따로 강조됩니다. 여러 단어를 한 구절로 검색하려면 `"헤이 주드"`처럼 큰따옴표로 묶으세요(중국어 따옴표 `“ ”`도 됩니다). 띄어쓰기 없이 입력한 중국어와 일본어는 원래 입력한 순서 그대로 검색됩니다.
+
 같은 단어가 한 각주 안에 여러 번 나오면 각각 별도의 일치 항목으로 계산합니다. 이전/다음 버튼을 누르면 해당 일치 항목으로 이동합니다. 필요한 경우 긴 각주를 자동으로 펼치고, 각주 편집기 안의 일치 텍스트를 선택해 정확한 위치를 보여줍니다.
 
 검색을 지우면 검색 때문에 자동으로 펼쳐졌던 각주는 다시 간결한 표시로 돌아갑니다.
@@ -383,6 +409,12 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 켜면 편집 중이 아닌 각주 카드가 링크, 굵게, 기울임, 내부 링크 등 서식을 포함한 렌더링된 Markdown으로 표시됩니다. 링크를 클릭하면 바로 열리고, `[[내부 링크]]`는 작업 공간에서 열립니다. 다른 텍스트를 클릭하면 편집으로 전환됩니다. 카드가 그 자리에서 내장 라이브 프리뷰 편집기로 바뀌어, 입력하는 동안에도 서식은 렌더링된 채 유지되고 커서 주변의 Markdown 문법만 펼쳐집니다. 커서는 클릭한 위치 근처에 놓입니다. (알려진 제한: `Ctrl/Cmd+B` 같은 편집기 단축키는 카드 안에서 동작하지 않으므로 Markdown 문법을 직접 입력해 주세요.) 노트 본문을 클릭하거나 `Esc`를 누르면 저장되고 렌더링 표시로 돌아갑니다. 편집 중 다른 앱으로 전환해도 편집 상태가 유지됩니다. 라이브 프리뷰 편집기를 사용할 수 없는 경우에는 자동으로 소스 편집 상자로 돌아갑니다.
 
 이 설정은 기본적으로 꺼져 있습니다. 글자 수/단어 수는 항상 Markdown 소스를 기준으로 계산됩니다.
+
+### 먼저 쓰고 나중에 배치
+
+각주는 넣을 위치를 정하기 전에 먼저 써 둘 수 있습니다. 검색창 옆의 `+`를 누르면 마지막 각주 정의 뒤에 다음 번호의 빈 각주가 추가되고, 카드가 바로 편집 상태가 됩니다. 넣을 위치가 정해지면 카드의 번호를 클릭해 참조 표시(예: `[^41]`)를 복사한 뒤 본문에 붙여 넣으세요. 번호 클릭은 복사만 하며 본문과 커서는 그대로이므로 바로 붙여 넣을 수 있습니다. 카드의 오른쪽 클릭 메뉴에서도 복사할 수 있습니다.
+
+본문에 넣기 전까지 카드는 “참조 없음”으로 표시되고, 클릭해도 본문은 움직이지 않습니다. `+`는 검색창이 비어 있을 때 표시됩니다.
 
 ### 여러 참조
 

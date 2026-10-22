@@ -778,4 +778,74 @@ assert.equal(
   assert.deepEqual(exact.map((result) => result.occurrence), [0, 1]);
 }
 
+// 1.6.0 phrase search: double quotes keep words together.
+{
+  const q = parser.parseSearchQuery;
+  assert.deepEqual(q("I am"), { phrases: [], words: ["I", "am"] });
+  assert.deepEqual(q("\"I am\""), { phrases: ["I am"], words: [] });
+  assert.deepEqual(q("“I am”"), { phrases: ["I am"], words: [] });
+  assert.deepEqual(q("＂I am＂"), { phrases: ["I am"], words: [] });
+  assert.deepEqual(q("\"I am"), { phrases: ["I am"], words: [] });
+  assert.deepEqual(q("\"I am\" Smith"), { phrases: ["I am"], words: ["Smith"] });
+  assert.deepEqual(q("Smith\"I am"), { phrases: ["I am"], words: ["Smith"] });
+  assert.deepEqual(q("\"a b\" \"c d\""), { phrases: ["a b", "c d"], words: [] });
+  assert.deepEqual(q("\"\""), { phrases: [], words: [] });
+  assert.deepEqual(q("\"   \""), { phrases: [], words: [] });
+  assert.deepEqual(q("\"I   am\""), { phrases: ["I am"], words: [] });
+  assert.deepEqual(q("佐藤仁"), { phrases: [], words: ["佐藤仁"] });
+  assert.deepEqual(q("\"佐藤 2019\""), { phrases: ["佐藤 2019"], words: [] });
+  assert.deepEqual(q("「政治」"), { phrases: [], words: ["「政治」"] });
+
+  const notes = [
+    { id: "1", occurrence: 0, index: 1, displayNumber: 1, content: "This is a test. I am here." },
+    { id: "2", occurrence: 0, index: 2, displayNumber: 2, content: "I said: am I late?" },
+    { id: "3", occurrence: 0, index: 3, displayNumber: 3, content: "Line ends with I\nam on the next line." },
+  ];
+  const slices = (results) => results.map((result) => {
+    const note = notes.find((item) => item.id === result.footnoteId);
+    return [result.footnoteId, result.match ? note.content.slice(result.match.start, result.match.end) : null];
+  });
+  assert.deepEqual(slices(parser.findFootnoteSearchResults(notes, "\"I am\"")), [["1", "I am"], ["3", "I\nam"]]);
+  assert.deepEqual(slices(parser.findFootnoteSearchResults(notes, "“i AM”")), [["1", "I am"], ["3", "I\nam"]]);
+  assert.deepEqual(parser.filterFootnotes(notes, "\"I am\"").map((note) => note.id), ["1", "3"]);
+  assert.deepEqual(parser.filterFootnotes(notes, "I am").map((note) => note.id), ["1", "2", "3"]);
+  assert.deepEqual(slices(parser.findFootnoteSearchResults(notes, "\"I am\" here")), [["1", "I am"], ["1", "here"]]);
+  assert.deepEqual(parser.findFootnoteSearchResults(notes, "^2").map((result) => result.footnoteId), ["2"]);
+  assert.deepEqual(parser.findFootnoteSearchResults(notes, "\"\""), []);
+}
+
+// 1.6.0 copy a reference from the card number.
+assert.equal(parser.formatFootnoteReference("7"), "[^7]");
+assert.equal(parser.formatFootnoteReference("citation"), "[^citation]");
+
+// 1.6.0 "+": the next free number, after the last definition (and after any
+// unindented text Obsidian reads as part of it), or at the end of the note.
+{
+  const added = (text) => {
+    const plan = parser.planNewFootnoteDefinition(text);
+    return { id: plan.id, text: text.slice(0, plan.at) + plan.insert + text.slice(plan.at) };
+  };
+  assert.deepEqual(added("A.[^1] B.[^2]\n\n[^1]: one\n[^2]: two\n"), { id: "3", text: "A.[^1] B.[^2]\n\n[^1]: one\n[^2]: two\n[^3]: \n" });
+  assert.equal(added("A.[^1]\n\n[^1]: one\n[^2]: two\n[^5]: five").id, "6");
+  assert.equal(added("A.[^1] B.[^9]\n\n[^1]: one").id, "10");
+  assert.equal(added("A.[^35]\n\n[^35]: one\n[^35]: ").id, "36");
+  assert.equal(added("A.[^1]\n\n```md\n[^99]: example\n```\n\n[^1]: one").id, "2");
+  assert.equal(added("A.[^note]\n\n[^note]: named").id, "1");
+  assert.equal(added("A.[^007]\n\n[^007]: seven").id, "8");
+  assert.deepEqual(added(""), { id: "1", text: "[^1]: " });
+  assert.equal(added("Hello").text, "Hello\n\n[^1]: ");
+  assert.equal(added("Hello\n").text, "Hello\n\n[^1]: ");
+  assert.equal(added("Hello\n\n").text, "Hello\n\n[^1]: ");
+  assert.equal(added("A.[^1]\n\n[^1]: a\n    more\n\nNext para").text, "A.[^1]\n\n[^1]: a\n    more\n[^2]: \n\nNext para");
+  // Obsidian reads "bar line" as part of [^1]; the new definition goes after it.
+  assert.equal(added("T.[^1]\n\n[^1]: foo\nbar line").text, "T.[^1]\n\n[^1]: foo\nbar line\n[^2]: ");
+  assert.equal(added("T.[^1]\n\n[^1]: foo\nbar line\n\nAppendix").text, "T.[^1]\n\n[^1]: foo\nbar line\n[^2]: \n\nAppendix");
+  // A heading, fence or list starts a new block: it is not part of the footnote.
+  assert.equal(added("T.[^1]\n\n[^1]: foo\n## Appendix\ntext").text, "T.[^1]\n\n[^1]: foo\n[^2]: \n## Appendix\ntext");
+  assert.equal(added("T.[^1]\n\n[^1]: foo\n```\ncode\n```").text, "T.[^1]\n\n[^1]: foo\n[^2]: \n```\ncode\n```");
+  assert.equal(added("T.[^1]\n\n[^1]: foo\n- item").text, "T.[^1]\n\n[^1]: foo\n[^2]: \n- item");
+  // Definitions spread through the note: after the last one.
+  assert.equal(added("A.[^1]\n\n[^1]: one\n\nMiddle.[^2]\n\n[^2]: two\n\nEnd text.").text, "A.[^1]\n\n[^1]: one\n\nMiddle.[^2]\n\n[^2]: two\n[^3]: \n\nEnd text.");
+}
+
 console.log("parser tests passed");

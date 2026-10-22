@@ -227,6 +227,60 @@ function check(rawText, zoneTexts) {
     if (seenAsNew.length) return fail("I13", `renumbering [^${from}] was seen as adding ${seenAsNew.map(keyOf).join(", ")}`);
   }
 
+  // I14 "+" adds exactly one empty definition with the next free number,
+  // changes nothing else, and no plain line follows it directly (Obsidian
+  // would read that line as the new footnote's text, taking it from another)
+  {
+    const plan = core.planNewFootnoteDefinition(rawText);
+    const numbers = [...parsed.footnotes, ...parsed.references]
+      .map((item) => item.id)
+      .filter((id) => /^\d+$/.test(id))
+      .map(Number);
+    const expectedId = String((numbers.length ? Math.max(...numbers) : 0) + 1);
+    if (plan.id !== expectedId) return fail("I14", `new number ${plan.id}, expected ${expectedId}`);
+    if (zones.some(([start, end]) => plan.at > start && plan.at < end)) return fail("I14", "inserted inside a zone");
+    const after = text.slice(0, plan.at) + plan.insert + text.slice(plan.at);
+    const reparsed = core.parseFootnotes(after);
+    if (reparsed.footnotes.length !== parsed.footnotes.length + 1) return fail("I14", "not exactly one more definition");
+    const created = reparsed.footnotes.filter((footnote) => footnote.id === expectedId);
+    if (created.length !== 1 || created[0].content !== "" || created[0].referenceCount !== 0) {
+      return fail("I14", "the new definition is not one empty, unreferenced definition");
+    }
+    const damage = othersUnchanged(parsed, after, () => false);
+    if (damage) return fail("I14", damage);
+    const newLineEnd = after.indexOf("\n", created[0].definitionStart);
+    if (newLineEnd !== -1) {
+      const below = after.slice(newLineEnd + 1).split("\n")[0];
+      const afterZones = core.getMarkdownExclusionZones(reparsed.text, reparsed.lineStarts);
+      const belowInZone = afterZones.some((zone) => newLineEnd + 1 >= zone.start && newLineEnd + 1 < zone.end);
+      const startsBlock = /^ {0,3}(#{1,6}(\s|$)|`{3,}|~{3,}|>|[-+*](\s|$)|\d{1,9}[.)](\s|$)|\[\^[^\]\n]+\]:)/.test(below);
+      if (below.trim() && !startsBlock && !belowInZone) return fail("I14", `plain line right below the new definition: ${JSON.stringify(below)}`);
+    }
+  }
+
+  // I15 a phrase in double quotes, taken from a footnote, finds that footnote
+  // and every highlight reads back as the phrase (across line breaks too)
+  for (const footnote of parsed.footnotes.slice(0, 3)) {
+    if (core.isReminderDefinition(footnote)) continue;
+    const words = footnote.content.split(/\s+/).filter(Boolean);
+    const plain = (word) => /^[\p{L}\p{N}]+$/u.test(word);
+    let tried = 0;
+    for (let index = 0; index + 1 < words.length && tried < 3; index += 1) {
+      if (!plain(words[index]) || !plain(words[index + 1])) continue;
+      tried += 1;
+      const phrase = `${words[index]} ${words[index + 1]}`;
+      const results = core.findFootnoteSearchResults(parsed.footnotes, `"${phrase}"`);
+      const found = results.some((result) => result.footnoteId === footnote.id && result.occurrence === footnote.occurrence && result.match);
+      if (!found) return fail("I15", `phrase ${JSON.stringify(phrase)} did not find ${keyOf(footnote)}`);
+      for (const result of results) {
+        if (!result.match) continue;
+        const card = parsed.footnotes.find((item) => item.id === result.footnoteId && item.occurrence === result.occurrence);
+        const slice = card.content.slice(result.match.start, result.match.end).replace(/\s+/g, " ");
+        if (slice.toLowerCase() !== phrase.toLowerCase()) return fail("I15", `highlight ${JSON.stringify(slice)} for phrase ${JSON.stringify(phrase)}`);
+      }
+    }
+  }
+
   const targets = parsed.footnotes.slice(0, 4);
   for (let index = 0; index < targets.length; index += 1) {
     const target = targets[index];

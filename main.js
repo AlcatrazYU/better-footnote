@@ -17,6 +17,10 @@
   const CLIPPED_CONTENT_TOLERANCE_PX = 8;
   const DELETED_FOOTNOTE_RESTORE_TTL_MS = 10 * 60 * 1000;
   const RESTORED_DELETED_FOOTNOTE_CURSOR_SUPPRESS_MS = 5000;
+  // How long the "Copied [^7]" notice stays, and how long a footnote just
+  // created with "+" may take to appear before its card stops waiting for it.
+  const COPIED_NOTICE_MS = 2000;
+  const PENDING_CREATED_FOOTNOTE_MS = 2000;
   const MAX_DELETED_FOOTNOTE_RESTORE_RECORDS = 50;
   const PLUGIN_ICON = "list-ordered";
   const TIDY_FOOTNOTES_PLUGIN_URL = "https://community.obsidian.md/plugins/obsidian-tidy-footnotes";
@@ -34,7 +38,6 @@
   const I18N = {
     en: {
       title: "Better Footnote",
-      refresh: "Refresh",
       noActiveFile: "No active Markdown file",
       openMarkdownNote: "Open a Markdown note to edit its footnotes.",
       readFailed: "Failed to read file: {message}",
@@ -42,7 +45,7 @@
       footnoteCount: "{file} · {count} footnote{plural}",
       filteredFootnoteCount: "{file} · {visible}/{total} footnotes · {matches} matches",
       searchPlaceholder: "Search footnotes; ^number/name jumps",
-      searchTooltip: "Search footnote content; type ^ plus a footnote number or name to jump to that footnote, e.g. ^42 or ^citation.",
+      searchTooltip: "Search footnote content; type ^ plus a footnote number or name to jump to that footnote, e.g. ^42 or ^citation. Put words in double quotes to search for them as one phrase, e.g. \"Hey Jude\".",
       clearSearch: "Clear",
       resumeSearch: "Resume search",
       noSearchResults: "No footnotes match your search.",
@@ -98,6 +101,12 @@
       deleteUnreferencedFootnote: "This footnote has no reference markers. This will remove the footnote definition.",
       deleteSharedMarkersKept: "Another definition uses this number, so the reference markers in the note stay. Only this definition will be removed.",
       deleteTargetChanged: "Footnote [^{id}] changed before the deletion was confirmed, so nothing was deleted.",
+      copyReferenceTooltip: "Copy [^{id}]",
+      copyReferenceMenu: "Copy reference [^{id}]",
+      copiedReference: "Copied [^{id}]. Paste it into your note.",
+      copyFailed: "Could not copy to the clipboard.",
+      newFootnote: "New footnote",
+      createFailed: "Failed to create a footnote: {message}",
       deleteEmptyFootnote: "The footnote definition is empty.",
       deleteCancel: "Cancel",
       deleteConfirm: "Delete footnote",
@@ -108,7 +117,6 @@
     },
     zh: {
       title: "Better Footnote",
-      refresh: "更新",
       noActiveFile: "没有打开 Markdown 文件",
       openMarkdownNote: "打开一篇 Markdown 笔记后，即可编辑其中的脚注。",
       readFailed: "读取文件失败：{message}",
@@ -116,7 +124,7 @@
       footnoteCount: "{file} · {count} 条脚注",
       filteredFootnoteCount: "{file} · 显示 {visible}/{total} 条脚注 · {matches} 处匹配",
       searchPlaceholder: "搜索脚注；^编号/名称精准定位",
-      searchTooltip: "搜索脚注内容；输入 ^ 加脚注编号或名称，可精准定位该条脚注，例如 ^42 或 ^citation。",
+      searchTooltip: "搜索脚注内容；输入 ^ 加脚注编号或名称，可精准定位该条脚注，例如 ^42 或 ^citation。用双引号括起来可按整句搜索，例如 \"Hey Jude\"。",
       clearSearch: "清除",
       resumeSearch: "恢复搜索",
       noSearchResults: "没有匹配的脚注。",
@@ -172,6 +180,12 @@
       deleteUnreferencedFootnote: "这条脚注没有引用标记。将删除脚注定义。",
       deleteSharedMarkersKept: "这个编号还有别的定义，正文里的引用标记会保留，只删除这条定义。",
       deleteTargetChanged: "脚注 [^{id}] 在确认删除前已有改动，因此没有删除。",
+      copyReferenceTooltip: "复制 [^{id}]",
+      copyReferenceMenu: "复制引用标记 [^{id}]",
+      copiedReference: "已复制 [^{id}]，粘贴到正文即可",
+      copyFailed: "无法复制到剪贴板。",
+      newFootnote: "新建脚注",
+      createFailed: "新建脚注失败：{message}",
       deleteEmptyFootnote: "这条脚注定义为空。",
       deleteCancel: "取消",
       deleteConfirm: "删除脚注",
@@ -182,7 +196,6 @@
     },
     ja: {
       title: "Better Footnote",
-      refresh: "更新",
       noActiveFile: "Markdown ファイルが開かれていません",
       openMarkdownNote: "Markdown ノートを開くと、その脚注を編集できます。",
       readFailed: "ファイルの読み込みに失敗しました: {message}",
@@ -190,7 +203,7 @@
       footnoteCount: "{file} · 脚注 {count} 件",
       filteredFootnoteCount: "{file} · {visible}/{total} 件を表示 · {matches} 件一致",
       searchPlaceholder: "脚注検索；^番号/名前で移動",
-      searchTooltip: "脚注本文を検索します。^ に続けて脚注番号または名前を入力すると、その脚注へ移動できます。例: ^42 または ^citation。",
+      searchTooltip: "脚注本文を検索します。^ に続けて脚注番号または名前を入力すると、その脚注へ移動できます。例: ^42 または ^citation。二重引用符で囲むと、ひと続きの語句として検索します（例: \"Hey Jude\"）。",
       clearSearch: "クリア",
       resumeSearch: "検索に戻る",
       noSearchResults: "一致する脚注がありません。",
@@ -246,6 +259,12 @@
       deleteUnreferencedFootnote: "この脚注には参照マーカーがありません。脚注定義を削除します。",
       deleteSharedMarkersKept: "この番号には別の定義もあるため、本文の参照マーカーは残し、この定義だけを削除します。",
       deleteTargetChanged: "脚注 [^{id}] は削除の確認前に変更されたため、削除しませんでした。",
+      copyReferenceTooltip: "[^{id}] をコピー",
+      copyReferenceMenu: "参照マーカー [^{id}] をコピー",
+      copiedReference: "[^{id}] をコピーしました。本文に貼り付けてください。",
+      copyFailed: "クリップボードにコピーできませんでした。",
+      newFootnote: "新しい脚注",
+      createFailed: "脚注を作成できませんでした: {message}",
       deleteEmptyFootnote: "この脚注定義は空です。",
       deleteCancel: "キャンセル",
       deleteConfirm: "脚注を削除",
@@ -256,7 +275,6 @@
     },
     ko: {
       title: "Better Footnote",
-      refresh: "새로고침",
       noActiveFile: "열린 Markdown 파일이 없습니다",
       openMarkdownNote: "Markdown 노트를 열면 해당 각주를 편집할 수 있습니다.",
       readFailed: "파일을 읽지 못했습니다: {message}",
@@ -264,7 +282,7 @@
       footnoteCount: "{file} · 각주 {count}개",
       filteredFootnoteCount: "{file} · {visible}/{total}개 표시 · {matches}개 일치",
       searchPlaceholder: "각주 검색; ^번호/이름 바로 이동",
-      searchTooltip: "각주 내용을 검색합니다. ^ 뒤에 각주 번호나 이름을 입력하면 해당 각주로 바로 이동합니다. 예: ^42 또는 ^citation.",
+      searchTooltip: "각주 내용을 검색합니다. ^ 뒤에 각주 번호나 이름을 입력하면 해당 각주로 바로 이동합니다. 예: ^42 또는 ^citation. 큰따옴표로 묶으면 한 구절로 검색합니다(예: \"헤이 주드\").",
       clearSearch: "지우기",
       resumeSearch: "검색 재개",
       noSearchResults: "일치하는 각주가 없습니다.",
@@ -320,6 +338,12 @@
       deleteUnreferencedFootnote: "이 각주에는 참조 표시가 없습니다. 각주 정의를 삭제합니다.",
       deleteSharedMarkersKept: "이 번호에는 다른 정의도 있으므로 본문의 참조 표시는 그대로 두고 이 정의만 삭제합니다.",
       deleteTargetChanged: "각주 [^{id}]가 삭제를 확인하기 전에 바뀌어 삭제하지 않았습니다.",
+      copyReferenceTooltip: "[^{id}] 복사",
+      copyReferenceMenu: "참조 표시 [^{id}] 복사",
+      copiedReference: "[^{id}]를 복사했습니다. 본문에 붙여 넣으세요.",
+      copyFailed: "클립보드에 복사하지 못했습니다.",
+      newFootnote: "새 각주",
+      createFailed: "각주 만들기 실패: {message}",
       deleteEmptyFootnote: "이 각주 정의는 비어 있습니다.",
       deleteCancel: "취소",
       deleteConfirm: "각주 삭제",
@@ -442,8 +466,41 @@
       .trim();
   }
 
+  const SEARCH_QUOTES = new Set(["\"", "“", "”", "＂"]);
+
+  // Text in double quotes (" or “ ” or ＂) is one phrase; the rest splits into
+  // words at spaces. An unclosed quote runs to the end, so a phrase already
+  // works while it is being typed.
+  function parseSearchQuery(query) {
+    const phrases = [];
+    let outside = "";
+    let phrase = null;
+    const closePhrase = () => {
+      const words = phrase.split(/\s+/).filter(Boolean);
+      if (words.length > 0) phrases.push(words.join(" "));
+      phrase = null;
+    };
+    for (const char of String(query ?? "")) {
+      if (SEARCH_QUOTES.has(char)) {
+        if (phrase === null) {
+          phrase = "";
+          outside += " ";
+        } else {
+          closePhrase();
+        }
+      } else if (phrase === null) {
+        outside += char;
+      } else {
+        phrase += char;
+      }
+    }
+    if (phrase !== null) closePhrase();
+    return { phrases, words: outside.split(/\s+/).filter(Boolean) };
+  }
+
   function getSearchTokens(query) {
-    return normalizeForSearch(query).split(/\s+/).filter(Boolean);
+    const { phrases, words } = parseSearchQuery(query);
+    return [...words, ...phrases].map((token) => normalizeForSearch(token)).filter(Boolean);
   }
 
   function getExactFootnoteIdSearchQuery(query) {
@@ -475,7 +532,8 @@
     const tokens = getSearchTokens(query);
     if (tokens.length === 0) return footnotes;
     return footnotes.filter((footnote) => {
-      const haystack = getFootnoteSearchText(footnote);
+      // A phrase matches across line breaks: any run of whitespace is a space.
+      const haystack = getFootnoteSearchText(footnote).replace(/\s+/g, " ");
       return tokens.every((token) => haystack.includes(token));
     });
   }
@@ -483,7 +541,8 @@
   function getContentSearchTokens(query) {
     const tokens = [];
     const seen = new Set();
-    for (const token of String(query ?? "").trim().split(/\s+/).filter(Boolean)) {
+    const { phrases, words } = parseSearchQuery(query);
+    for (const token of [...words, ...phrases]) {
       const key = token.toLocaleLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -504,7 +563,8 @@
     const content = String(footnote.content || "");
     const matches = [];
     for (const token of tokens) {
-      const pattern = new RegExp(escapeRegExp(token), "giu");
+      // A phrase's words may be separated by any whitespace, line breaks too.
+      const pattern = new RegExp(token.split(" ").map(escapeRegExp).join("\\s+"), "giu");
       let match;
       while ((match = pattern.exec(content)) !== null) {
         if (match[0].length === 0) {
@@ -1292,6 +1352,51 @@
     };
   }
 
+  function formatFootnoteReference(id) {
+    return `[^${id}]`;
+  }
+
+  // A line that starts a new block ends the paragraph Obsidian would otherwise
+  // read as part of the footnote above it (CommonMark lazy continuation).
+  function startsMarkdownBlock(line) {
+    return /^ {0,3}(#{1,6}(\s|$)|`{3,}|~{3,}|>|[-+*](\s|$)|\d{1,9}[.)](\s|$))/.test(line)
+      || /^ {0,3}([-*_])(\s*\1){2,}\s*$/.test(line);
+  }
+
+  // "+" in the sidebar: an empty definition with the next free number, after
+  // the last definition and any unindented lines Obsidian reads as part of it
+  // (so no existing footnote changes), or at the end of a note without one.
+  function planNewFootnoteDefinition(rawText) {
+    const text = normalizeLineEndings(rawText);
+    const parsed = parseFootnotes(text);
+    let highest = 0;
+    for (const item of [...parsed.footnotes, ...parsed.references]) {
+      if (!/^\d+$/.test(item.id)) continue;
+      const number = Number(item.id);
+      if (Number.isSafeInteger(number) && number > highest) highest = number;
+    }
+    const id = String(highest + 1);
+    const last = parsed.footnotes[parsed.footnotes.length - 1];
+    if (!last) {
+      if (!text) return { id, at: 0, insert: `[^${id}]: ` };
+      const trailingNewlines = text.match(/\n*$/)[0].length;
+      return { id, at: text.length, insert: `${"\n".repeat(Math.max(0, 2 - trailingNewlines))}[^${id}]: ` };
+    }
+    const lines = text.split("\n");
+    const zones = getMarkdownExclusionZones(text, parsed.lineStarts);
+    let at = last.definitionEnd;
+    for (let lineIndex = last.endLine; lineIndex < lines.length; lineIndex += 1) {
+      const line = lines[lineIndex];
+      const start = parsed.lineStarts[lineIndex];
+      // Still inside a span that crosses the line break: the line goes too.
+      if (!isOffsetInZones(zones, at)) {
+        if (!line.trim() || isFootnoteDefinitionLine(line) || startsMarkdownBlock(line) || isOffsetInZones(zones, start)) break;
+      }
+      at = start + line.length;
+    }
+    return { id, at, insert: `\n[^${id}]: ` };
+  }
+
   function findReferenceAtOffset(parsed, offset) {
     return parsed.references.find((reference) => offset >= reference.start && offset <= reference.end) || null;
   }
@@ -1486,6 +1591,9 @@
         listKnownFootnoteIds,
         orderFootnotesByReference,
         detectAddedFootnotes,
+        parseSearchQuery,
+        formatFootnoteReference,
+        planNewFootnoteDefinition,
         findFootnoteDefinition,
         chooseFootnoteOwner,
         isReminderDefinition,
@@ -1530,6 +1638,9 @@
         findReferenceNearOffsetOnLine,
         orderFootnotesByReference,
         detectAddedFootnotes,
+        parseSearchQuery,
+        formatFootnoteReference,
+        planNewFootnoteDefinition,
         findFootnoteDefinition,
         chooseFootnoteOwner,
         isReminderDefinition,
@@ -2519,6 +2630,57 @@
       }
     }
 
+    // "+" in the sidebar. Reading the note, planning and writing happen in one
+    // synchronous step on the note's own editor (D-D picks it), so there is no
+    // window in which the text could change underneath the plan.
+    createFootnoteDefinition(file, onPlanned = null) {
+      const strings = getStrings();
+      const markdownView = this.findMarkdownViewForFile(file);
+      const editor = markdownView?.editor;
+      if (!editor || typeof editor.getValue !== "function") {
+        new Notice(strings.switchToEditingView);
+        return null;
+      }
+      try {
+        const text = normalizeLineEndings(editor.getValue());
+        const plan = planNewFootnoteDefinition(text);
+        onPlanned?.(plan.id);
+        // The plugin's own write is not a user edit (same as deleting).
+        this.suppressEditStamp = true;
+        let applied = false;
+        try {
+          applied = this.applyEditorInsertTransaction(editor, text, plan.at, plan.insert);
+        } finally {
+          this.suppressEditStamp = false;
+        }
+        if (!applied) {
+          new Notice(strings.switchToEditingView);
+          return null;
+        }
+        // Obsidian's own "Insert footnote" numbers from the saved file's cache:
+        // save now, so an insert right after this one does not reuse the number.
+        Promise.resolve(markdownView.save?.()).catch(() => {});
+        return plan;
+      } catch (error) {
+        new Notice(t(strings, "createFailed", { message: error.message || String(error) }));
+        return null;
+      }
+    }
+
+    applyEditorInsertTransaction(editor, text, offset, insert) {
+      if (typeof editor.transaction === "function") {
+        const position = editorPositionFromOffset(editor, text, offset);
+        editor.transaction({ changes: [{ from: position, to: position, text: insert }] });
+        return true;
+      }
+      const cm = editor.cm;
+      if (cm && typeof cm.dispatch === "function") {
+        cm.dispatch({ changes: [{ from: offset, to: offset, insert }] });
+        return true;
+      }
+      return false;
+    }
+
     applyEditorDeleteTransaction(editor, text, ranges) {
       const changes = normalizeDeleteRanges(ranges, text.length);
       if (changes.length === 0) return false;
@@ -2747,6 +2909,11 @@
       this.searchCountEl = null;
       this.searchPreviousButton = null;
       this.searchNextButton = null;
+      this.newFootnoteButton = null;
+      this.searchRowSearching = false;
+      this.searchComposing = false;
+      // "+" was clicked: { path, id, at } until the new card has been opened.
+      this.pendingCreatedFootnote = null;
       this.currentFootnotes = [];
       this.currentPrimaryById = new Map();
       this.currentHiddenDefinitionIds = [];
@@ -3487,12 +3654,6 @@
       const headerEl = this.contentEl.createDiv({ cls: "bfw-header" });
       const titleRow = headerEl.createDiv({ cls: "bfw-title-row" });
       titleRow.createDiv({ cls: "bfw-title", text: strings.title });
-      const refreshButton = titleRow.createEl("button", {
-        cls: "bfw-button",
-        text: strings.refresh,
-        attr: { type: "button" },
-      });
-      refreshButton.addEventListener("click", () => this.scheduleRender(0));
 
       const subtitleEl = headerEl.createDiv({ cls: "bfw-subtitle" });
       this.subtitleEl = subtitleEl;
@@ -3505,6 +3666,17 @@
         },
       });
       this.searchInputEl.setAttr("aria-label", strings.searchTooltip);
+      // While an input method composes the first characters the search row
+      // keeps its layout (the box would narrow under the candidate list).
+      this.searchComposing = false;
+      this.searchInputEl.addEventListener("compositionstart", () => {
+        this.searchComposing = true;
+      });
+      this.searchInputEl.addEventListener("compositionend", () => {
+        this.searchComposing = false;
+        this.updateSearchModeButtons();
+        this.updateSearchControls();
+      });
       this.resumeSearchButton = searchRowEl.createEl("button", {
         cls: "bfw-button bfw-search-nav-button",
         text: "↵",
@@ -3531,6 +3703,13 @@
         attr: { type: "button" },
       });
       this.searchNextButton.setAttr("title", strings.nextMatch);
+      this.newFootnoteButton = searchRowEl.createEl("button", {
+        cls: "bfw-button bfw-search-nav-button bfw-new-footnote",
+        text: "+",
+        attr: { type: "button" },
+      });
+      this.newFootnoteButton.setAttr("title", strings.newFootnote);
+      this.newFootnoteButton.addEventListener("click", () => this.createFootnoteFromSidebar());
       this.listEl = this.contentEl.createDiv({ cls: "bfw-list" });
       this.listEl.addEventListener("click", (event) => this.onRenderedLinkClick(event));
       this.updateSearchModeButtons();
@@ -3538,6 +3717,7 @@
       if (!file) {
         subtitleEl.setText(strings.noActiveFile);
         this.searchInputEl.setAttr("disabled", "true");
+        this.newFootnoteButton.setAttr("disabled", "true");
         clearSearchButton.setAttr("disabled", "true");
         this.resumeSearchButton.setAttr("disabled", "true");
         this.setSearchNavDisabled(true);
@@ -3586,7 +3766,15 @@
       // Automatic tidy and focus only follow a new footnote with a marker in
       // the text; any other new definition is highlighted and left alone.
       const automatedFootnote = restoredDeletedFootnote ? null : chooseAutomatedAddedFootnote(addedFootnotes);
-      const highlightedFootnote = restoredDeletedFootnote || automatedFootnote || addedFootnote;
+      // "+" asked for this footnote: open its card for writing once it shows up,
+      // whichever way it was detected (new, or taken for an undone deletion).
+      let createdFootnote = null;
+      const pendingCreated = this.pendingCreatedFootnote;
+      if (pendingCreated?.path === file.path) {
+        createdFootnote = orderedFootnotes.find((footnote) => footnote.id === pendingCreated.id && footnote.isOwner) || null;
+        if (createdFootnote || Date.now() - pendingCreated.at > PENDING_CREATED_FOOTNOTE_MS) this.pendingCreatedFootnote = null;
+      }
+      const highlightedFootnote = createdFootnote || restoredDeletedFootnote || automatedFootnote || addedFootnote;
       this.currentFootnotes = orderedFootnotes;
       this.currentPrimaryById = parsed.primaryById;
       this.currentHiddenDefinitionIds = parsed.hiddenDefinitionIds || [];
@@ -3632,6 +3820,9 @@
         nextState.activeSnapshot = createFootnoteSnapshot(highlightedFootnote);
         nextState.autoFocusRendersRemaining = 0;
       }
+      if (createdFootnote) {
+        nextState.autoFocusRendersRemaining = 1;
+      }
       if (automatedFootnote && editedInOwnEditor) {
         nextState.autoFocusRendersRemaining = Math.max(
           Number(savedState.autoFocusRendersRemaining || 0),
@@ -3661,6 +3852,7 @@
         clearSearchButton.setAttr("disabled", "true");
         this.resumeSearchButton.setAttr("disabled", "true");
         this.setSearchNavDisabled(true);
+        this.updateSearchModeButtons();
         this.listEl.createDiv({ cls: "bfw-empty", text: strings.noFootnotes });
         restoreSearchFocus();
         return;
@@ -3769,13 +3961,24 @@
       return this.isSearchPaused() ? "" : this.getRawSearchQuery();
     }
 
+    // The search row has two states: empty box and "+" (writing), or the box
+    // with clear, count and up/down (searching), and paused adds resume.
     updateSearchModeButtons() {
-      const hasQuery = Boolean(this.getRawSearchQuery().trim());
-      if (this.clearSearchButton) {
-        this.clearSearchButton.style.display = hasQuery ? "" : "none";
-      }
-      if (this.resumeSearchButton) {
-        this.resumeSearchButton.style.display = hasQuery && this.searchPaused ? "" : "none";
+      // A disabled box (no note, or a note without footnotes) is not searching,
+      // even with an old query left in it: "+" must stay reachable.
+      let searching = Boolean(this.getRawSearchQuery().trim()) && !this.searchInputEl?.disabled;
+      if (searching && this.searchComposing && !this.searchRowSearching) searching = false;
+      this.searchRowSearching = searching;
+      const show = (el, visible) => {
+        if (el) el.style.display = visible ? "" : "none";
+      };
+      show(this.clearSearchButton, searching);
+      show(this.resumeSearchButton, searching && this.searchPaused);
+      show(this.searchPreviousButton, searching);
+      show(this.searchNextButton, searching);
+      show(this.newFootnoteButton, !searching);
+      if (this.searchCountEl) {
+        this.searchCountEl.style.display = searching && !this.isSearchPaused() ? "" : "none";
       }
     }
 
@@ -3913,7 +4116,7 @@
           current: formatNumber(current),
           total: formatNumber(total),
         }));
-        this.searchCountEl.style.display = this.getRawSearchQuery().trim() && !this.isSearchPaused() ? "" : "none";
+        this.searchCountEl.style.display = this.searchRowSearching && !this.isSearchPaused() ? "" : "none";
       }
       this.setSearchNavDisabled(this.isSearchPaused() || total === 0);
     }
@@ -3987,13 +4190,14 @@
     applySearchMatch(result, options = {}) {
       if (!result) return;
       const reminderOccurrence = this.getSearchResultOccurrence(result);
+      // A hit with no text to select (a reminder card, or a card found by its
+      // number or id alone) lights up the card and takes the keyboard back
+      // from the card it was in to the search box (Enter there moves on too),
+      // so no other card still looks current.
+      if ((reminderOccurrence !== null || !result.match) && document.activeElement?.closest?.(".bfw-list")) {
+        this.searchInputEl?.focus({ preventScroll: true });
+      }
       if (reminderOccurrence !== null) {
-        // A reminder card has no text to select: light up the card itself, and
-        // take the keyboard back from the card it was in to the search box
-        // (Enter there moves on too), so no other card still looks current.
-        if (document.activeElement?.closest?.(".bfw-list")) {
-          this.searchInputEl?.focus({ preventScroll: true });
-        }
         this.focusFootnote(result.footnoteId, {
           scroll: options.scroll !== false,
           focusEditor: false,
@@ -4206,6 +4410,7 @@
         : 0;
       this.setFootnoteReferenceIndex(footnoteId, nextIndex);
       this.focusFootnote(footnoteId, { scroll: false, focusEditor: false });
+      this.followSearchPosition(footnoteId, null);
       this.plugin.jumpToFootnoteReference(this.file, footnoteId, {
         focus: false,
         flash: true,
@@ -4283,8 +4488,22 @@
       const headerEl = itemEl.createDiv({ cls: "bfw-item-header" });
       const idBlockEl = headerEl.createDiv({ cls: "bfw-id-block" });
       const idEl = idBlockEl.createDiv({ cls: "bfw-id", text: String(footnote.id) });
-      idEl.setAttr("title", `[^${footnote.id}]`);
       const isExtraDefinition = isReminderDefinition(footnote);
+      if (isExtraDefinition) {
+        idEl.setAttr("title", formatFootnoteReference(footnote.id));
+      } else {
+        // The number copies [^id] and does nothing else: the focus stays where
+        // it is (the note's caret, or this card's editor), so the reference can
+        // be pasted right away.
+        idEl.addClass("is-copyable");
+        idEl.setAttr("title", t(strings, "copyReferenceTooltip", { id: footnote.id }));
+        idEl.addEventListener("mousedown", (event) => event.preventDefault());
+        idEl.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          this.copyFootnoteReference(footnote.id);
+        });
+      }
       if (isExtraDefinition) {
         itemEl.addClass("is-duplicate");
         idBlockEl.createSpan({ cls: "bfw-duplicate-badge", text: strings.duplicateNumberBadge });
@@ -4342,6 +4561,7 @@
           focusEditor: false,
           occurrence: isExtraDefinition ? footnote.occurrence : null,
         });
+        this.followSearchPosition(footnote.id, isExtraDefinition ? footnote.occurrence : null);
         this.plugin.suppressCursorSyncFromSidebarJump();
       });
       if (isExtraDefinition) {
@@ -4421,6 +4641,12 @@
         event.stopPropagation();
         this.plugin.suppressCursorSyncFromSidebarJump();
         const menu = new Menu();
+        menu.addItem((item) => {
+          item
+            .setTitle(t(strings, "copyReferenceMenu", { id: footnote.id }))
+            .setIcon("copy")
+            .onClick(() => this.copyFootnoteReference(footnote.id));
+        });
         menu.addItem((item) => {
           item
             .setTitle(strings.deleteFootnoteMenu)
@@ -4640,6 +4866,28 @@
       this.scheduleRender();
     }
 
+    createFootnoteFromSidebar() {
+      const file = this.file;
+      if (!file) return;
+      const plan = this.plugin.createFootnoteDefinition(file, (id) => {
+        this.pendingCreatedFootnote = { path: file.path, id, at: Date.now() };
+      });
+      if (!plan) this.pendingCreatedFootnote = null;
+    }
+
+    copyFootnoteReference(footnoteId) {
+      const strings = getStrings();
+      const clipboard = typeof navigator !== "undefined" ? navigator.clipboard : null;
+      if (!clipboard || typeof clipboard.writeText !== "function") {
+        new Notice(strings.copyFailed);
+        return;
+      }
+      clipboard.writeText(formatFootnoteReference(footnoteId)).then(
+        () => new Notice(t(strings, "copiedReference", { id: footnoteId }), COPIED_NOTICE_MS),
+        () => new Notice(strings.copyFailed),
+      );
+    }
+
     activateFootnoteFromSidebar(footnoteId, options = {}) {
       this.plugin.suppressCursorSyncFromSidebarJump();
       const occurrence = Number.isInteger(options.occurrence) ? options.occurrence : null;
@@ -4648,25 +4896,52 @@
       const footnote = (occurrence !== null
         && this.currentFootnotes.find((item) => item.id === footnoteId && (item.occurrence || 0) === occurrence))
         || this.getPrimaryFootnote(footnoteId);
+      const cardOccurrence = isReminderDefinition(footnote) ? footnote.occurrence : null;
       this.focusFootnote(footnoteId, {
         scroll: false,
         focusEditor: false,
-        occurrence: isReminderDefinition(footnote) ? footnote.occurrence : null,
+        occurrence: cardOccurrence,
       });
+      if (!options.selectSearchMatch) this.followSearchPosition(footnoteId, cardOccurrence);
       if (footnote?.referenceCount > 0) {
         this.plugin.jumpToFootnoteReference(this.file, footnoteId, {
           focus: false,
           flash: true,
           referenceIndex: this.getFootnoteReferenceIndex(footnote),
         });
-      } else {
-        this.plugin.jumpToFootnoteDefinition(this.file, footnoteId, { focus: false, occurrence: footnote?.occurrence });
+      } else if (isReminderDefinition(footnote)) {
+        // A reminder card leads to its own definition, where it gets renumbered.
+        this.plugin.jumpToFootnoteDefinition(this.file, footnoteId, { focus: false, occurrence: footnote.occurrence });
       }
+      // An unreferenced footnote has no place in the text yet: the note stays.
       this.plugin.suppressCursorSyncFromSidebarJump();
       if (options.selectSearchMatch) {
         this.selectFirstSearchMatchForFootnote(footnoteId, { scroll: false, occurrence: footnote?.occurrence });
       }
       this.captureState();
+    }
+
+    // A card the user makes current by hand (a click to edit it, its Footnote
+    // area button, its reference arrows) also becomes the search position, so
+    // the count and the outline never sit on another card. Text and focus stay.
+    // Not called on rebuilds or while typing a query: Enter starts at the top.
+    followSearchPosition(footnoteId, occurrence) {
+      if (!this.hasActiveSearch()) return;
+      const isThisCard = (result) => result?.footnoteId === footnoteId && this.getSearchResultOccurrence(result) === occurrence;
+      if (isThisCard(this.searchMatches[this.searchMatchIndex])) return;
+      const index = this.searchMatches.findIndex(isThisCard);
+      if (index < 0) return;
+      this.searchMatchIndex = index;
+      this.pausedSearchMatchIndex = -1;
+      if (this.file) {
+        this.stateByFile.set(this.file.path, {
+          ...(this.stateByFile.get(this.file.path) || {}),
+          searchMatchIndex: index,
+          pausedSearchMatchIndex: -1,
+        });
+      }
+      this.updateSearchControls();
+      this.markSearchTarget();
     }
 
     // The active card: the number's primary card, or the reminder card of
