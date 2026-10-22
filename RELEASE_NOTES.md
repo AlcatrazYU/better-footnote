@@ -1,24 +1,29 @@
-# Better Footnote 1.5.7
+# Better Footnote 1.6.0
 
-When two footnote definitions share a number, the sidebar now decides by content instead of by position, and deleting one of them no longer removes reference markers. **Recommended for everyone.**
+Write a footnote first and place it later, and search for whole phrases.
 
-## Data safety (important)
+## New
 
-- When two definitions share a number, deleting either one now removes only that definition. The reference markers in the note stay and belong to the definition that remains. Previously, deleting the upper definition also removed every marker of that number.
-- The definition with content is now the one the sidebar edits and connects to the markers, wherever it sits. Previously the upper definition was always taken as the real footnote, so a blank definition typed above a real one took over its markers and the real one was marked "Number in use".
-- If a footnote changes between opening the delete dialog and confirming it (for example through Sync), nothing is deleted.
+- **Draft first, place later.** Click `+` beside the search box to add an empty footnote with the next free number after the last footnote definition; its card opens for writing. When you know where it belongs, click the number on the card to copy its marker (such as `[^41]`) and paste it into the note. Clicking the number only copies: the note and your cursor stay where they are, so you can paste right away. The card's right-click menu can copy it too.
+- **Phrase search.** Put words in double quotes, such as `"Hey Jude"`, to search for them as one phrase; Chinese quotes `“ ”` work too. A phrase is highlighted and counted as one match, also across line breaks. Words without quotes are still searched one by one.
 
 ## Changes
 
-- Automatic tidy and the jump into a new card now follow only a new footnote in the text. Typing, renumbering or pasting a definition that has no marker in the note no longer starts Tidy Footnotes, so the numbers of footnotes you are still drafting stay as they are.
-- When several definitions of one number have content, or all of them are blank, the sidebar no longer guesses which one is real: all of them show "Number in use" until one gets a new number.
-- For a number in conflict, only one card lights up at a time, and search no longer selects text inside the wrong card.
-- Undoing the deletion of a footnote now brings back exactly the footnote you deleted, even when another definition shares its number. Previously the sidebar could take the other definition for the restored one, and then stop following the cursor on that number for up to ten minutes.
-- Renumbering footnotes, by hand or through Tidy Footnotes, is no longer mistaken for adding new ones. Previously, with an unplaced high number such as `[^305]` in the note, the jump after inserting a footnote could land on the wrong card.
-- Removed the notice about a newly inserted footnote colliding with an existing number. The "Number in use" card already shows the conflict, and the notice's advice did not fit most of the ways a conflict arises.
+- Clicking a card whose footnote has no marker in the note no longer moves the note; the card just becomes the current one. Use the `Footnote area` button to go to its definition.
+- The search row shows `+` while the box is empty, and the clear button, match count and up/down buttons only while you search.
+- The `Refresh` button is gone. The sidebar already refreshes by itself when you switch notes, edit, or a note changes through Sync.
+
+## Fixes
+
+- While searching, only one card is outlined at a time. Moving to a result that matches only a card's number, or clicking another card to edit it, no longer leaves a second outline on the previous card; the card you click also becomes the search position.
+
+## Thanks
+
+Thanks to @fat-pumpkin for Issue #6, which asked for a quicker way to put a footnote's reference into the text and started this release.
 
 ## Known limitations
 
+- Text written right below a footnote definition without indentation belongs to that footnote in Obsidian's reading view, but its sidebar card shows only the indented lines. Editing the card keeps that text as it is.
 - When two definitions share one number, Obsidian's reading view shows only the later one and Tidy Footnotes keeps only the later one. Give one of them a new number before tidying by hand.
 - Footnote definitions written inside a block quote (`> [^1]: ...`) are not recognised. Write them outside the quote if you want them in the sidebar.
 - Tidy Footnotes itself does not skip code blocks. If you run it on a note with footnote examples inside code, it can still renumber those examples; check code examples after tidying such notes.
