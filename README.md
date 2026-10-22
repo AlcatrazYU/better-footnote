@@ -8,14 +8,14 @@ A footnote sidebar workspace for academic and long-form writing in Obsidian.
 
 ☕ Better Footnote is free and will stay free. If it saves you time in your writing, you can [buy me a coffee](https://ko-fi.com/alcatrazyu).
 
-Better Footnote gathers the footnotes in the current note into a stable right sidebar. It lets you edit, search, expand, and delete footnotes directly, while moving between in-text footnote markers, sidebar cards, and footnote definitions without losing your place.
+Better Footnote gathers the footnotes in the current note into a stable right sidebar. It lets you add, edit, search, expand, and delete footnotes directly, while moving between in-text footnote markers, sidebar cards, and footnote definitions without losing your place.
 
 ## Quick Start
 
 1. Install and enable Better Footnote from Obsidian's Community plugins.
 2. Open the sidebar: click this icon in Obsidian's left ribbon ![Better Footnote ribbon icon](docs/assets/ribbon-icon.svg), or run `Open Better Footnote` from the command palette.
 3. Open a Markdown note with standard footnote definitions such as `[^1]: Reference text` or `[^citation]: Reference text`.
-4. Edit or search footnotes in the right sidebar. Changes are saved automatically.
+4. Edit or search footnotes in the right sidebar, or click `+` beside the search box to add one. Changes are saved automatically.
 
 ## Why Use It
 
@@ -26,6 +26,7 @@ Obsidian footnotes are flexible, but they become hard to work with in long notes
 - Searching for repeated citations in the whole note can mix footnote hits with body text hits.
 - Long footnotes need more room, while short footnotes should stay compact.
 - Deleting a footnote cleanly means removing both the reference marker and the definition.
+- Typing a footnote definition such as `[^4]: ` by hand takes several steps, and an input method can turn its brackets and colon full-width, so it looks right but is not a footnote.
 - Newly inserted footnotes often need numbering and definition order cleaned up.
 
 Better Footnote turns footnotes into a right-side editing workspace instead of a block of text hidden at the end of the note.
@@ -114,14 +115,14 @@ The interface follows Obsidian's language first, then the system language, and f
 
 ## 中文
 
-Better Footnote 是一个用于 Obsidian 的脚注侧栏工作台。它面向长文、论文和研究笔记：把当前笔记里的脚注集中放到右侧边栏，让你可以直接编辑、搜索、展开、删除脚注，并在正文脚注标记、侧栏脚注卡片和文末脚注定义之间快速定位。
+Better Footnote 是一个用于 Obsidian 的脚注侧栏工作台。它面向长文、论文和研究笔记：把当前笔记里的脚注集中放到右侧边栏，让你可以直接新建、编辑、搜索、展开、删除脚注，并在正文脚注标记、侧栏脚注卡片和文末脚注定义之间快速定位。
 
 ### 快速开始
 
 1. 在 Obsidian 第三方插件中安装并启用 Better Footnote。
 2. 打开侧栏：点击 Obsidian 左侧图标条里的这个图标 ![Better Footnote 图标](docs/assets/ribbon-icon.svg)，或者在命令面板中运行 `Open Better Footnote`。
 3. 打开包含标准脚注定义的 Markdown 笔记，例如 `[^1]: 引用内容` 或 `[^citation]: 引用内容`。
-4. 在右侧边栏编辑或搜索脚注。修改会自动保存。
+4. 在右侧边栏编辑或搜索脚注，也可以点搜索框旁的 `+` 新建一条。修改会自动保存。
 
 ### 为什么需要它
 
@@ -132,6 +133,7 @@ Obsidian 的脚注语法很灵活，但在长文、论文和研究草稿中，�
 - 想查某个文献或表述是否已经在脚注中出现过，只能全文搜索，容易被正文内容干扰。
 - 长脚注需要展开查看，短脚注又不应该占太多侧栏空间。
 - 删除一条脚注时，需要同时处理正文引用标记和文末定义，容易漏删。
+- 手打一条脚注定义（如 `[^4]: `）要好几步，中文输入法还容易把方括号和冒号打成全角，看着对却不算脚注。
 - 新增脚注后，编号和文末定义顺序经常还需要整理。
 
 Better Footnote 的思路是把脚注变成一个稳定的右侧编辑工作区，而不是藏在文末的一长串文本。
@@ -224,14 +226,14 @@ Better Footnote 永久免费。如果它为你的学术写作省下了时间，�
 
 ## 日本語
 
-Better Footnote は、Obsidian の脚注サイドバー作業スペースです。長いノート、論文、研究メモで使う脚注を右サイドバーにまとめ、脚注の編集、検索、展開、削除、そして本文中の脚注マーカー、サイドバーのカード、文末の脚注定義の間の移動をしやすくします。
+Better Footnote は、Obsidian の脚注サイドバー作業スペースです。長いノート、論文、研究メモで使う脚注を右サイドバーにまとめ、脚注の追加、編集、検索、展開、削除、そして本文中の脚注マーカー、サイドバーのカード、文末の脚注定義の間の移動をしやすくします。
 
 ### 使い方
 
 1. Obsidian の Community plugins から Better Footnote をインストールして有効化します。
 2. サイドバーを開く: Obsidian 左側のリボンにあるこのアイコンをクリックするか ![Better Footnote アイコン](docs/assets/ribbon-icon.svg)、コマンドパレットで `Open Better Footnote` を実行します。
 3. `[^1]: Reference text` や `[^citation]: Reference text` のような標準脚注定義を含む Markdown ノートを開きます。
-4. 右サイドバーで脚注を編集または検索します。変更は自動保存されます。
+4. 右サイドバーで脚注を編集または検索します。検索欄の横の `+` で新しい脚注も追加できます。変更は自動保存されます。
 
 ### なぜ使うのか
 
@@ -242,6 +244,7 @@ Obsidian の脚注記法は柔軟ですが、長いノート、論文、研究�
 - 既出の文献や表現を探すとき、全文検索では本文中の一致も混ざってしまう。
 - 長い脚注は展開して読みたい一方、短い脚注はコンパクトに保ちたい。
 - 脚注を削除するとき、本文中の参照マーカーと文末定義の両方を処理する必要がある。
+- 脚注定義（`[^4]: ` など）を手で入力するには手間がかかり、日本語入力では括弧やコロンが全角になって、見た目は正しくても脚注として認識されないことがある。
 - 新しい脚注を入れた後、番号や定義順の整理が必要になることがある。
 
 Better Footnote は、脚注をノート末尾に隠れたテキストではなく、右サイドバーの安定した編集作業スペースとして扱えるようにします。
@@ -334,14 +337,14 @@ UI は Obsidian の言語、次にシステム言語を参照し、最後に英�
 
 ## 한국어
 
-Better Footnote는 Obsidian용 각주 사이드바 작업 공간입니다. 긴 노트, 논문, 연구 초안의 각주를 오른쪽 사이드바에 모아 두고, 각주를 직접 편집, 검색, 펼치기, 삭제할 수 있으며 본문 각주 표시, 사이드바 카드, 문서 끝의 각주 정의 사이를 빠르게 오갈 수 있습니다.
+Better Footnote는 Obsidian용 각주 사이드바 작업 공간입니다. 긴 노트, 논문, 연구 초안의 각주를 오른쪽 사이드바에 모아 두고, 각주를 직접 추가, 편집, 검색, 펼치기, 삭제할 수 있으며 본문 각주 표시, 사이드바 카드, 문서 끝의 각주 정의 사이를 빠르게 오갈 수 있습니다.
 
 ### 빠른 시작
 
 1. Obsidian Community plugins에서 Better Footnote를 설치하고 활성화합니다.
 2. 사이드바 열기: Obsidian 왼쪽 리본에 있는 이 아이콘을 클릭하거나 ![Better Footnote 아이콘](docs/assets/ribbon-icon.svg), 명령 팔레트에서 `Open Better Footnote`를 실행합니다.
 3. `[^1]: Reference text` 또는 `[^citation]: Reference text` 같은 표준 각주 정의가 포함된 Markdown 노트를 엽니다.
-4. 오른쪽 사이드바에서 각주를 편집하거나 검색합니다. 변경 사항은 자동 저장됩니다.
+4. 오른쪽 사이드바에서 각주를 편집하거나 검색합니다. 검색창 옆의 `+`로 새 각주를 추가할 수도 있습니다. 변경 사항은 자동 저장됩니다.
 
 ### 왜 필요한가
 
@@ -352,6 +355,7 @@ Obsidian의 각주 문법은 유연하지만, 긴 노트, 논문, 연구 초안�
 - 이미 인용한 문헌이나 표현을 찾을 때 전체 검색을 하면 본문 검색 결과가 함께 섞입니다.
 - 긴 각주는 펼쳐서 보고 싶지만, 짧은 각주는 간결하게 유지하고 싶습니다.
 - 각주를 삭제할 때 본문 참조 표시와 각주 정의를 모두 처리해야 합니다.
+- `[^4]: ` 같은 각주 정의를 직접 입력하려면 여러 단계가 필요하고, 괄호나 콜론 하나만 틀려도 각주로 인식되지 않습니다.
 - 새 각주를 넣은 뒤 번호와 각주 정의 순서를 정리해야 할 때가 있습니다.
 
 Better Footnote는 각주를 문서 끝에 숨어 있는 텍스트가 아니라 오른쪽 사이드바의 안정적인 편집 작업 공간으로 바꿉니다.
