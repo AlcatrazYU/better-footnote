@@ -145,7 +145,7 @@ const exactIdSearch = parser.parseFootnotes([
 ].join("\n"));
 assert.deepEqual(parser.filterFootnotes(exactIdSearch.footnotes, "^17").map((footnote) => footnote.id), ["17"]);
 assert.deepEqual(parser.findFootnoteSearchResults(exactIdSearch.footnotes, "^17"), [
-  { footnoteId: "17", match: null },
+  { footnoteId: "17", occurrence: 0, match: null },
 ]);
 assert.deepEqual(parser.filterFootnotes(exactIdSearch.footnotes, "^citation").map((footnote) => footnote.id), ["citation"]);
 assert.deepEqual(parser.filterFootnotes(exactIdSearch.footnotes, "17").map((footnote) => footnote.id), ["17", "citation"]);
@@ -545,7 +545,11 @@ assert.equal(
   assert.deepEqual(ids(shifted), ["z", "1"]);
   assert.deepEqual(parser.detectAddedFootnotes(parser.parseFootnotes(shifted).footnotes, knownIds, snapshots), []);
   const inserted = `${before}\n[^9]: `.replace("Text.[^1]", "Text.[^1] More.[^9]");
-  assert.deepEqual(parser.detectAddedFootnotes(parser.parseFootnotes(inserted).footnotes, knownIds, snapshots).map((f) => f.id), ["9"]);
+  const insertedParsed = parser.parseFootnotes(inserted);
+  assert.deepEqual(
+    parser.detectAddedFootnotes(insertedParsed.footnotes, knownIds, snapshots, insertedParsed.hiddenDefinitionIds).map((f) => f.id),
+    ["9"],
+  );
 }
 
 // Several definitions with one id: every card addresses its own definition.
@@ -557,12 +561,18 @@ assert.equal(
   const stray = parser.deleteFootnoteFromText(collision, "1", { occurrence: 1 });
   assert.equal(stray.changed, true);
   assert.equal(stray.referenceCount, 0);
+  assert.equal(stray.keptSharedMarkers, 3);
+  assert.equal(stray.conflict, true);
   assert.equal(stray.contentIsBlank, true);
   assert.equal(stray.text, "Sato argues X.[^1] Later.[^1] New point.[^1]\n\n[^1]: Sato 2019, p. 45.");
 
+  // Markers shared by a number in conflict belong to no single card: deleting
+  // the definition with content keeps them, and the blank one inherits them.
   const first = parser.deleteFootnoteFromText(collision, "1");
-  assert.equal(first.referenceCount, 3);
-  assert.equal(first.text, "Sato argues X. Later. New point.\n\n[^1]: ");
+  assert.equal(first.footnote.occurrence, 0);
+  assert.equal(first.referenceCount, 0);
+  assert.equal(first.keptSharedMarkers, 3);
+  assert.equal(first.text, "Sato argues X.[^1] Later.[^1] New point.[^1]\n\n[^1]: ");
   assert.equal(parser.deleteFootnoteFromText(collision, "1", { occurrence: 2 }).reason, "missing-footnote");
 
   const writeStray = parser.replaceFootnoteContent(collision, "1", "Stray now has text.", { expectedContent: "", occurrence: 1 });
@@ -600,6 +610,172 @@ assert.equal(
     ),
     [],
   );
+}
+
+// Internal-3: the definition with content owns a number in conflict, wherever
+// it sits; when content cannot tell (all blank, or several with content) no
+// definition does.
+{
+  const group = (lines) => parser.parseFootnotes(["Point.[^35]", "", ...lines].join("\n")).footnotes
+    .filter((footnote) => footnote.id === "35");
+  const owners = (lines) => group(lines).map((footnote) => footnote.isOwner);
+  const counts = (lines) => group(lines).map((footnote) => footnote.referenceCount);
+
+  assert.deepEqual(owners(["[^35]: Smith 2020.", "[^35]: "]), [true, false]);
+  assert.deepEqual(owners(["[^35]: ", "[^35]: Smith 2020."]), [false, true]);
+  assert.deepEqual(counts(["[^35]: ", "[^35]: Smith 2020."]), [0, 1]);
+  assert.deepEqual(owners(["[^35]: ", "[^35]: Smith 2020.", "[^35]:   "]), [false, true, false]);
+  assert.deepEqual(owners(["[^35]: ", "[^35]: "]), [false, false]);
+  assert.deepEqual(counts(["[^35]: ", "[^35]: "]), [0, 0]);
+  assert.deepEqual(owners(["[^35]: Smith", "[^35]: Jones"]), [false, false]);
+  assert.deepEqual(owners(["[^35]: Smith", "[^35]: ", "[^35]: Jones"]), [false, false, false]);
+  assert.deepEqual(group(["[^35]: Smith", "[^35]: "]).map((footnote) => footnote.conflict), [true, true]);
+  assert.deepEqual(group(["[^35]: ", "[^35]: Smith"]).map((footnote) => parser.isReminderDefinition(footnote)), [true, false]);
+
+  const single = parser.parseFootnotes("Point.[^1]\n\n[^1]: ").footnotes[0];
+  assert.equal(single.isOwner, true);
+  assert.equal(single.conflict, false);
+  assert.equal(single.referenceCount, 1);
+  assert.equal(parser.isReminderDefinition(single), false);
+
+  assert.equal(parser.chooseFootnoteOwner([{ content: "" }, { content: " x " }]).content, " x ");
+  assert.equal(parser.chooseFootnoteOwner([{ content: "" }, { content: "\n" }]), null);
+  assert.equal(parser.chooseFootnoteOwner([{ content: "" }]).content, "");
+
+  // Lookups by number land on the owner, or on the first definition when there is none.
+  const blankAbove = parser.parseFootnotes("Point.[^35] Other.[^2]\n\n[^35]: \n[^35]: Smith 2020.\n[^2]: two");
+  assert.equal(blankAbove.primaryById.get("35").occurrence, 1);
+  assert.equal(parser.findPrimaryFootnote(blankAbove.footnotes, "35").occurrence, 1);
+  assert.equal(parser.findFootnoteDefinition(blankAbove, "35").content, "Smith 2020.");
+  assert.equal(parser.findFootnoteDefinition(blankAbove, "35", 0).content, "");
+  assert.equal(parser.findPrimaryFootnote(blankAbove.footnotes, "2").content, "two");
+  const allBlank = parser.parseFootnotes("Point.[^35]\n\n[^35]: \n[^35]: ");
+  assert.equal(allBlank.primaryById.get("35").occurrence, 0);
+  assert.equal(parser.findPrimaryFootnote([{ id: "9", content: "plain" }], "9").content, "plain");
+  assert.equal(parser.findPrimaryFootnote(blankAbove.footnotes, "missing"), null);
+}
+
+// The maintainer's sequence S1: a blank duplicate typed above the real footnote.
+// Whichever definition is deleted, the marker stays and the other one owns it.
+{
+  const s1 = "Point.[^35] End.\n\n[^35]: \n[^35]: Smith 2020.";
+  const deleteBlank = parser.deleteFootnoteFromText(s1, "35", { occurrence: 0 });
+  assert.equal(deleteBlank.text, "Point.[^35] End.\n\n[^35]: Smith 2020.");
+  assert.equal(deleteBlank.keptSharedMarkers, 1);
+  const survivor = parser.parseFootnotes(deleteBlank.text).footnotes[0];
+  assert.deepEqual([survivor.referenceCount, survivor.isOwner, survivor.conflict], [1, true, false]);
+
+  const deleteContent = parser.deleteFootnoteFromText(s1, "35", { occurrence: 1 });
+  assert.equal(deleteContent.text, "Point.[^35] End.\n\n[^35]: ");
+  assert.equal(parser.parseFootnotes(deleteContent.text).footnotes[0].referenceCount, 1);
+
+  // Without a conflict, deleting a footnote still removes its markers.
+  const plain = parser.deleteFootnoteFromText("Point.[^7] End.\n\n[^7]: Smith 2020.", "7");
+  assert.equal(plain.text, "Point. End.\n");
+  assert.equal(plain.referenceCount, 1);
+  assert.equal(plain.keptSharedMarkers, 0);
+  assert.equal(plain.conflict, false);
+
+  // Delete refuses when the definition changed after the dialog opened.
+  const moved = parser.deleteFootnoteFromText(s1, "35", { occurrence: 0, expectedContent: "Smith 2020." });
+  assert.equal(moved.changed, false);
+  assert.equal(moved.reason, "content-mismatch");
+  assert.equal(moved.text, s1);
+  assert.equal(parser.deleteFootnoteFromText(s1, "35", { occurrence: 1, expectedContent: "Smith 2020." }).changed, true);
+}
+
+// Tidy renumbering after an insert that took a high number (an unplaced draft
+// [^305] made Obsidian pick 306) adds nothing: the count is unchanged, so no
+// renumbered footnote is mistaken for a new one.
+{
+  const inserted = parser.parseFootnotes("A.[^1] New.[^306] B.[^2] C.[^3]\n\n[^1]: one\n[^2]: two\n[^3]: three\n[^305]: \n[^306]: ");
+  const tidied = parser.parseFootnotes("A.[^1] New.[^2] B.[^3] C.[^4]\n\n[^1]: one\n[^2]: \n[^3]: two\n[^4]: three\n[^5]: \n");
+  const afterTidy = parser.detectAddedFootnotes(
+    tidied.footnotes,
+    parser.listKnownFootnoteIds(inserted),
+    inserted.footnotes.map((footnote) => parser.createFootnoteSnapshot(footnote)),
+    tidied.hiddenDefinitionIds,
+  );
+  assert.deepEqual(afterTidy, []);
+  // The insert itself is still new and automated.
+  const beforeInsert = parser.parseFootnotes("A.[^1] B.[^2] C.[^3]\n\n[^1]: one\n[^2]: two\n[^3]: three\n[^305]: ");
+  const insertAdded = parser.detectAddedFootnotes(
+    inserted.footnotes,
+    parser.listKnownFootnoteIds(beforeInsert),
+    beforeInsert.footnotes.map((footnote) => parser.createFootnoteSnapshot(footnote)),
+    inserted.hiddenDefinitionIds,
+  );
+  assert.equal(parser.chooseAutomatedAddedFootnote(insertAdded).id, "306");
+}
+
+// Which definition of a number came back is told by content, not by position:
+// undoing the deletion of a blank definition above the real one brings back the
+// blank, so its deletion record is used up and nothing is automated.
+{
+  const withBoth = "Point.[^35]\n\n[^35]: \n[^35]: Smith 2020.";
+  const both = parser.parseFootnotes(withBoth).footnotes;
+  const snapshotsOf = (text) => parser.parseFootnotes(text).footnotes.map((footnote) => parser.createFootnoteSnapshot(footnote));
+  const knownOf = (text) => parser.listKnownFootnoteIds(parser.parseFootnotes(text));
+
+  const blankDeleted = parser.deleteFootnoteFromText(withBoth, "35", { occurrence: 0 }).text;
+  const restored = parser.detectAddedFootnotes(both, knownOf(blankDeleted), snapshotsOf(blankDeleted));
+  assert.deepEqual(restored.map((footnote) => [footnote.occurrence, footnote.content]), [[0, ""]]);
+  assert.equal(parser.chooseAutomatedAddedFootnote(restored), null);
+  const blankRecord = { id: "35", snapshot: parser.createFootnoteSnapshot(both[0]) };
+  assert.equal(parser.deletedFootnoteRecordMatchesFootnote(blankRecord, restored[0]), true);
+
+  const contentDeleted = parser.deleteFootnoteFromText(withBoth, "35", { occurrence: 1 }).text;
+  const back = parser.detectAddedFootnotes(both, knownOf(contentDeleted), snapshotsOf(contentDeleted));
+  assert.deepEqual(back.map((footnote) => [footnote.occurrence, footnote.content]), [[1, "Smith 2020."]]);
+
+  // Identical definitions: content cannot tell them apart, the later one is new.
+  const twins = parser.parseFootnotes("A.[^5]\n\n[^5]: same\n[^5]: same").footnotes;
+  const twinAdded = parser.detectAddedFootnotes(twins, ["5"], snapshotsOf("A.[^5]\n\n[^5]: same"));
+  assert.deepEqual(twinAdded.map((footnote) => footnote.occurrence), [1]);
+  // Without snapshots the later definitions count as new, as before.
+  assert.deepEqual(parser.detectAddedFootnotes(both, ["35"]).map((footnote) => footnote.occurrence), [1]);
+}
+
+// Automatic tidy and focus follow a new place in the text: a new definition
+// without a marker (typed, renumbered to 305, pasted) triggers neither.
+{
+  const before = parser.parseFootnotes("A.[^1] B.[^35]\n\n[^1]: one\n[^35]: Smith\n[^35]: ").footnotes;
+  const knownIds = before.map((footnote) => footnote.id);
+  const snapshots = before.map((footnote) => parser.createFootnoteSnapshot(footnote));
+  // Renumbering 35 to 305 adds nothing: the count of definitions is unchanged.
+  const renumbered = parser.parseFootnotes("A.[^1] B.[^35]\n\n[^1]: one\n[^35]: Smith\n[^305]: ").footnotes;
+  assert.deepEqual(parser.detectAddedFootnotes(renumbered, knownIds, snapshots, []), []);
+  // A definition typed without a marker is new, but not automated.
+  const typed = parser.parseFootnotes("A.[^1] B.[^35]\n\n[^1]: one\n[^35]: Smith\n[^35]: \n[^41]: ").footnotes;
+  const added = parser.detectAddedFootnotes(typed, knownIds, snapshots, []);
+  assert.deepEqual(added.map((footnote) => footnote.id), ["41"]);
+  assert.equal(parser.shouldAutomateAddedFootnote(added[0]), false);
+  assert.equal(parser.chooseAutomatedAddedFootnote(added), null);
+
+  const inserted = parser.parseFootnotes("A.[^1] B.[^35] C.[^36]\n\n[^1]: one\n[^35]: Smith\n[^35]: \n[^36]: ").footnotes;
+  const insertedAdded = parser.detectAddedFootnotes(inserted, knownIds, snapshots);
+  assert.equal(parser.chooseAutomatedAddedFootnote(insertedAdded).id, "36");
+
+  // A paste bringing a blank orphan and a real footnote picks the real one.
+  const pasted = parser.parseFootnotes("A.[^1] B.[^35] C.[^8]\n\n[^1]: one\n[^35]: Smith\n[^35]: \n[^7]: \n[^8]: eight").footnotes;
+  const pastedAdded = parser.detectAddedFootnotes(pasted, knownIds, snapshots);
+  assert.deepEqual(pastedAdded.map((footnote) => footnote.id), ["7", "8"]);
+  assert.equal(parser.choosePrimaryAddedFootnote(pastedAdded).id, "7");
+  assert.equal(parser.chooseAutomatedAddedFootnote(pastedAdded).id, "8");
+}
+
+// Search results name the card, not only the number; a hit in a reminder card
+// is a card-level hit, never a selection inside another card's text.
+{
+  const parsed = parser.parseFootnotes("Point.[^35]\n\n[^35]: Smith river study\n[^35]: Jones river survey\n[^2]: river delta");
+  const results = parser.findFootnoteSearchResults(parsed.footnotes, "river");
+  assert.deepEqual(results.map((result) => [result.footnoteId, result.occurrence, Boolean(result.match)]), [
+    ["35", 0, false],
+    ["35", 1, false],
+    ["2", 0, true],
+  ]);
+  const exact = parser.findFootnoteSearchResults(parsed.footnotes, "^35");
+  assert.deepEqual(exact.map((result) => result.occurrence), [0, 1]);
 }
 
 console.log("parser tests passed");

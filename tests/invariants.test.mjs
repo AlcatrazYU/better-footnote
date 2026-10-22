@@ -113,17 +113,47 @@ const inRanges = (ranges, offset) => ranges.some(([start, end]) => offset >= sta
 const keyOf = (footnote) => `${footnote.id}#${footnote.occurrence}`;
 const escape = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-function othersUnchanged(beforeParsed, afterText, skip) {
+const isBlank = (content) => !String(content || "").trim();
+
+// Editing one definition of a number in conflict may move ownership (and so
+// the reference count) inside that number; pass its id as ownershipMayMove.
+function othersUnchanged(beforeParsed, afterText, skip, ownershipMayMove = null) {
   const after = new Map(core.parseFootnotes(afterText).footnotes.map((footnote) => [keyOf(footnote), footnote]));
   for (const footnote of beforeParsed.footnotes) {
     if (skip(footnote)) continue;
     const now = after.get(keyOf(footnote));
     if (!now) return `${keyOf(footnote)} disappeared`;
     if (now.content !== footnote.content) return `${keyOf(footnote)} content changed`;
+    if (footnote.id === ownershipMayMove) continue;
     if (now.referenceCount !== footnote.referenceCount) return `${keyOf(footnote)} reference count changed`;
   }
   return null;
 }
+
+function groupsById(footnotes) {
+  const groups = new Map();
+  for (const footnote of footnotes) {
+    if (!groups.has(footnote.id)) groups.set(footnote.id, []);
+    groups.get(footnote.id).push(footnote);
+  }
+  return groups;
+}
+
+// Puts the definition blocks of one number back in reverse order.
+function reverseGroup(text, group) {
+  const blocks = group.map((footnote) => text.slice(footnote.definitionStart, footnote.definitionEnd));
+  let result = text;
+  for (let index = group.length - 1; index >= 0; index -= 1) {
+    const footnote = group[index];
+    result = result.slice(0, footnote.definitionStart) + blocks[group.length - 1 - index] + result.slice(footnote.definitionEnd);
+  }
+  return result;
+}
+
+const ownerContentOf = (group) => {
+  const owner = group.find((footnote) => footnote.isOwner);
+  return owner ? owner.content : null;
+};
 
 // Returns null when every invariant holds, otherwise { name, message }.
 function check(rawText, zoneTexts) {
@@ -157,6 +187,46 @@ function check(rawText, zoneTexts) {
     if (reference.id.startsWith("z") || inRanges(zones, reference.start)) return fail("I7", `reference from a zone at ${reference.start}`);
   }
 
+  // I11 markers belong to the owner of their number: the only definition, or
+  // the only one with content; when content cannot tell, to none
+  const markerCounts = new Map();
+  for (const reference of parsed.references) markerCounts.set(reference.id, (markerCounts.get(reference.id) || 0) + 1);
+  const groups = groupsById(parsed.footnotes);
+  for (const [id, group] of groups) {
+    const withContent = group.filter((footnote) => !isBlank(footnote.content));
+    const expectedOwner = group.length === 1 ? group[0] : (withContent.length === 1 ? withContent[0] : null);
+    for (const footnote of group) {
+      if (footnote.isOwner !== (footnote === expectedOwner)) return fail("I11", `owner of ${id} is wrong at ${keyOf(footnote)}`);
+      if (footnote.conflict !== (group.length > 1)) return fail("I11", `conflict flag of ${keyOf(footnote)}`);
+      const expectedCount = footnote === expectedOwner ? (markerCounts.get(id) || 0) : 0;
+      if (footnote.referenceCount !== expectedCount) return fail("I11", `references of ${keyOf(footnote)}`);
+    }
+  }
+
+  // I9 the owner of a number never depends on the order of its definitions
+  for (const [id, group] of groups) {
+    if (group.length < 2) continue;
+    const reversed = core.parseFootnotes(reverseGroup(text, group)).footnotes.filter((footnote) => footnote.id === id);
+    const sameContents = (list) => list.map((footnote) => footnote.content).sort().join("\u0000");
+    // Moving a multi-line block can change how its neighbours parse; only
+    // compare when the same definitions came back.
+    if (sameContents(reversed) !== sameContents(group)) continue;
+    if (ownerContentOf(reversed) !== ownerContentOf(group)) return fail("I9", `owner of ${id} changed with the order of its definitions`);
+  }
+
+  // I13 renumbering a footnote (as Tidy does) is never taken for adding one
+  if (parsed.footnotes.length > 0) {
+    const from = parsed.footnotes[0].id;
+    const renumbered = core.parseFootnotes(text.split(`[^${from}]`).join("[^q9]"));
+    const seenAsNew = core.detectAddedFootnotes(
+      renumbered.footnotes,
+      core.listKnownFootnoteIds(parsed),
+      parsed.footnotes.map((footnote) => core.createFootnoteSnapshot(footnote)),
+      renumbered.hiddenDefinitionIds,
+    );
+    if (seenAsNew.length) return fail("I13", `renumbering [^${from}] was seen as adding ${seenAsNew.map(keyOf).join(", ")}`);
+  }
+
   const targets = parsed.footnotes.slice(0, 4);
   for (let index = 0; index < targets.length; index += 1) {
     const target = targets[index];
@@ -175,7 +245,10 @@ function check(rawText, zoneTexts) {
       if (blockAt !== -1 && range.start + blockAt === target.definitionStart) {
         rest = rest.slice(0, blockAt) + rest.slice(blockAt + block.length);
       }
-      rest = rest.split(`[^${target.id}]`).join("");
+      // I10 a number in conflict shares its markers: deleting one of its
+      // definitions removes no marker
+      if (target.conflict && rest.includes(`[^${target.id}]`)) return fail("I10", `conflict delete removed a marker of ${target.id}`);
+      if (!target.conflict) rest = rest.split(`[^${target.id}]`).join("");
       if (rest !== "" && rest !== "\n") return fail("I1", `removed unexpected text ${JSON.stringify(removed)}`);
       rebuilt = rebuilt.slice(0, range.start) + rebuilt.slice(range.end);
     }
@@ -183,9 +256,26 @@ function check(rawText, zoneTexts) {
     for (const zone of zoneTexts) if (!deleted.text.includes(zone)) return fail("I7", "delete touched a zone");
     const deleteDamage = othersUnchanged(parsed, deleted.text, (footnote) => footnote.id === target.id);
     if (deleteDamage) return fail("I2", deleteDamage);
+    // I12 undoing a deletion brings back that very definition: which one of a
+    // number is new is told by content, not by its place among the others
+    const afterDelete = core.parseFootnotes(deleted.text);
+    const restored = core.detectAddedFootnotes(
+      parsed.footnotes,
+      core.listKnownFootnoteIds(afterDelete),
+      afterDelete.footnotes.map((footnote) => core.createFootnoteSnapshot(footnote)),
+      parsed.hiddenDefinitionIds,
+    );
+    const fingerprintOf = (footnote) => core.createFootnoteSnapshot(footnote).contentFingerprint;
+    const twins = parsed.footnotes.filter((footnote) => footnote.id === target.id && fingerprintOf(footnote) === fingerprintOf(target));
+    // A definition hidden in code counts as known (1.5.6), so it cannot be told new.
+    if (twins.length === 1 && !parsed.hiddenDefinitionIds.includes(target.id)) {
+      if (restored.length !== 1 || keyOf(restored[0]) !== keyOf(target)) {
+        return fail("I12", `undoing the deletion of ${keyOf(target)} was seen as ${restored.map(keyOf).join(", ") || "nothing"}`);
+      }
+    }
     const remainingReferences = core.parseFootnotes(deleted.text).references.filter((reference) => reference.id === target.id).length;
-    const expectedReferences = target.occurrence === 0 ? 0 : parsed.references.filter((reference) => reference.id === target.id).length;
-    if (remainingReferences !== expectedReferences) return fail("I2", `references of ${target.id} after delete`);
+    const expectedReferences = target.conflict ? (markerCounts.get(target.id) || 0) : 0;
+    if (remainingReferences !== expectedReferences) return fail(target.conflict ? "I10" : "I2", `references of ${target.id} after delete`);
 
     // I3 + I4 editing changes only this definition and round-trips
     const content = CONTENTS[(index * 3 + 1) % CONTENTS.length];
@@ -194,7 +284,12 @@ function check(rawText, zoneTexts) {
       if (written.text.slice(0, target.definitionStart) !== text.slice(0, target.definitionStart)) return fail("I3", "text before the definition changed");
       const tail = text.length - target.definitionEnd;
       if (written.text.slice(written.text.length - tail) !== text.slice(target.definitionEnd)) return fail("I3", "text after the definition changed");
-      const editDamage = othersUnchanged(parsed, written.text, (footnote) => keyOf(footnote) === keyOf(target));
+      const editDamage = othersUnchanged(
+        parsed,
+        written.text,
+        (footnote) => keyOf(footnote) === keyOf(target),
+        target.conflict ? target.id : null,
+      );
       if (editDamage) return fail("I3", editDamage);
       const landed = core.parseFootnotes(written.text).footnotes.find((footnote) => keyOf(footnote) === keyOf(target));
       if (!landed || landed.content !== written.content) return fail("I4", `landed content differs for ${keyOf(target)}`);
@@ -215,13 +310,11 @@ function check(rawText, zoneTexts) {
     const word = target.content.split(/\s+/).find((piece) => /^[\p{L}]{3,}$/u.test(piece));
     if (word) {
       for (const result of core.findFootnoteSearchResults(parsed.footnotes, word)) {
+        const card = parsed.footnotes.find((footnote) => footnote.id === result.footnoteId && footnote.occurrence === result.occurrence);
+        if (!card) return fail("I8", `search result names no card (${result.footnoteId}#${result.occurrence})`);
         if (!result.match) continue;
-        // Search results name a footnote by id only; duplicate ids are a known
-        // limitation of search targeting, so check unique ids.
-        const owners = parsed.footnotes.filter((footnote) => footnote.id === result.footnoteId);
-        if (owners.length !== 1) continue;
-        const owner = owners[0];
-        const slice = owner.content.slice(result.match.start, result.match.end);
+        if (core.isReminderDefinition(card)) return fail("I8", `text selection inside reminder card ${keyOf(card)}`);
+        const slice = card.content.slice(result.match.start, result.match.end);
         if (!new RegExp(`^${escape(word)}$`, "iu").test(slice)) return fail("I8", `highlight ${JSON.stringify(slice)} for ${JSON.stringify(word)}`);
       }
     }

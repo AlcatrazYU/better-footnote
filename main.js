@@ -96,6 +96,8 @@
       deleteFootnoteTitle: "Delete footnote [^{id}]?",
       deleteFootnoteWithReferences: "This will remove {count} reference marker{plural} and the footnote definition.",
       deleteUnreferencedFootnote: "This footnote has no reference markers. This will remove the footnote definition.",
+      deleteSharedMarkersKept: "Another definition uses this number, so the reference markers in the note stay. Only this definition will be removed.",
+      deleteTargetChanged: "Footnote [^{id}] changed before the deletion was confirmed, so nothing was deleted.",
       deleteEmptyFootnote: "The footnote definition is empty.",
       deleteCancel: "Cancel",
       deleteConfirm: "Delete footnote",
@@ -103,7 +105,6 @@
       switchToEditingView: "Switch the note to editing view first.",
       deleteFailed: "Failed to delete footnote: {message}",
       deletedFootnote: "Deleted footnote [^{id}]. Press {shortcut} to undo.",
-      duplicateFootnoteInserted: "New footnote [^{id}] collides with an existing id. Its marker now references the existing footnote, and an unreferenced duplicate definition was left behind. Consider undoing and using an unused id.",
     },
     zh: {
       title: "Better Footnote",
@@ -169,6 +170,8 @@
       deleteFootnoteTitle: "删除脚注 [^{id}]？",
       deleteFootnoteWithReferences: "将删除 {count} 处引用标记，并删除脚注定义。",
       deleteUnreferencedFootnote: "这条脚注没有引用标记。将删除脚注定义。",
+      deleteSharedMarkersKept: "这个编号还有别的定义，正文里的引用标记会保留，只删除这条定义。",
+      deleteTargetChanged: "脚注 [^{id}] 在确认删除前已有改动，因此没有删除。",
       deleteEmptyFootnote: "这条脚注定义为空。",
       deleteCancel: "取消",
       deleteConfirm: "删除脚注",
@@ -176,7 +179,6 @@
       switchToEditingView: "请先把笔记切换到编辑视图。",
       deleteFailed: "删除脚注失败：{message}",
       deletedFootnote: "已删除脚注 [^{id}]。按 {shortcut} 可撤销。",
-      duplicateFootnoteInserted: "新脚注编号 [^{id}] 与现有脚注撞号：新标记已成为现有脚注的又一处引用，并留下一条未引用的重复定义。建议撤销后改用未使用的编号。",
     },
     ja: {
       title: "Better Footnote",
@@ -242,6 +244,8 @@
       deleteFootnoteTitle: "脚注 [^{id}] を削除しますか？",
       deleteFootnoteWithReferences: "{count} 件の参照マーカーと脚注定義を削除します。",
       deleteUnreferencedFootnote: "この脚注には参照マーカーがありません。脚注定義を削除します。",
+      deleteSharedMarkersKept: "この番号には別の定義もあるため、本文の参照マーカーは残し、この定義だけを削除します。",
+      deleteTargetChanged: "脚注 [^{id}] は削除の確認前に変更されたため、削除しませんでした。",
       deleteEmptyFootnote: "この脚注定義は空です。",
       deleteCancel: "キャンセル",
       deleteConfirm: "脚注を削除",
@@ -249,7 +253,6 @@
       switchToEditingView: "先にノートを編集ビューに切り替えてください。",
       deleteFailed: "脚注の削除に失敗しました: {message}",
       deletedFootnote: "脚注 [^{id}] を削除しました。{shortcut} で取り消せます。",
-      duplicateFootnoteInserted: "新しい脚注 [^{id}] は既存の脚注と番号が重複しています。挿入したマーカーは既存脚注への参照として扱われ、未参照の重複定義が残っています。取り消して未使用の番号を使うことをおすすめします。",
     },
     ko: {
       title: "Better Footnote",
@@ -315,6 +318,8 @@
       deleteFootnoteTitle: "각주 [^{id}]를 삭제할까요?",
       deleteFootnoteWithReferences: "참조 표시 {count}개와 각주 정의를 삭제합니다.",
       deleteUnreferencedFootnote: "이 각주에는 참조 표시가 없습니다. 각주 정의를 삭제합니다.",
+      deleteSharedMarkersKept: "이 번호에는 다른 정의도 있으므로 본문의 참조 표시는 그대로 두고 이 정의만 삭제합니다.",
+      deleteTargetChanged: "각주 [^{id}]가 삭제를 확인하기 전에 바뀌어 삭제하지 않았습니다.",
       deleteEmptyFootnote: "이 각주 정의는 비어 있습니다.",
       deleteCancel: "취소",
       deleteConfirm: "각주 삭제",
@@ -322,7 +327,6 @@
       switchToEditingView: "먼저 노트를 편집 보기로 전환하세요.",
       deleteFailed: "각주 삭제 실패: {message}",
       deletedFootnote: "각주 [^{id}]를 삭제했습니다. {shortcut}로 되돌릴 수 있습니다.",
-      duplicateFootnoteInserted: "새 각주 [^{id}]가 기존 각주와 번호가 겹칩니다. 삽입한 표시는 기존 각주에 대한 참조로 처리되었고, 참조 없는 중복 정의가 남았습니다. 되돌린 뒤 사용하지 않은 번호를 쓰는 것이 좋습니다.",
     },
   };
 
@@ -523,19 +527,21 @@
     if (exactId) {
       return footnotes
         .filter((footnote) => isExactFootnoteIdMatch(footnote, exactId))
-        .map((footnote) => ({ footnoteId: footnote.id, match: null }));
+        .map((footnote) => ({ footnoteId: footnote.id, occurrence: footnote.occurrence || 0, match: null }));
     }
     const tokens = getSearchTokens(query);
     if (tokens.length === 0) return [];
     const results = [];
     for (const footnote of filterFootnotes(footnotes, query)) {
-      const contentMatches = findFootnoteContentMatches(footnote, query);
+      const occurrence = footnote.occurrence || 0;
+      // A reminder card has no editable text to select in: it is one hit.
+      const contentMatches = isReminderDefinition(footnote) ? [] : findFootnoteContentMatches(footnote, query);
       if (contentMatches.length > 0) {
         for (const match of contentMatches) {
-          results.push({ footnoteId: footnote.id, match });
+          results.push({ footnoteId: footnote.id, occurrence, match });
         }
       } else {
-        results.push({ footnoteId: footnote.id, match: null });
+        results.push({ footnoteId: footnote.id, occurrence, match: null });
       }
     }
     return results;
@@ -564,10 +570,17 @@
     return counts;
   }
 
-  function detectAddedFootnotes(currentFootnotes, knownFootnoteIds, knownFootnoteSnapshots = null) {
+  // currentHiddenIds: definitions now hidden in code, counted like the hidden
+  // ones inside knownFootnoteIds (listKnownFootnoteIds).
+  function detectAddedFootnotes(currentFootnotes, knownFootnoteIds, knownFootnoteSnapshots = null, currentHiddenIds = []) {
     if (!knownFootnoteIds) return [];
-    const knownCounts = countFootnoteIdOccurrences(Array.from(knownFootnoteIds));
-    const seenCounts = new Map();
+    const knownList = Array.from(knownFootnoteIds);
+    // Renumbering (Tidy, or editing a number by hand) changes ids but never
+    // how many definitions there are: no more footnotes can be new than the
+    // count grew by.
+    const budget = currentFootnotes.length + (currentHiddenIds || []).length - knownList.length;
+    if (budget <= 0) return [];
+    const knownCounts = countFootnoteIdOccurrences(knownList);
     // Only a footnote whose id has disappeared can have been renamed (Tidy):
     // a snapshot of an id still present must not vouch for a new neighbour
     // inserted right before it at the same offset.
@@ -575,20 +588,72 @@
     const renameCandidates = Array.isArray(knownFootnoteSnapshots)
       ? knownFootnoteSnapshots.filter((snapshot) => snapshot && !currentIds.has(snapshot.id))
       : null;
-    return currentFootnotes.filter((footnote) => {
-      const seen = (seenCounts.get(footnote.id) || 0) + 1;
-      seenCounts.set(footnote.id, seen);
-      const knownCount = knownCounts.get(footnote.id) || 0;
-      if (seen <= knownCount) return false;
-      if (knownCount === 0 && isKnownFootnoteBySnapshot(footnote, renameCandidates)) return false;
-      return true;
-    });
+    const groups = new Map();
+    for (const footnote of currentFootnotes) {
+      if (!groups.has(footnote.id)) groups.set(footnote.id, []);
+      groups.get(footnote.id).push(footnote);
+    }
+    const added = new Set();
+    for (const [id, group] of groups) {
+      const knownCount = knownCounts.get(id) || 0;
+      if (group.length <= knownCount) continue;
+      if (knownCount === 0) {
+        for (const footnote of group) {
+          if (!isKnownFootnoteBySnapshot(footnote, renameCandidates)) added.add(footnote);
+        }
+        continue;
+      }
+      const snapshots = Array.isArray(knownFootnoteSnapshots)
+        ? knownFootnoteSnapshots.filter((snapshot) => snapshot && snapshot.id === id)
+        : [];
+      for (const footnote of pickNewDefinitions(group, group.length - knownCount, snapshots)) added.add(footnote);
+    }
+    const candidates = currentFootnotes.filter((footnote) => added.has(footnote));
+    if (candidates.length <= budget) return candidates;
+    // More candidates than new definitions: the rest are renumbered old ones.
+    // Keep those whose content the sidebar has not seen before.
+    const knownPrints = new Set((knownFootnoteSnapshots || []).map((snapshot) => snapshot?.contentFingerprint).filter(Boolean));
+    const unseen = candidates.filter((footnote) => !knownPrints.has(getFootnoteFingerprint(footnote)));
+    const seen = candidates.filter((footnote) => knownPrints.has(getFootnoteFingerprint(footnote)));
+    const kept = new Set([...unseen, ...seen].slice(0, budget));
+    return candidates.filter((footnote) => kept.has(footnote));
+  }
+
+  // Which definitions of a number are new is told by content, not by their
+  // place: the ones that match no definition the sidebar knew. When content
+  // cannot tell (identical definitions, no snapshots), the later ones are new.
+  function pickNewDefinitions(group, newCount, snapshots) {
+    if (snapshots.length === 0) return group.slice(group.length - newCount);
+    const pool = [...snapshots];
+    const unmatched = [];
+    for (const footnote of group) {
+      const fingerprint = getFootnoteFingerprint(footnote);
+      let index = pool.findIndex((snapshot) => {
+        return snapshot.contentFingerprint === fingerprint && snapshot.definitionStart === footnote.definitionStart;
+      });
+      if (index < 0) index = pool.findIndex((snapshot) => snapshot.contentFingerprint === fingerprint);
+      if (index >= 0) pool.splice(index, 1);
+      else unmatched.push(footnote);
+    }
+    if (unmatched.length >= newCount) return unmatched.slice(unmatched.length - newCount);
+    const matched = group.filter((footnote) => !unmatched.includes(footnote));
+    return [...unmatched, ...matched.slice(matched.length - (newCount - unmatched.length))];
   }
 
   function choosePrimaryAddedFootnote(addedFootnotes) {
     if (addedFootnotes.length === 0) return null;
     const emptyAddedFootnote = addedFootnotes.find((footnote) => !String(footnote.content || "").trim());
     return emptyAddedFootnote || addedFootnotes[0];
+  }
+
+  // Automatic tidy and focus follow a new place in the text: a definition that
+  // arrives without a marker (typed, renumbered, pasted) is left alone.
+  function shouldAutomateAddedFootnote(footnote) {
+    return Number(footnote?.referenceCount || 0) > 0;
+  }
+
+  function chooseAutomatedAddedFootnote(addedFootnotes) {
+    return choosePrimaryAddedFootnote((addedFootnotes || []).filter(shouldAutomateAddedFootnote));
   }
 
   function getFootnoteFingerprint(footnote) {
@@ -929,7 +994,7 @@
     const zones = getMarkdownExclusionZones(text, lineStarts);
     const definitions = [];
     const references = [];
-    const definitionById = new Map();
+    const definitionsById = new Map();
     const occurrenceById = new Map();
     const hiddenDefinitionIds = [];
 
@@ -973,16 +1038,32 @@
         definitionEnd,
         contentStart,
         content: contentLines.join("\n"),
+        conflict: false,
+        isOwner: false,
         references: [],
         referenceCount: 0,
         firstReferenceStart: null,
       };
 
       definitions.push(footnote);
-      if (!definitionById.has(id)) {
-        definitionById.set(id, footnote);
-      }
+      if (!definitionsById.has(id)) definitionsById.set(id, []);
+      definitionsById.get(id).push(footnote);
       lineIndex = endLineIndex;
+    }
+
+    // A number defined more than once is a conflict. The definition with
+    // content owns it wherever it sits; when content cannot tell (all blank,
+    // or several with content) none does, and each one is a reminder card.
+    const ownerById = new Map();
+    const primaryById = new Map();
+    for (const [id, group] of definitionsById) {
+      const owner = chooseFootnoteOwner(group);
+      for (const footnote of group) {
+        footnote.conflict = group.length > 1;
+        footnote.isOwner = footnote === owner;
+      }
+      if (owner) ownerById.set(id, owner);
+      primaryById.set(id, owner || group[0]);
     }
 
     const referencePattern = /\[\^([^\]\n]+)]/g;
@@ -1005,7 +1086,7 @@
         line: lineIndex + 1,
       };
       references.push(reference);
-      const footnote = definitionById.get(id);
+      const footnote = ownerById.get(id);
       if (footnote) {
         footnote.references.push(reference);
         footnote.referenceCount += 1;
@@ -1017,7 +1098,7 @@
 
     const displayNumberById = new Map();
     for (const reference of references) {
-      if (!definitionById.has(reference.id) || displayNumberById.has(reference.id)) continue;
+      if (!definitionsById.has(reference.id) || displayNumberById.has(reference.id)) continue;
       displayNumberById.set(reference.id, displayNumberById.size + 1);
     }
     for (const footnote of definitions) {
@@ -1034,7 +1115,37 @@
       references,
       footnotes: definitions,
       hiddenDefinitionIds,
+      // Number -> the card a lookup by number lands on: the owner, or the
+      // first definition when nothing owns the number.
+      primaryById,
     };
+  }
+
+  function isBlankFootnoteContent(content) {
+    return !String(content || "").trim();
+  }
+
+  // Chooses by content, never by position: the only definition, or the only
+  // one with content; null when content cannot tell.
+  function chooseFootnoteOwner(definitions) {
+    if (!Array.isArray(definitions) || definitions.length === 0) return null;
+    if (definitions.length === 1) return definitions[0];
+    const withContent = definitions.filter((footnote) => !isBlankFootnoteContent(footnote.content));
+    return withContent.length === 1 ? withContent[0] : null;
+  }
+
+  function isReminderDefinition(footnote) {
+    return Boolean(footnote?.conflict && !footnote.isOwner);
+  }
+
+  function findPrimaryFootnote(footnotes, id) {
+    let first = null;
+    for (const footnote of footnotes || []) {
+      if (footnote.id !== id) continue;
+      if (footnote.isOwner) return footnote;
+      if (!first) first = footnote;
+    }
+    return first;
   }
 
   // Ids the sidebar has seen, including definitions hidden in code: when a
@@ -1047,9 +1158,13 @@
     ];
   }
 
-  function findFootnoteDefinition(parsed, id, occurrence = 0) {
-    const wanted = Number.isInteger(occurrence) && occurrence > 0 ? occurrence : 0;
-    return parsed.footnotes.find((item) => item.id === id && item.occurrence === wanted) || null;
+  // A card names its definition by number and occurrence; without an
+  // occurrence the lookup lands on the number's primary definition.
+  function findFootnoteDefinition(parsed, id, occurrence = null) {
+    if (Number.isInteger(occurrence) && occurrence >= 0) {
+      return parsed.footnotes.find((item) => item.id === id && item.occurrence === occurrence) || null;
+    }
+    return parsed.primaryById?.get(id) || findPrimaryFootnote(parsed.footnotes, id);
   }
 
   function replaceFootnoteContent(rawText, id, content, options = {}) {
@@ -1132,8 +1247,6 @@
   function deleteFootnoteFromText(rawText, id, options = {}) {
     const text = normalizeLineEndings(rawText);
     const parsed = parseFootnotes(text);
-    // References belong to the first definition of an id; a later duplicate
-    // definition is removed on its own and leaves every reference in place.
     const footnote = findFootnoteDefinition(parsed, id, options.occurrence);
     if (!footnote) {
       return {
@@ -1142,9 +1255,24 @@
         reason: "missing-footnote",
       };
     }
+    // The caller confirmed this definition; if it changed since, refuse
+    // rather than guess which one was meant.
+    if (typeof options.expectedContent === "string" && normalizeLineEndings(options.expectedContent) !== footnote.content) {
+      return {
+        changed: false,
+        text,
+        reason: "content-mismatch",
+        footnote,
+      };
+    }
 
+    // Markers of a number in conflict are shared, not this definition's: only
+    // the definition goes, and the one that remains owns the markers.
+    const keptSharedMarkers = footnote.conflict
+      ? parsed.references.filter((reference) => reference.id === footnote.id).length
+      : 0;
     const ranges = [
-      ...(footnote.occurrence === 0 ? footnote.references : []).map((reference) => ({
+      ...(footnote.conflict ? [] : footnote.references).map((reference) => ({
         start: reference.start,
         end: reference.end,
       })),
@@ -1157,8 +1285,10 @@
       text: nextText,
       footnote,
       ranges: normalizedRanges,
-      referenceCount: footnote.occurrence === 0 ? footnote.referenceCount : 0,
-      contentIsBlank: !String(footnote.content || "").trim(),
+      referenceCount: footnote.conflict ? 0 : footnote.referenceCount,
+      keptSharedMarkers,
+      conflict: Boolean(footnote.conflict),
+      contentIsBlank: isBlankFootnoteContent(footnote.content),
     };
   }
 
@@ -1356,6 +1486,13 @@
         listKnownFootnoteIds,
         orderFootnotesByReference,
         detectAddedFootnotes,
+        findFootnoteDefinition,
+        chooseFootnoteOwner,
+        isReminderDefinition,
+        findPrimaryFootnote,
+        choosePrimaryAddedFootnote,
+        shouldAutomateAddedFootnote,
+        chooseAutomatedAddedFootnote,
         resolveActiveFootnoteId,
         replaceFootnoteContent,
         deleteFootnoteFromText,
@@ -1393,6 +1530,13 @@
         findReferenceNearOffsetOnLine,
         orderFootnotesByReference,
         detectAddedFootnotes,
+        findFootnoteDefinition,
+        chooseFootnoteOwner,
+        isReminderDefinition,
+        findPrimaryFootnote,
+        choosePrimaryAddedFootnote,
+        shouldAutomateAddedFootnote,
+        chooseAutomatedAddedFootnote,
         filterFootnotes,
         findFootnoteSearchResults,
         formatCharacterCount,
@@ -1501,14 +1645,16 @@
       contentEl.createEl("h2", {
         text: t(strings, "deleteFootnoteTitle", { id: this.details?.id || "" }),
       });
-      contentEl.createEl("p", {
-        text: referenceCount > 0
-          ? t(strings, "deleteFootnoteWithReferences", {
-            count: formatNumber(referenceCount),
-            plural: referenceCount === 1 ? "" : "s",
-          })
-          : strings.deleteUnreferencedFootnote,
-      });
+      let message = strings.deleteUnreferencedFootnote;
+      if (this.details?.conflict) {
+        message = strings.deleteSharedMarkersKept;
+      } else if (referenceCount > 0) {
+        message = t(strings, "deleteFootnoteWithReferences", {
+          count: formatNumber(referenceCount),
+          plural: referenceCount === 1 ? "" : "s",
+        });
+      }
+      contentEl.createEl("p", { text: message });
       if (isBlank) {
         contentEl.createEl("p", { text: strings.deleteEmptyFootnote });
       }
@@ -1914,10 +2060,16 @@
       const definition = reference ? null : findDefinitionAtOffset(parsed, offset);
       const footnoteId = reference?.id || definition?.id || null;
       if (!footnoteId) return;
-      const footnote = parsed.footnotes.find((item) => item.id === footnoteId);
+      // A caret on a definition line names that very definition; a marker
+      // names its number, which lands on the number's primary card.
+      const footnote = definition || findFootnoteDefinition(parsed, footnoteId);
+      // A deletion record only holds back a footnote the sidebar has not shown
+      // again yet (the moment between an undo and the rebuild); once shown, a
+      // leftover record must not keep its number from syncing.
       if (
         this.shouldSuppressRestoredDeletedFootnoteCursorSync(markdownView.file, footnoteId)
-        || this.matchesRecentlyDeletedFootnote(markdownView.file, footnote)
+        || (this.matchesRecentlyDeletedFootnote(markdownView.file, footnote)
+          && !this.isFootnoteShownInViews(markdownView.file, footnote))
       ) {
         return;
       }
@@ -1934,6 +2086,7 @@
             scrollBlock: "start-if-hidden",
             fromCursor: true,
             referenceIndex,
+            occurrence: isReminderDefinition(footnote) ? footnote.occurrence : null,
             expandIfClipped: Boolean(reference || definition),
             autoExpandSource: "sync",
           });
@@ -1980,6 +2133,21 @@
         .filter((record) => record.expiresAt > Date.now())
         .slice(-MAX_DELETED_FOOTNOTE_RESTORE_RECORDS);
       this.recentlyDeletedFootnotesByFile.set(file.path, activeRecords);
+    }
+
+    isFootnoteShownInViews(file, footnote) {
+      if (!file || !footnote) return false;
+      const fingerprint = getFootnoteFingerprint(footnote);
+      for (const view of this.views) {
+        if (view.file?.path !== file.path) continue;
+        const shown = (view.currentFootnotes || []).some((item) => {
+          return item.id === footnote.id
+            && item.definitionStart === footnote.definitionStart
+            && getFootnoteFingerprint(item) === fingerprint;
+        });
+        if (shown) return true;
+      }
+      return false;
     }
 
     matchesRecentlyDeletedFootnote(file, footnote) {
@@ -2115,7 +2283,7 @@
         // Tidy keeps only the last of several definitions sharing a number,
         // which would silently replace the real one: never run it then.
         const textForCheck = markdownView?.editor ? markdownView.editor.getValue() : "";
-        if (parseFootnotes(textForCheck).footnotes.some((footnote) => footnote.occurrence > 0)) {
+        if (parseFootnotes(textForCheck).footnotes.some((footnote) => footnote.conflict)) {
           new Notice(strings.autoTidyPausedDuplicate);
           return false;
         }
@@ -2288,7 +2456,10 @@
         ok: true,
         id: footnoteId,
         referenceCount: result.referenceCount,
+        conflict: result.conflict,
         contentIsBlank: result.contentIsBlank,
+        // What the dialog described; the deletion must still find exactly this.
+        expectedContent: result.footnote.content,
       };
     }
 
@@ -2303,7 +2474,7 @@
         this.suppressCursorSyncFromSidebarJump();
         this.suppressEditStamp = true;
         try {
-          this.deleteFootnoteFromEditor(file, footnoteId, occurrence);
+          this.deleteFootnoteFromEditor(file, footnoteId, occurrence, details.expectedContent);
         } finally {
           this.suppressEditStamp = false;
         }
@@ -2312,7 +2483,7 @@
       }).open();
     }
 
-    deleteFootnoteFromEditor(file, footnoteId, occurrence = 0) {
+    deleteFootnoteFromEditor(file, footnoteId, occurrence = 0, expectedContent = undefined) {
       const strings = getStrings();
       const markdownView = this.findMarkdownViewForFile(file);
       const editor = markdownView?.editor;
@@ -2323,7 +2494,11 @@
 
       try {
         const text = normalizeLineEndings(editor.getValue());
-        const result = deleteFootnoteFromText(text, footnoteId, { occurrence });
+        const result = deleteFootnoteFromText(text, footnoteId, { occurrence, expectedContent });
+        if (result.reason === "content-mismatch") {
+          new Notice(t(strings, "deleteTargetChanged", { id: footnoteId }));
+          return false;
+        }
         if (!result.changed) {
           new Notice(t(strings, "footnoteNotFound", { id: footnoteId }));
           return false;
@@ -2399,7 +2574,7 @@
       }
       const text = normalizeLineEndings(markdownView.editor.getValue());
       const parsed = parseFootnotes(text);
-      const footnote = parsed.footnotes.find((item) => item.id === footnoteId);
+      const footnote = findFootnoteDefinition(parsed, footnoteId);
       const referenceIndex = normalizeReferenceIndex(footnote, options.referenceIndex);
       const reference = footnote?.references?.[referenceIndex] || null;
       if (!reference) {
@@ -2561,6 +2736,9 @@
       this.saveTimers = new Map();
       this.stateByFile = new Map();
       this.activeFootnoteId = null;
+      // Which definition of the active number is highlighted: null for the
+      // number's primary card, an occurrence for a reminder card.
+      this.activeOccurrence = null;
       this.listEl = null;
       this.subtitleEl = null;
       this.searchInputEl = null;
@@ -2570,6 +2748,7 @@
       this.searchPreviousButton = null;
       this.searchNextButton = null;
       this.currentFootnotes = [];
+      this.currentPrimaryById = new Map();
       this.currentHiddenDefinitionIds = [];
       this.searchPaused = false;
       this.searchMatches = [];
@@ -3243,11 +3422,18 @@
         ? document.activeElement
         : null;
       const activeId = focusedEditor?.dataset?.footnoteId || this.activeFootnoteId || currentState.activeId || null;
-      const activeFootnote = activeId ? this.currentFootnotes.find((footnote) => footnote.id === activeId) : null;
+      // Only primary cards have an editor; a reminder card stays highlighted
+      // across rebuilds through its occurrence.
+      let activeOccurrence = null;
+      if (!focusedEditor) {
+        activeOccurrence = this.activeFootnoteId ? this.activeOccurrence : (currentState.activeOccurrence ?? null);
+      }
+      const activeFootnote = activeId ? this.getPrimaryFootnote(activeId) : null;
       const searchQuery = this.searchInputEl?.value ?? currentState.searchQuery ?? "";
       this.stateByFile.set(this.file.path, {
         scrollTop: this.listEl?.scrollTop ?? currentState.scrollTop ?? 0,
         activeId,
+        activeOccurrence,
         activeSnapshot: createFootnoteSnapshot(activeFootnote) || currentState.activeSnapshot || null,
         searchQuery,
         searchPaused: this.searchPaused && Boolean(searchQuery.trim()),
@@ -3384,16 +3570,25 @@
       const previousKnownFootnoteIds = Array.isArray(savedState.knownFootnoteIds)
         ? savedState.knownFootnoteIds
         : null;
-      let addedFootnote = choosePrimaryAddedFootnote(
-        detectAddedFootnotes(orderedFootnotes, previousKnownFootnoteIds, savedState.knownFootnoteSnapshots),
+      const addedFootnotes = detectAddedFootnotes(
+        orderedFootnotes,
+        previousKnownFootnoteIds,
+        savedState.knownFootnoteSnapshots,
+        parsed.hiddenDefinitionIds || [],
       );
+      let addedFootnote = choosePrimaryAddedFootnote(addedFootnotes);
       let restoredDeletedFootnote = null;
       if (addedFootnote && this.plugin.consumeRestoredDeletedFootnote(file, addedFootnote)) {
         restoredDeletedFootnote = addedFootnote;
         addedFootnote = null;
         this.plugin.hideActiveDeleteNotice();
       }
+      // Automatic tidy and focus only follow a new footnote with a marker in
+      // the text; any other new definition is highlighted and left alone.
+      const automatedFootnote = restoredDeletedFootnote ? null : chooseAutomatedAddedFootnote(addedFootnotes);
+      const highlightedFootnote = restoredDeletedFootnote || automatedFootnote || addedFootnote;
       this.currentFootnotes = orderedFootnotes;
+      this.currentPrimaryById = parsed.primaryById;
       this.currentHiddenDefinitionIds = parsed.hiddenDefinitionIds || [];
       this.expandedFootnoteIds = new Set(savedState.expandedIds || []);
       this.searchExpandedFootnoteIds = new Set(savedState.searchExpandedIds || []);
@@ -3403,9 +3598,19 @@
         this.searchExpandedFootnoteIds.delete(restoredDeletedFootnote.id);
         this.syncExpandedFootnoteIds.delete(restoredDeletedFootnote.id);
       }
-      this.activeFootnoteId = restoredDeletedFootnote?.id
-        || addedFootnote?.id
+      this.activeFootnoteId = highlightedFootnote?.id
         || resolveActiveFootnoteId(orderedFootnotes, savedState, this.activeFootnoteId);
+      if (highlightedFootnote) {
+        this.activeOccurrence = isReminderDefinition(highlightedFootnote) ? highlightedFootnote.occurrence : null;
+      } else {
+        // A highlighted reminder card survives the rebuild only while it is
+        // still a reminder of the same number.
+        const savedOccurrence = savedState.activeId === this.activeFootnoteId ? savedState.activeOccurrence : null;
+        const stillReminder = Number.isInteger(savedOccurrence) && orderedFootnotes.some((footnote) => {
+          return footnote.id === this.activeFootnoteId && footnote.occurrence === savedOccurrence && isReminderDefinition(footnote);
+        });
+        this.activeOccurrence = stillReminder ? savedOccurrence : null;
+      }
       this.searchInputEl.value = savedState.searchQuery || "";
       this.searchPaused = Boolean(savedState.searchPaused && this.searchInputEl.value.trim());
       this.searchMatchIndex = typeof savedState.searchMatchIndex === "number" ? savedState.searchMatchIndex : -1;
@@ -3417,33 +3622,22 @@
       const nextState = {
         ...savedState,
         activeId: this.activeFootnoteId,
-        activeSnapshot: createFootnoteSnapshot(
-          orderedFootnotes.find((footnote) => footnote.id === this.activeFootnoteId),
-        ) || savedState.activeSnapshot || null,
+        activeOccurrence: this.activeOccurrence,
+        activeSnapshot: createFootnoteSnapshot(parsed.primaryById.get(this.activeFootnoteId))
+          || savedState.activeSnapshot || null,
         knownFootnoteIds: listKnownFootnoteIds(parsed),
         knownFootnoteSnapshots: orderedFootnotes.map((footnote) => createFootnoteSnapshot(footnote)),
       };
-      if (restoredDeletedFootnote) {
-        nextState.activeId = restoredDeletedFootnote.id;
-        nextState.activeSnapshot = createFootnoteSnapshot(restoredDeletedFootnote);
+      if (highlightedFootnote) {
+        nextState.activeSnapshot = createFootnoteSnapshot(highlightedFootnote);
         nextState.autoFocusRendersRemaining = 0;
-      } else if (addedFootnote) {
-        const isDuplicateDefinition = orderedFootnotes.filter((item) => item.id === addedFootnote.id).length > 1;
-        if (isDuplicateDefinition) {
-          new Notice(t(strings, "duplicateFootnoteInserted", { id: addedFootnote.id }), 10000);
-        } else {
-          nextState.activeId = addedFootnote.id;
-          nextState.activeSnapshot = createFootnoteSnapshot(addedFootnote);
-          if (editedInOwnEditor) {
-            nextState.autoFocusRendersRemaining = Math.max(
-              Number(savedState.autoFocusRendersRemaining || 0),
-              1,
-            );
-            this.plugin.scheduleTidyFootnotesForNewFootnote(file, addedFootnote);
-          } else {
-            nextState.autoFocusRendersRemaining = 0;
-          }
-        }
+      }
+      if (automatedFootnote && editedInOwnEditor) {
+        nextState.autoFocusRendersRemaining = Math.max(
+          Number(savedState.autoFocusRendersRemaining || 0),
+          1,
+        );
+        this.plugin.scheduleTidyFootnotesForNewFootnote(file, automatedFootnote);
       }
       this.stateByFile.set(file.path, nextState);
 
@@ -3536,7 +3730,7 @@
       this.searchNextButton.addEventListener("click", () => this.navigateSearch(1));
 
       const waitForTidyBeforeFocus = Boolean(
-        addedFootnote && editedInOwnEditor && this.plugin.settings?.autoTidyAfterNewFootnote,
+        automatedFootnote && editedInOwnEditor && this.plugin.settings?.autoTidyAfterNewFootnote,
       );
 
       renderFilteredList();
@@ -3546,6 +3740,7 @@
         const remainingFocusRenders = Math.max(0, Number(currentState.autoFocusRendersRemaining || 0));
         const shouldAutoFocusAfterRender = remainingFocusRenders > 0;
         this.focusFootnote(this.activeFootnoteId, {
+          occurrence: this.activeOccurrence,
           scroll: shouldAutoFocusAfterRender,
           scrollBlock: "start",
           focusEditor: remainingFocusRenders > 0 && !waitForTidyBeforeFocus,
@@ -3584,12 +3779,12 @@
       }
     }
 
-    pauseSearchModeForEditorSync(footnoteId = null) {
+    pauseSearchModeForEditorSync(footnoteId = null, occurrence = null) {
       if (!this.getRawSearchQuery().trim() || this.searchPaused) return;
       if (footnoteId && this.hasActiveSearch()) {
         const visibleFootnotes = filterFootnotes(this.currentFootnotes, this.getEffectiveSearchQuery());
         if (visibleFootnotes.some((footnote) => footnote.id === footnoteId)) {
-          this.selectFirstSearchMatchForFootnote(footnoteId, { scroll: false, focusMatch: false });
+          this.selectFirstSearchMatchForFootnote(footnoteId, { scroll: false, focusMatch: false, occurrence });
           return;
         }
       }
@@ -3706,7 +3901,7 @@
       this.updateSearchControls(strings);
       this.markSearchTarget();
       if (this.activeFootnoteId) {
-        this.focusFootnote(this.activeFootnoteId, { scroll: false, focusEditor: false });
+        this.focusFootnote(this.activeFootnoteId, { scroll: false, focusEditor: false, occurrence: this.activeOccurrence });
       }
     }
 
@@ -3758,7 +3953,7 @@
 
     scrollActiveFootnoteIntoView() {
       if (!this.activeFootnoteId || !this.listEl) return;
-      const target = this.findFootnoteItem(this.activeFootnoteId);
+      const target = this.findFootnoteItem(this.activeFootnoteId, this.activeOccurrence);
       if (!target) return;
       const top = Math.max(0, target.offsetTop - this.listEl.offsetTop);
       this.listEl.scrollTo({ top, behavior: "auto" });
@@ -3777,11 +3972,36 @@
       }
       const result = this.searchMatches[this.searchMatchIndex];
       if (!result) return;
-      this.findFootnoteItem(result.footnoteId)?.addClass("is-search-target");
+      this.findFootnoteItem(result.footnoteId, this.getSearchResultOccurrence(result))?.addClass("is-search-target");
+    }
+
+    // A hit in a reminder card names that card; every other hit is in the
+    // number's primary card, the one holding the matched text.
+    getSearchResultOccurrence(result) {
+      const footnote = this.currentFootnotes.find((item) => {
+        return item.id === result?.footnoteId && (item.occurrence || 0) === (result?.occurrence || 0);
+      });
+      return isReminderDefinition(footnote) ? footnote.occurrence : null;
     }
 
     applySearchMatch(result, options = {}) {
       if (!result) return;
+      const reminderOccurrence = this.getSearchResultOccurrence(result);
+      if (reminderOccurrence !== null) {
+        // A reminder card has no text to select: light up the card itself, and
+        // take the keyboard back from the card it was in to the search box
+        // (Enter there moves on too), so no other card still looks current.
+        if (document.activeElement?.closest?.(".bfw-list")) {
+          this.searchInputEl?.focus({ preventScroll: true });
+        }
+        this.focusFootnote(result.footnoteId, {
+          scroll: options.scroll !== false,
+          focusEditor: false,
+          occurrence: reminderOccurrence,
+        });
+        this.markSearchTarget();
+        return;
+      }
       const targetItem = this.findFootnoteItem(result.footnoteId);
       const measurableEl = this.getMeasurableContentEl(targetItem);
       if (measurableEl && !this.isFootnoteExpanded(result.footnoteId) && this.hasHiddenContent(measurableEl)) {
@@ -3820,7 +4040,12 @@
 
     selectFirstSearchMatchForFootnote(footnoteId, options = {}) {
       if (!this.hasActiveSearch()) return false;
-      const matchIndex = this.searchMatches.findIndex((result) => result.footnoteId === footnoteId);
+      const occurrence = Number.isInteger(options.occurrence)
+        ? options.occurrence
+        : (this.getPrimaryFootnote(footnoteId)?.occurrence || 0);
+      const matchIndex = this.searchMatches.findIndex((result) => {
+        return result.footnoteId === footnoteId && (result.occurrence || 0) === occurrence;
+      });
       if (matchIndex < 0) return false;
       this.searchMatchIndex = matchIndex;
       this.pausedSearchMatchIndex = -1;
@@ -3847,9 +4072,19 @@
       textarea.scrollTop = targetTop;
     }
 
-    findFootnoteItem(footnoteId) {
-      return Array.from(this.contentEl.querySelectorAll(".bfw-item"))
-        .find((item) => item.dataset.footnoteId === footnoteId) || null;
+    // Without an occurrence this finds the number's primary card; with one,
+    // the card of that very definition (a reminder card).
+    findFootnoteItem(footnoteId, occurrence = null) {
+      return Array.from(this.contentEl.querySelectorAll(".bfw-item")).find((item) => {
+        if (item.dataset.footnoteId !== footnoteId) return false;
+        return Number.isInteger(occurrence)
+          ? Number(item.dataset.occurrence) === occurrence
+          : item.dataset.primary === "true";
+      }) || null;
+    }
+
+    getPrimaryFootnote(footnoteId) {
+      return this.currentPrimaryById?.get(footnoteId) || findPrimaryFootnote(this.currentFootnotes, footnoteId);
     }
 
     isFootnoteExpanded(footnoteId) {
@@ -3925,7 +4160,7 @@
     getFootnoteReferenceIndex(footnoteOrId) {
       const footnote = typeof footnoteOrId === "object"
         ? footnoteOrId
-        : this.currentFootnotes.find((item) => item.id === footnoteOrId);
+        : this.getPrimaryFootnote(footnoteOrId);
       if (!footnote) return 0;
       const currentState = this.file ? this.stateByFile.get(this.file.path) || {} : {};
       const referenceIndexes = currentState.referenceIndexes || {};
@@ -3934,7 +4169,7 @@
 
     setFootnoteReferenceIndex(footnoteId, index) {
       if (!this.file || !footnoteId) return 0;
-      const footnote = this.currentFootnotes.find((item) => item.id === footnoteId);
+      const footnote = this.getPrimaryFootnote(footnoteId);
       const nextIndex = normalizeReferenceIndex(footnote, index);
       const currentState = this.stateByFile.get(this.file.path) || {};
       this.stateByFile.set(this.file.path, {
@@ -3949,7 +4184,7 @@
     }
 
     updateReferenceNavDisplay(footnoteId, strings = getStrings()) {
-      const footnote = this.currentFootnotes.find((item) => item.id === footnoteId);
+      const footnote = this.getPrimaryFootnote(footnoteId);
       if (!footnote || Number(footnote.referenceCount || 0) <= 1) return;
       const item = this.findFootnoteItem(footnoteId);
       const positionEl = item?.querySelector?.(".bfw-reference-position");
@@ -3961,7 +4196,7 @@
     }
 
     navigateFootnoteReference(footnoteId, direction) {
-      const footnote = this.currentFootnotes.find((item) => item.id === footnoteId);
+      const footnote = this.getPrimaryFootnote(footnoteId);
       const count = Number(footnote?.referenceCount || 0);
       if (!footnote || count <= 0) return;
       this.plugin.suppressCursorSyncFromSidebarJump();
@@ -4033,9 +4268,12 @@
     renderFootnoteItem(footnote, strings = getStrings()) {
       const itemEl = this.listEl.createDiv({ cls: "bfw-item" });
       itemEl.dataset.footnoteId = footnote.id;
+      itemEl.dataset.occurrence = String(footnote.occurrence || 0);
+      const isPrimaryCard = this.getPrimaryFootnote(footnote.id) === footnote;
+      itemEl.dataset.primary = isPrimaryCard ? "true" : "false";
       this.cardTargets.set(itemEl, { file: this.file, footnote });
       const isExpanded = this.isFootnoteExpanded(footnote.id);
-      if (footnote.id === this.activeFootnoteId) {
+      if (this.isActiveItem(itemEl)) {
         itemEl.addClass("is-active");
       }
       if (isExpanded) {
@@ -4046,7 +4284,7 @@
       const idBlockEl = headerEl.createDiv({ cls: "bfw-id-block" });
       const idEl = idBlockEl.createDiv({ cls: "bfw-id", text: String(footnote.id) });
       idEl.setAttr("title", `[^${footnote.id}]`);
-      const isExtraDefinition = footnote.occurrence > 0;
+      const isExtraDefinition = isReminderDefinition(footnote);
       if (isExtraDefinition) {
         itemEl.addClass("is-duplicate");
         idBlockEl.createSpan({ cls: "bfw-duplicate-badge", text: strings.duplicateNumberBadge });
@@ -4099,13 +4337,17 @@
         event.stopPropagation();
         this.plugin.suppressCursorSyncFromSidebarJump();
         this.plugin.jumpToFootnoteDefinition(this.file, footnote.id, { occurrence: footnote.occurrence });
-        this.focusFootnote(footnote.id, { scroll: false, focusEditor: false });
+        this.focusFootnote(footnote.id, {
+          scroll: false,
+          focusEditor: false,
+          occurrence: isExtraDefinition ? footnote.occurrence : null,
+        });
         this.plugin.suppressCursorSyncFromSidebarJump();
       });
       if (isExtraDefinition) {
-        // A later definition that reuses a number conflicts with the first one
-        // (reading view shows only one of them, Tidy keeps only the last), so it
-        // is not editable here, only pointed out until it gets its own number.
+        // A definition of a number in conflict that does not own it (reading
+        // view shows only the last, Tidy keeps only the last) is not editable
+        // here, only pointed out until it gets its own number.
         itemEl.createDiv({ cls: "bfw-duplicate-hint", text: strings.duplicateNumberHint });
         if (String(footnote.content || "").trim()) {
           itemEl.createDiv({ cls: "bfw-duplicate-content", text: footnote.content });
@@ -4400,12 +4642,17 @@
 
     activateFootnoteFromSidebar(footnoteId, options = {}) {
       this.plugin.suppressCursorSyncFromSidebarJump();
-      this.focusFootnote(footnoteId, { scroll: false, focusEditor: false });
-      const occurrence = options.occurrence || 0;
-      // A later definition of a duplicated id has no references of its own:
-      // its card leads to its own definition, not to the first one's markers.
-      const footnote = this.currentFootnotes.find((item) => item.id === footnoteId && (item.occurrence || 0) === occurrence)
-        || this.currentFootnotes.find((item) => item.id === footnoteId);
+      const occurrence = Number.isInteger(options.occurrence) ? options.occurrence : null;
+      // A reminder card leads to its own definition; the number's markers
+      // belong to its owner card.
+      const footnote = (occurrence !== null
+        && this.currentFootnotes.find((item) => item.id === footnoteId && (item.occurrence || 0) === occurrence))
+        || this.getPrimaryFootnote(footnoteId);
+      this.focusFootnote(footnoteId, {
+        scroll: false,
+        focusEditor: false,
+        occurrence: isReminderDefinition(footnote) ? footnote.occurrence : null,
+      });
       if (footnote?.referenceCount > 0) {
         this.plugin.jumpToFootnoteReference(this.file, footnoteId, {
           focus: false,
@@ -4413,26 +4660,37 @@
           referenceIndex: this.getFootnoteReferenceIndex(footnote),
         });
       } else {
-        this.plugin.jumpToFootnoteDefinition(this.file, footnoteId, { focus: false, occurrence: footnote?.occurrence || 0 });
+        this.plugin.jumpToFootnoteDefinition(this.file, footnoteId, { focus: false, occurrence: footnote?.occurrence });
       }
       this.plugin.suppressCursorSyncFromSidebarJump();
       if (options.selectSearchMatch) {
-        this.selectFirstSearchMatchForFootnote(footnoteId, { scroll: false });
+        this.selectFirstSearchMatchForFootnote(footnoteId, { scroll: false, occurrence: footnote?.occurrence });
       }
       this.captureState();
     }
 
+    // The active card: the number's primary card, or the reminder card of
+    // activeOccurrence.
+    isActiveItem(item) {
+      if (!this.activeFootnoteId || item.dataset.footnoteId !== this.activeFootnoteId) return false;
+      return Number.isInteger(this.activeOccurrence)
+        ? Number(item.dataset.occurrence) === this.activeOccurrence
+        : item.dataset.primary === "true";
+    }
+
     focusFootnote(footnoteId, options = {}) {
+      const occurrence = Number.isInteger(options.occurrence) ? options.occurrence : null;
       if (options.fromCursor) {
-        this.pauseSearchModeForEditorSync(footnoteId);
+        this.pauseSearchModeForEditorSync(footnoteId, occurrence);
       }
       this.activeFootnoteId = footnoteId;
+      this.activeOccurrence = occurrence;
       if (options.autoExpandSource === "sync") {
         this.collapseSyncExpandedFootnotes(footnoteId);
       }
       if (this.file) {
         const currentState = this.stateByFile.get(this.file.path) || {};
-        const activeFootnote = this.currentFootnotes.find((footnote) => footnote.id === footnoteId);
+        const activeFootnote = this.getPrimaryFootnote(footnoteId);
         const referenceIndexes = { ...(currentState.referenceIndexes || {}) };
         if (typeof options.referenceIndex === "number") {
           referenceIndexes[footnoteId] = normalizeReferenceIndex(activeFootnote, options.referenceIndex);
@@ -4440,6 +4698,7 @@
         this.stateByFile.set(this.file.path, {
           ...currentState,
           activeId: footnoteId,
+          activeOccurrence: occurrence,
           activeSnapshot: createFootnoteSnapshot(activeFootnote) || currentState.activeSnapshot || null,
           referenceIndexes,
         });
@@ -4447,14 +4706,14 @@
 
       const items = this.contentEl.querySelectorAll(".bfw-item");
       for (const item of items) {
-        if (item.dataset.footnoteId === footnoteId) {
+        if (this.isActiveItem(item)) {
           item.addClass("is-active");
         } else {
           item.removeClass("is-active");
         }
       }
 
-      const target = Array.from(items).find((item) => item.dataset.footnoteId === footnoteId);
+      const target = Array.from(items).find((item) => this.isActiveItem(item));
       if (!target) return;
       this.updateReferenceNavDisplay(footnoteId);
       const contentEl = this.getMeasurableContentEl(target);
@@ -4482,7 +4741,8 @@
           target.scrollIntoView({ block: options.scrollBlock || "nearest" });
         }
       }
-      if (options.focusEditor) {
+      // Reminder cards are read-only: there is no editor to focus.
+      if (options.focusEditor && !isReminderDefinition(this.cardTargets.get(target)?.footnote)) {
         if (this.liveEditor?.footnoteId === footnoteId) {
           this.liveEditor.instance?.cm?.focus?.();
         } else if (this.isMarkdownRenderingEnabled() && this.editingFootnoteId !== footnoteId) {

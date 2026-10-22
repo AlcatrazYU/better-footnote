@@ -90,7 +90,7 @@ This works for named ids such as `[^citation]` and for repeated numeric ids such
 
 ## Deleting a Footnote
 
-Right-click a footnote card in the sidebar and choose `Delete this footnote`. After confirmation, Better Footnote removes both the in-text reference marker and the footnote definition in one editor change.
+Right-click a footnote card in the sidebar and choose `Delete this footnote`. After confirmation, Better Footnote removes both the in-text reference marker and the footnote definition in one editor change. If two definitions share one number, only the definition of the card you delete is removed, and the reference markers stay with the other one.
 
 To undo, click back into the note editor and press `Command+Z` on macOS or `Ctrl+Z` on Windows/Linux. Repeated undo works through Obsidian's normal editor history. Better Footnote does not tidy numbering after deletion; run Tidy Footnotes manually when you are ready.
 
@@ -188,7 +188,7 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 
 ### 删除脚注
 
-在侧栏脚注卡片上右键，选择“删除本条脚注”。确认后，Better Footnote 会在一次编辑操作中同时删除正文引用标记和文末脚注定义。
+在侧栏脚注卡片上右键，选择“删除本条脚注”。确认后，Better Footnote 会在一次编辑操作中同时删除正文引用标记和文末脚注定义。如果同一个编号有两条定义，只删除你右键的那张卡对应的定义，正文里的引用标记会留给另一条。
 
 如需撤销，请先点击回笔记编辑区，然后在 macOS 上按 `Command+Z`，在 Windows/Linux 上按 `Ctrl+Z`。连续撤销会走 Obsidian 正常的编辑历史。Better Footnote 不会在删除后自动整理编号；确认无误后，可以手动运行 Tidy Footnotes。
 
@@ -290,7 +290,7 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 
 ### 脚注の削除
 
-サイドバーの脚注カードを右クリックし、「この脚注を削除」を選びます。確認後、Better Footnote は本文中の参照マーカーと脚注定義を 1 回の編集操作として削除します。
+サイドバーの脚注カードを右クリックし、「この脚注を削除」を選びます。確認後、Better Footnote は本文中の参照マーカーと脚注定義を 1 回の編集操作として削除します。同じ番号の定義が二つある場合は、右クリックしたカードの定義だけを削除し、本文の参照マーカーはもう一方の定義に残します。
 
 取り消すには、ノート編集欄をクリックしてから、macOS では `Command+Z`、Windows/Linux では `Ctrl+Z` を押します。複数回の取り消しは Obsidian 標準の編集履歴に従います。Better Footnote は削除後に番号を自動整理しません。必要なタイミングで Tidy Footnotes を手動実行してください。
 
@@ -392,7 +392,7 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 
 ### 각주 삭제
 
-사이드바의 각주 카드를 오른쪽 클릭하고 “이 각주 삭제”를 선택합니다. 확인하면 Better Footnote가 본문 참조 표시와 각주 정의를 하나의 편집 작업으로 함께 삭제합니다.
+사이드바의 각주 카드를 오른쪽 클릭하고 “이 각주 삭제”를 선택합니다. 확인하면 Better Footnote가 본문 참조 표시와 각주 정의를 하나의 편집 작업으로 함께 삭제합니다. 같은 번호의 정의가 두 개 있으면 오른쪽 클릭한 카드의 정의만 삭제하고, 본문의 참조 표시는 다른 정의에 남겨 둡니다.
 
 되돌리려면 노트 편집 영역을 클릭한 뒤 macOS에서는 `Command+Z`, Windows/Linux에서는 `Ctrl+Z`를 누르세요. 여러 번 되돌리기는 Obsidian의 일반 편집 기록을 따릅니다. Better Footnote는 삭제 후 번호를 자동으로 정리하지 않습니다. 필요할 때 Tidy Footnotes를 직접 실행하세요.
 
