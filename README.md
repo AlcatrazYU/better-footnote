@@ -31,17 +31,6 @@ Obsidian footnotes are flexible, but they become hard to work with in long notes
 
 Better Footnote turns footnotes into a right-side editing workspace instead of a block of text hidden at the end of the note.
 
-## Core Workflow
-
-- Click an in-text `[^id]` marker to select the matching footnote card in the sidebar.
-- Click a sidebar footnote card to jump back to the matching in-text marker and briefly outline it. A card that has no marker in the note yet leaves the note where it is.
-- Put the cursor inside a footnote definition near the bottom of the note to select the same footnote in the sidebar.
-- Edit the footnote in the sidebar. Changes are saved back to the Markdown file automatically.
-
-The sidebar shows the real `[^id]` from the note, keeps footnotes in definition order, and marks definitions without an in-text reference as unreferenced.
-
-If the sidebar also holds other tabs, turn on **Switch to Better Footnote when clicking a reference marker** in the settings: clicking a marker then switches the open sidebar to Better Footnote and shows that footnote. You can also drag the Better Footnote tab into a pane of its own in the sidebar, so it stays visible next to the others.
-
 ## Supported Footnotes
 
 Better Footnote focuses on standard Markdown footnote definitions:
@@ -60,6 +49,38 @@ Named ids such as `[^citation]` are supported. The sidebar shows the real id, wh
 Inline footnotes such as `^[inline text]` are not edited from the sidebar.
 
 Footnote syntax written inside code blocks, inline code, `%%` comments, HTML comments, `$$` math or the properties block is treated as plain text: it gets no card and is never changed when you edit or delete a footnote.
+
+## Core Workflow
+
+- Click an in-text `[^id]` marker to select the matching footnote card in the sidebar.
+- Click a sidebar footnote card to jump back to the matching in-text marker and briefly outline it. A card that has no marker in the note yet leaves the note where it is.
+- Put the cursor inside a footnote definition near the bottom of the note to select the same footnote in the sidebar.
+- Edit the footnote in the sidebar. Changes are saved back to the Markdown file automatically.
+- When you insert a new footnote while Better Footnote is showing, the cursor moves into its card, so you type the content there instead of in the popup that the insert command opens. To type in that popup instead, close the Better Footnote tab while you insert footnotes.
+
+The sidebar shows the real `[^id]` from the note, keeps footnotes in definition order, and marks definitions without an in-text reference as unreferenced.
+
+If the sidebar also holds other tabs, turn on **Switch to Better Footnote when clicking a reference marker** in the settings: clicking a marker then switches the open sidebar to Better Footnote and shows that footnote. You can also drag the Better Footnote tab into a pane of its own in the sidebar, so it stays visible next to the others.
+
+## Tidy Footnotes Integration
+
+With [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) installed, you can turn on "Auto tidy after a new footnote" in the settings:
+
+- After you insert a new footnote, Better Footnote runs Tidy Footnotes, so the new footnote gets its number and its place among the definitions. Footnotes that arrive from Sync or from scripts are only highlighted.
+- Deleting a footnote does not tidy, so a single undo brings it back. Run Tidy Footnotes yourself when you are ready.
+- It works while Better Footnote is open.
+
+## Draft First, Place Later
+
+You can write a footnote before you decide where it goes. Click `+` beside the search box to add an empty footnote with the next free number after the last footnote definition; its card opens for writing. When you know where it belongs, click the number on the card to copy its marker (such as `[^41]`) and paste it into the note. Clicking the number only copies: the note and your cursor stay where they are, so you can paste right away. You can also copy from the card's right-click menu.
+
+Until its marker is in the note, the card is marked unreferenced, and clicking it leaves the note where it is. `+` is shown while the search box is empty.
+
+## Multiple References
+
+If the same footnote id appears more than once in the text, Better Footnote keeps one sidebar card for the single footnote definition and shows how many references point to it. When that card is selected, small previous/next buttons cycle through each in-text reference and flash the exact marker.
+
+This works for named ids such as `[^citation]` and for repeated numeric ids such as `[^1]`. It does not change the note, renumber footnotes, or run Tidy Footnotes.
 
 ## Footnote Search
 
@@ -87,32 +108,11 @@ When enabled, footnote cards you are not editing show rendered Markdown: links, 
 
 The setting is off by default. Counts always follow the Markdown source, not the rendered text.
 
-## Draft First, Place Later
-
-You can write a footnote before you decide where it goes. Click `+` beside the search box to add an empty footnote with the next free number after the last footnote definition; its card opens for writing. When you know where it belongs, click the number on the card to copy its marker (such as `[^41]`) and paste it into the note. Clicking the number only copies: the note and your cursor stay where they are, so you can paste right away. You can also copy from the card's right-click menu.
-
-Until its marker is in the note, the card is marked unreferenced, and clicking it leaves the note where it is. `+` is shown while the search box is empty.
-
-## Multiple References
-
-If the same footnote id appears more than once in the text, Better Footnote keeps one sidebar card for the single footnote definition and shows how many references point to it. When that card is selected, small previous/next buttons cycle through each in-text reference and flash the exact marker.
-
-This works for named ids such as `[^citation]` and for repeated numeric ids such as `[^1]`. It does not change the note, renumber footnotes, or run Tidy Footnotes.
-
 ## Deleting a Footnote
 
 Right-click a footnote card in the sidebar and choose `Delete this footnote`. After confirmation, Better Footnote removes both the in-text reference marker and the footnote definition in one editor change. If two definitions share one number, only the definition of the card you delete is removed, and the reference markers stay with the other one.
 
 To undo, click back into the note editor and press `Command+Z` on macOS or `Ctrl+Z` on Windows/Linux. Repeated undo works through Obsidian's normal editor history. Better Footnote does not tidy numbering after deletion; run Tidy Footnotes manually when you are ready.
-
-## Tidy Footnotes Integration
-
-With [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) installed, you can turn on "Auto tidy after a new footnote" in the settings:
-
-- After you insert a new footnote, Better Footnote runs Tidy Footnotes, so the new footnote gets its number and its place among the definitions. Footnotes that arrive from Sync or from scripts are only highlighted.
-- The popup that opens when you insert a footnote is closed; type the new footnote in its sidebar card.
-- Deleting a footnote does not tidy, so a single undo brings it back. Run Tidy Footnotes yourself when you are ready.
-- It works while Better Footnote is open.
 
 ## Languages
 
@@ -143,17 +143,6 @@ Obsidian 的脚注语法很灵活，但在长文、论文和研究草稿中，�
 
 Better Footnote 的思路是把脚注变成一个稳定的右侧编辑工作区，而不是藏在文末的一长串文本。
 
-### 核心工作流
-
-- 点击正文里的 `[^id]` 脚注标记，右侧栏会自动选中对应脚注卡片。
-- 点击右侧栏脚注卡片，正文中的对应脚注标记会跳转并短暂显示紫色框。还没有正文引用的卡片点击后，正文保持不动。
-- 在文末脚注定义区点击或移动光标，右侧栏也会同步选中对应脚注。
-- 直接在右侧栏编辑脚注内容，修改会自动保存回 Markdown 文件。
-
-侧栏会显示当前文档里的真实 `[^id]`，按文末定义顺序排列；没有正文引用的脚注定义会标记为“未引用”。
-
-如果侧栏里还放着别的标签，可以在设置中打开 **点击引用标记时切换到 Better Footnote**：点击正文里的引用标记时，展开着的侧栏会切换到 Better Footnote 并显示这条脚注。也可以把 Better Footnote 的标签拖到侧栏里单独的一格，让它和别的标签同时显示。
-
 ### 支持范围
 
 Better Footnote 主要支持标准 Markdown 脚注定义：
@@ -172,6 +161,38 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 暂不在侧栏编辑 `^[inline text]` 这类 inline footnotes。
 
 写在代码块、行内代码、`%%` 注释、HTML 注释、`$$` 公式或属性区里的脚注语法只当作普通文字：不生成卡片，编辑或删除脚注时也不会被改动。
+
+### 核心工作流
+
+- 点击正文里的 `[^id]` 脚注标记，右侧栏会自动选中对应脚注卡片。
+- 点击右侧栏脚注卡片，正文中的对应脚注标记会跳转并短暂显示紫色框。还没有正文引用的卡片点击后，正文保持不动。
+- 在文末脚注定义区点击或移动光标，右侧栏也会同步选中对应脚注。
+- 直接在右侧栏编辑脚注内容，修改会自动保存回 Markdown 文件。
+- Better Footnote 显示在侧栏时插入新脚注，光标会进入它的卡片，内容就在卡片里写，而不是在插入命令弹出的小窗里写。想用小窗，请在插入脚注时关掉 Better Footnote 的标签。
+
+侧栏会显示当前文档里的真实 `[^id]`，按文末定义顺序排列；没有正文引用的脚注定义会标记为“未引用”。
+
+如果侧栏里还放着别的标签，可以在设置中打开 **点击引用标记时切换到 Better Footnote**：点击正文里的引用标记时，展开着的侧栏会切换到 Better Footnote 并显示这条脚注。也可以把 Better Footnote 的标签拖到侧栏里单独的一格，让它和别的标签同时显示。
+
+### Tidy Footnotes 联动
+
+安装 [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) 后，可以在设置中打开“新增脚注后自动整理编号”：
+
+- 你插入新脚注后，Better Footnote 会自动运行 Tidy Footnotes，让新脚注拿到正确的编号、排到正确的位置。同步或脚本带来的新脚注只会高亮。
+- 删除脚注不会自动整理，这样按一次撤销就能完整恢复。需要时请自己运行 Tidy Footnotes。
+- 这一联动在 Better Footnote 打开时生效。
+
+### 先写后放
+
+脚注可以先写，再决定放在哪里。点搜索框旁的 `+`，会在最后一条脚注定义之后加一条下一个编号的空白脚注，卡片直接进入编辑。想好放在哪里后，点卡片上的编号，复制它的引用标记（例如 `[^41]`），再粘贴到正文。点编号只复制，正文和光标都不动，可以直接粘贴。右键卡片也可以复制。
+
+放进正文之前，卡片显示“未引用”，点它不会移动正文。搜索框为空时才显示 `+`。
+
+### 多处引用
+
+如果同一个脚注 id 在正文中出现多次，Better Footnote 仍然只保留一张侧栏卡片，因为文末脚注定义只有一条。侧栏会显示它有几处引用；选中该卡片后，会出现上一处/下一处按钮，可以循环跳转到正文中的每一个引用标记，并短暂高亮当前位置。
+
+这同时适用于 `[^citation]` 这类自定义 id，也适用于重复出现的数字 id，例如 `[^1]`。这个功能只负责定位，不会修改正文、重新编号，也不会运行 Tidy Footnotes。
 
 ### 脚注搜索
 
@@ -199,32 +220,11 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 
 该选项默认关闭。字数统计始终按 Markdown 源码计算，与显示形态无关。
 
-### 先写后放
-
-脚注可以先写，再决定放在哪里。点搜索框旁的 `+`，会在最后一条脚注定义之后加一条下一个编号的空白脚注，卡片直接进入编辑。想好放在哪里后，点卡片上的编号，复制它的引用标记（例如 `[^41]`），再粘贴到正文。点编号只复制，正文和光标都不动，可以直接粘贴。右键卡片也可以复制。
-
-放进正文之前，卡片显示“未引用”，点它不会移动正文。搜索框为空时才显示 `+`。
-
-### 多处引用
-
-如果同一个脚注 id 在正文中出现多次，Better Footnote 仍然只保留一张侧栏卡片，因为文末脚注定义只有一条。侧栏会显示它有几处引用；选中该卡片后，会出现上一处/下一处按钮，可以循环跳转到正文中的每一个引用标记，并短暂高亮当前位置。
-
-这同时适用于 `[^citation]` 这类自定义 id，也适用于重复出现的数字 id，例如 `[^1]`。这个功能只负责定位，不会修改正文、重新编号，也不会运行 Tidy Footnotes。
-
 ### 删除脚注
 
 在侧栏脚注卡片上右键，选择“删除本条脚注”。确认后，Better Footnote 会在一次编辑操作中同时删除正文引用标记和文末脚注定义。如果同一个编号有两条定义，只删除你右键的那张卡对应的定义，正文里的引用标记会留给另一条。
 
 如需撤销，请先点击回笔记编辑区，然后在 macOS 上按 `Command+Z`，在 Windows/Linux 上按 `Ctrl+Z`。连续撤销会走 Obsidian 正常的编辑历史。Better Footnote 不会在删除后自动整理编号；确认无误后，可以手动运行 Tidy Footnotes。
-
-### Tidy Footnotes 联动
-
-安装 [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) 后，可以在设置中打开“新增脚注后自动整理编号”：
-
-- 你插入新脚注后，Better Footnote 会自动运行 Tidy Footnotes，让新脚注拿到正确的编号、排到正确的位置。同步或脚本带来的新脚注只会高亮。
-- 插入脚注时弹出的小窗会被关掉，请在侧栏的新卡片里写内容。
-- 删除脚注不会自动整理，这样按一次撤销就能完整恢复。需要时请自己运行 Tidy Footnotes。
-- 这一联动在 Better Footnote 打开时生效。
 
 ### 请我喝杯咖啡
 
@@ -259,17 +259,6 @@ Obsidian の脚注記法は柔軟ですが、長いノート、論文、研究�
 
 Better Footnote は、脚注をノート末尾に隠れたテキストではなく、右サイドバーの安定した編集作業スペースとして扱えるようにします。
 
-### 基本の流れ
-
-- 本文中の `[^id]` マーカーをクリックすると、サイドバーの対応する脚注カードが選択されます。
-- サイドバーの脚注カードをクリックすると、本文中の対応する脚注マーカーへ移動し、短時間アウトライン表示します。本文にまだ参照がないカードをクリックしても、本文は動きません。
-- 文末の脚注定義内にカーソルを置くと、サイドバーでも同じ脚注が選択されます。
-- サイドバーで脚注を直接編集できます。変更は Markdown ファイルへ自動保存されます。
-
-サイドバーには現在のノート内の実際の `[^id]` が表示され、脚注定義の順序で並びます。本文中に参照がない定義には「未参照」と表示します。
-
-サイドバーにほかのタブも置いている場合は、設定で **参照マーカーのクリックで Better Footnote に切り替え** をオンにしてください。本文の参照マーカーをクリックすると、開いているサイドバーが Better Footnote に切り替わり、その脚注を表示します。Better Footnote のタブをサイドバー内の独立した区画へドラッグして、ほかのタブと同時に表示することもできます。
-
 ### 対応する脚注
 
 Better Footnote は標準的な Markdown 脚注定義を中心に対応しています。
@@ -288,6 +277,38 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 `^[inline text]` のような inline footnotes はサイドバーから編集できません。
 
 コードブロック、インラインコード、`%%` コメント、HTML コメント、`$$` 数式、プロパティ欄の中に書かれた脚注記法はただの文字として扱います。カードは作られず、脚注の編集や削除でも変更されません。
+
+### 基本の流れ
+
+- 本文中の `[^id]` マーカーをクリックすると、サイドバーの対応する脚注カードが選択されます。
+- サイドバーの脚注カードをクリックすると、本文中の対応する脚注マーカーへ移動し、短時間アウトライン表示します。本文にまだ参照がないカードをクリックしても、本文は動きません。
+- 文末の脚注定義内にカーソルを置くと、サイドバーでも同じ脚注が選択されます。
+- サイドバーで脚注を直接編集できます。変更は Markdown ファイルへ自動保存されます。
+- Better Footnote を表示しているときに新しい脚注を挿入すると、カーソルがそのカードに移るので、挿入コマンドが開く小さなウィンドウではなくカードに内容を書きます。小さなウィンドウで書きたい場合は、脚注を挿入する間 Better Footnote のタブを閉じてください。
+
+サイドバーには現在のノート内の実際の `[^id]` が表示され、脚注定義の順序で並びます。本文中に参照がない定義には「未参照」と表示します。
+
+サイドバーにほかのタブも置いている場合は、設定で **参照マーカーのクリックで Better Footnote に切り替え** をオンにしてください。本文の参照マーカーをクリックすると、開いているサイドバーが Better Footnote に切り替わり、その脚注を表示します。Better Footnote のタブをサイドバー内の独立した区画へドラッグして、ほかのタブと同時に表示することもできます。
+
+### Tidy Footnotes 連携
+
+[Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) をインストールすると、設定で「新しい脚注の後に自動整理」をオンにできます。
+
+- 新しい脚注を挿入すると、Better Footnote が Tidy Footnotes を実行し、新しい脚注が正しい番号と位置に収まります。同期やスクリプトで増えた脚注はハイライトのみです。
+- 脚注を削除しても整理はしません。そのため、取り消しを 1 回するだけで元に戻せます。必要なときは Tidy Footnotes を自分で実行してください。
+- この連携は Better Footnote を開いているときに働きます。
+
+### 先に書いて後で置く
+
+脚注は、置く場所を決める前に書いておけます。検索欄の横の `+` を押すと、最後の脚注定義の後に次の番号の空の脚注が追加され、そのカードがすぐ編集状態になります。置く場所が決まったら、カードの番号をクリックして参照マーカー（例: `[^41]`）をコピーし、本文に貼り付けます。番号のクリックはコピーだけで、本文もカーソルも動かないので、そのまま貼り付けられます。カードの右クリックメニューからもコピーできます。
+
+本文に置くまではカードに「未参照」と表示され、クリックしても本文は動きません。`+` は検索欄が空のときに表示されます。
+
+### 複数参照
+
+同じ脚注 id が本文中に複数回出てくる場合でも、脚注定義は 1 件なので、Better Footnote はサイドバーに 1 枚のカードだけを表示します。そのカードには参照数が表示され、選択すると前/次ボタンで本文中の各参照マーカーへ循環移動し、移動先を短時間ハイライトします。
+
+これは `[^citation]` のような名前付き id にも、繰り返し使われた `[^1]` のような数字 id にも対応します。この機能は位置移動だけを行い、本文の変更、番号整理、Tidy Footnotes の実行は行いません。
 
 ### 脚注検索
 
@@ -315,32 +336,11 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 
 この設定は初期状態でオフです。カウントは常に Markdown ソースを基準とします。
 
-### 先に書いて後で置く
-
-脚注は、置く場所を決める前に書いておけます。検索欄の横の `+` を押すと、最後の脚注定義の後に次の番号の空の脚注が追加され、そのカードがすぐ編集状態になります。置く場所が決まったら、カードの番号をクリックして参照マーカー（例: `[^41]`）をコピーし、本文に貼り付けます。番号のクリックはコピーだけで、本文もカーソルも動かないので、そのまま貼り付けられます。カードの右クリックメニューからもコピーできます。
-
-本文に置くまではカードに「未参照」と表示され、クリックしても本文は動きません。`+` は検索欄が空のときに表示されます。
-
-### 複数参照
-
-同じ脚注 id が本文中に複数回出てくる場合でも、脚注定義は 1 件なので、Better Footnote はサイドバーに 1 枚のカードだけを表示します。そのカードには参照数が表示され、選択すると前/次ボタンで本文中の各参照マーカーへ循環移動し、移動先を短時間ハイライトします。
-
-これは `[^citation]` のような名前付き id にも、繰り返し使われた `[^1]` のような数字 id にも対応します。この機能は位置移動だけを行い、本文の変更、番号整理、Tidy Footnotes の実行は行いません。
-
 ### 脚注の削除
 
 サイドバーの脚注カードを右クリックし、「この脚注を削除」を選びます。確認後、Better Footnote は本文中の参照マーカーと脚注定義を 1 回の編集操作として削除します。同じ番号の定義が二つある場合は、右クリックしたカードの定義だけを削除し、本文の参照マーカーはもう一方の定義に残します。
 
 取り消すには、ノート編集欄をクリックしてから、macOS では `Command+Z`、Windows/Linux では `Ctrl+Z` を押します。複数回の取り消しは Obsidian 標準の編集履歴に従います。Better Footnote は削除後に番号を自動整理しません。必要なタイミングで Tidy Footnotes を手動実行してください。
-
-### Tidy Footnotes 連携
-
-[Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) をインストールすると、設定で「新しい脚注の後に自動整理」をオンにできます。
-
-- 新しい脚注を挿入すると、Better Footnote が Tidy Footnotes を実行し、新しい脚注が正しい番号と位置に収まります。同期やスクリプトで増えた脚注はハイライトのみです。
-- 脚注の挿入時に開く小さなウィンドウは閉じられます。新しい脚注はサイドバーのカードに書いてください。
-- 脚注を削除しても整理はしません。そのため、取り消しを 1 回するだけで元に戻せます。必要なときは Tidy Footnotes を自分で実行してください。
-- この連携は Better Footnote を開いているときに働きます。
 
 ### サポート
 
@@ -375,17 +375,6 @@ Obsidian의 각주 문법은 유연하지만, 긴 노트, 논문, 연구 초안�
 
 Better Footnote는 각주를 문서 끝에 숨어 있는 텍스트가 아니라 오른쪽 사이드바의 안정적인 편집 작업 공간으로 바꿉니다.
 
-### 기본 흐름
-
-- 본문의 `[^id]` 각주 표시를 클릭하면 사이드바의 해당 각주 카드가 선택됩니다.
-- 사이드바 각주 카드를 클릭하면 본문의 해당 각주 표시로 이동하고 짧게 윤곽선을 표시합니다. 아직 본문에 참조가 없는 카드를 클릭하면 본문은 그대로 있습니다.
-- 문서 끝의 각주 정의 안에 커서를 두면 사이드바에서도 같은 각주가 선택됩니다.
-- 사이드바에서 각주 내용을 직접 편집할 수 있습니다. 변경 사항은 Markdown 파일에 자동 저장됩니다.
-
-사이드바는 현재 노트의 실제 `[^id]`를 표시하고 각주 정의 순서대로 보여줍니다. 본문 참조가 없는 정의는 “참조 없음”으로 표시합니다.
-
-사이드바에 다른 탭도 두고 있다면 설정에서 **참조 표시를 클릭하면 Better Footnote로 전환**을 켜세요. 본문의 참조 표시를 클릭하면 열려 있는 사이드바가 Better Footnote로 전환되어 그 각주를 보여 줍니다. Better Footnote 탭을 사이드바의 별도 칸으로 끌어다 놓아 다른 탭과 함께 보이게 할 수도 있습니다.
-
 ### 지원하는 각주
 
 Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다.
@@ -404,6 +393,38 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 `^[inline text]` 형식의 inline footnotes는 사이드바에서 편집할 수 없습니다.
 
 코드 블록, 인라인 코드, `%%` 주석, HTML 주석, `$$` 수식, 속성 영역 안에 쓴 각주 문법은 일반 텍스트로 취급합니다. 카드가 만들어지지 않으며 각주를 편집하거나 삭제해도 바뀌지 않습니다.
+
+### 기본 흐름
+
+- 본문의 `[^id]` 각주 표시를 클릭하면 사이드바의 해당 각주 카드가 선택됩니다.
+- 사이드바 각주 카드를 클릭하면 본문의 해당 각주 표시로 이동하고 짧게 윤곽선을 표시합니다. 아직 본문에 참조가 없는 카드를 클릭하면 본문은 그대로 있습니다.
+- 문서 끝의 각주 정의 안에 커서를 두면 사이드바에서도 같은 각주가 선택됩니다.
+- 사이드바에서 각주 내용을 직접 편집할 수 있습니다. 변경 사항은 Markdown 파일에 자동 저장됩니다.
+- Better Footnote가 표시된 상태에서 새 각주를 삽입하면 커서가 그 카드로 이동하므로, 삽입 명령이 여는 작은 창이 아니라 카드에 내용을 작성합니다. 작은 창에서 작성하려면 각주를 삽입하는 동안 Better Footnote 탭을 닫아 두세요.
+
+사이드바는 현재 노트의 실제 `[^id]`를 표시하고 각주 정의 순서대로 보여줍니다. 본문 참조가 없는 정의는 “참조 없음”으로 표시합니다.
+
+사이드바에 다른 탭도 두고 있다면 설정에서 **참조 표시를 클릭하면 Better Footnote로 전환**을 켜세요. 본문의 참조 표시를 클릭하면 열려 있는 사이드바가 Better Footnote로 전환되어 그 각주를 보여 줍니다. Better Footnote 탭을 사이드바의 별도 칸으로 끌어다 놓아 다른 탭과 함께 보이게 할 수도 있습니다.
+
+### Tidy Footnotes 연동
+
+[Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes)를 설치하면 설정에서 "새 각주 뒤 자동 정리"를 켤 수 있습니다.
+
+- 새 각주를 삽입하면 Better Footnote가 Tidy Footnotes를 실행해, 새 각주가 올바른 번호와 위치를 갖게 됩니다. 동기화나 스크립트로 들어온 각주는 강조 표시만 합니다.
+- 각주를 삭제해도 정리하지 않으므로 실행 취소 한 번으로 그대로 되돌릴 수 있습니다. 필요하면 Tidy Footnotes를 직접 실행하세요.
+- 이 연동은 Better Footnote가 열려 있을 때 작동합니다.
+
+### 먼저 쓰고 나중에 배치
+
+각주는 넣을 위치를 정하기 전에 먼저 써 둘 수 있습니다. 검색창 옆의 `+`를 누르면 마지막 각주 정의 뒤에 다음 번호의 빈 각주가 추가되고, 카드가 바로 편집 상태가 됩니다. 넣을 위치가 정해지면 카드의 번호를 클릭해 참조 표시(예: `[^41]`)를 복사한 뒤 본문에 붙여 넣으세요. 번호 클릭은 복사만 하며 본문과 커서는 그대로이므로 바로 붙여 넣을 수 있습니다. 카드의 오른쪽 클릭 메뉴에서도 복사할 수 있습니다.
+
+본문에 넣기 전까지 카드는 “참조 없음”으로 표시되고, 클릭해도 본문은 움직이지 않습니다. `+`는 검색창이 비어 있을 때 표시됩니다.
+
+### 여러 참조
+
+같은 각주 id가 본문에 여러 번 나타나도 문서 끝의 각주 정의는 하나이므로, Better Footnote는 사이드바에 카드 하나만 표시합니다. 이 카드에는 참조 수가 표시되며, 카드를 선택하면 이전/다음 버튼으로 본문의 각 참조 표시를 순환 이동하고 해당 위치를 짧게 강조합니다.
+
+이 기능은 `[^citation]` 같은 이름 있는 id와 반복해서 사용된 `[^1]` 같은 숫자 id 모두에 적용됩니다. 위치 이동만 처리하며 본문 수정, 번호 정리, Tidy Footnotes 실행은 하지 않습니다.
 
 ### 각주 검색
 
@@ -431,32 +452,11 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 
 이 설정은 기본적으로 꺼져 있습니다. 글자 수/단어 수는 항상 Markdown 소스를 기준으로 계산됩니다.
 
-### 먼저 쓰고 나중에 배치
-
-각주는 넣을 위치를 정하기 전에 먼저 써 둘 수 있습니다. 검색창 옆의 `+`를 누르면 마지막 각주 정의 뒤에 다음 번호의 빈 각주가 추가되고, 카드가 바로 편집 상태가 됩니다. 넣을 위치가 정해지면 카드의 번호를 클릭해 참조 표시(예: `[^41]`)를 복사한 뒤 본문에 붙여 넣으세요. 번호 클릭은 복사만 하며 본문과 커서는 그대로이므로 바로 붙여 넣을 수 있습니다. 카드의 오른쪽 클릭 메뉴에서도 복사할 수 있습니다.
-
-본문에 넣기 전까지 카드는 “참조 없음”으로 표시되고, 클릭해도 본문은 움직이지 않습니다. `+`는 검색창이 비어 있을 때 표시됩니다.
-
-### 여러 참조
-
-같은 각주 id가 본문에 여러 번 나타나도 문서 끝의 각주 정의는 하나이므로, Better Footnote는 사이드바에 카드 하나만 표시합니다. 이 카드에는 참조 수가 표시되며, 카드를 선택하면 이전/다음 버튼으로 본문의 각 참조 표시를 순환 이동하고 해당 위치를 짧게 강조합니다.
-
-이 기능은 `[^citation]` 같은 이름 있는 id와 반복해서 사용된 `[^1]` 같은 숫자 id 모두에 적용됩니다. 위치 이동만 처리하며 본문 수정, 번호 정리, Tidy Footnotes 실행은 하지 않습니다.
-
 ### 각주 삭제
 
 사이드바의 각주 카드를 오른쪽 클릭하고 “이 각주 삭제”를 선택합니다. 확인하면 Better Footnote가 본문 참조 표시와 각주 정의를 하나의 편집 작업으로 함께 삭제합니다. 같은 번호의 정의가 두 개 있으면 오른쪽 클릭한 카드의 정의만 삭제하고, 본문의 참조 표시는 다른 정의에 남겨 둡니다.
 
 되돌리려면 노트 편집 영역을 클릭한 뒤 macOS에서는 `Command+Z`, Windows/Linux에서는 `Ctrl+Z`를 누르세요. 여러 번 되돌리기는 Obsidian의 일반 편집 기록을 따릅니다. Better Footnote는 삭제 후 번호를 자동으로 정리하지 않습니다. 필요할 때 Tidy Footnotes를 직접 실행하세요.
-
-### Tidy Footnotes 연동
-
-[Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes)를 설치하면 설정에서 "새 각주 뒤 자동 정리"를 켤 수 있습니다.
-
-- 새 각주를 삽입하면 Better Footnote가 Tidy Footnotes를 실행해, 새 각주가 올바른 번호와 위치를 갖게 됩니다. 동기화나 스크립트로 들어온 각주는 강조 표시만 합니다.
-- 각주를 삽입할 때 열리는 작은 창은 닫힙니다. 새 각주는 사이드바의 카드에서 작성하세요.
-- 각주를 삭제해도 정리하지 않으므로 실행 취소 한 번으로 그대로 되돌릴 수 있습니다. 필요하면 Tidy Footnotes를 직접 실행하세요.
-- 이 연동은 Better Footnote가 열려 있을 때 작동합니다.
 
 ### 후원
 
