@@ -21,12 +21,21 @@
   // created with "+" may take to appear before its card stops waiting for it.
   const COPIED_NOTICE_MS = 2000;
   const PENDING_CREATED_FOOTNOTE_MS = 2000;
+  // Issue #7: a click on a reference marker is used once, by the cursor sync
+  // that follows it, and only this soon. Once the sidebar shows again, a
+  // pending scroll waits this long at most for rendered cards to settle; a
+  // Better Footnote view loaded by the switch gets this long for its first
+  // render.
+  const REFERENCE_CLICK_TTL_MS = 1000;
+  const LAYOUT_SETTLE_MAX_MS = 400;
+  const REVEAL_LOAD_WAIT_MS = 1000;
   const MAX_DELETED_FOOTNOTE_RESTORE_RECORDS = 50;
   const PLUGIN_ICON = "list-ordered";
   const TIDY_FOOTNOTES_PLUGIN_URL = "https://community.obsidian.md/plugins/obsidian-tidy-footnotes";
 
   const DEFAULT_SETTINGS = {
     autoTidyAfterNewFootnote: false,
+    revealSidebarOnReferenceClick: false,
     countMode: "auto",
     tidyCommandId: "",
     renderMarkdownInSidebar: false,
@@ -87,6 +96,8 @@
       countModeWords: "Words",
       renderMarkdownName: "Render Markdown in sidebar",
       renderMarkdownDesc: "When enabled, footnote cards you are not editing show rendered Markdown, including links, bold, and other formatting. Click a link to open it. Click the text to edit in an embedded live preview editor that keeps formatting rendered while you type; if it is unavailable, the card falls back to a plain source editor.",
+      revealOnReferenceClickName: "Switch to Better Footnote when clicking a reference marker",
+      revealOnReferenceClickDesc: "When the sidebar is open but showing another tab, clicking a footnote reference marker in your note switches it to Better Footnote and shows that footnote. Nothing happens if the sidebar is collapsed or Better Footnote is not open. Desktop only.",
       autoTidyName: "Auto tidy after a new footnote",
       autoTidyDesc: "Requires Tidy Footnotes. After you insert a new footnote in the note's own editor, Better Footnote runs Tidy Footnotes automatically (footnotes that arrive from Sync or from scripts that write the file directly are only highlighted). This closes Obsidian's built-in floating footnote editor; use the Better Footnote sidebar to edit the footnote.",
       tidyInstallName: "Tidy Footnotes integration",
@@ -166,6 +177,8 @@
       countModeWords: "单词数",
       renderMarkdownName: "侧栏渲染 Markdown",
       renderMarkdownDesc: "开启后，未在编辑的脚注卡片会显示渲染后的 Markdown，包括链接、粗体等格式。点击链接直接打开；点击文字进入嵌入式实时预览编辑器，输入时格式保持渲染。若实时预览编辑器不可用，卡片会自动回退为源码编辑框。",
+      revealOnReferenceClickName: "点击引用标记时切换到 Better Footnote",
+      revealOnReferenceClickDesc: "侧栏开着但显示的是别的标签时，点击正文里的脚注引用标记，侧栏会切换到 Better Footnote 并显示这条脚注。侧栏收起或没有打开 Better Footnote 时不做任何事。仅限桌面端。",
       autoTidyName: "新增脚注后自动整理编号",
       autoTidyDesc: "需要先安装并启用 Tidy Footnotes。当你在这篇笔记的编辑器里插入新脚注后，Better Footnote 会自动运行 Tidy Footnotes（同步或直接写文件的脚本带来的新脚注只会高亮，不会自动整理）。启用后会关闭 Obsidian 自带的脚注悬浮编辑框，请在 Better Footnote 侧栏中编辑脚注。",
       tidyInstallName: "Tidy Footnotes 集成",
@@ -245,6 +258,8 @@
       countModeWords: "単語数",
       renderMarkdownName: "サイドバーで Markdown をレンダリング",
       renderMarkdownDesc: "有効にすると、編集していない脚注カードはリンクや太字などを含むレンダリング済みの Markdown で表示されます。リンクをクリックすると開きます。本文をクリックすると埋め込みライブプレビューエディタで編集でき、入力中も書式はレンダリングされたままです。利用できない場合は自動的にソース編集ボックスへ戻ります。",
+      revealOnReferenceClickName: "参照マーカーのクリックで Better Footnote に切り替え",
+      revealOnReferenceClickDesc: "サイドバーが開いていて別のタブを表示しているとき、本文の脚注の参照マーカーをクリックすると、Better Footnote に切り替えてその脚注を表示します。サイドバーが折りたたまれているとき、または Better Footnote を開いていないときは何もしません。デスクトップのみ。",
       autoTidyName: "新しい脚注の後に自動整理",
       autoTidyDesc: "Tidy Footnotes のインストールと有効化が必要です。このノートのエディタで新しい脚注を挿入すると、Better Footnote が Tidy Footnotes を自動実行します（同期やファイルを直接書き換えるスクリプトで増えた脚注はハイライトのみで、自動整理はしません）。有効にすると Obsidian 標準の脚注フローティング編集欄を閉じるため、脚注は Better Footnote サイドバーで編集してください。",
       tidyInstallName: "Tidy Footnotes 連携",
@@ -324,6 +339,8 @@
       countModeWords: "단어 수",
       renderMarkdownName: "사이드바에서 Markdown 렌더링",
       renderMarkdownDesc: "켜면 편집 중이 아닌 각주 카드가 링크, 굵게 등 서식을 포함한 렌더링된 Markdown으로 표시됩니다. 링크를 클릭하면 링크가 열립니다. 본문을 클릭하면 내장 라이브 프리뷰 편집기에서 편집할 수 있으며 입력 중에도 서식이 렌더링된 채 유지됩니다. 사용할 수 없는 경우 자동으로 소스 편집 상자로 돌아갑니다.",
+      revealOnReferenceClickName: "참조 표시를 클릭하면 Better Footnote로 전환",
+      revealOnReferenceClickDesc: "사이드바가 열려 있지만 다른 탭을 표시하고 있을 때 노트의 각주 참조 표시를 클릭하면 사이드바가 Better Footnote로 전환되어 그 각주를 보여 줍니다. 사이드바가 접혀 있거나 Better Footnote가 열려 있지 않으면 아무 일도 하지 않습니다. 데스크톱 전용.",
       autoTidyName: "새 각주 뒤 자동 정리",
       autoTidyDesc: "Tidy Footnotes를 먼저 설치하고 활성화해야 합니다. 이 노트의 편집기에서 새 각주를 삽입하면 Better Footnote가 Tidy Footnotes를 자동으로 실행합니다(동기화나 파일을 직접 쓰는 스크립트로 들어온 각주는 강조 표시만 합니다). 이 기능을 켜면 Obsidian 기본 각주 플로팅 편집 창을 닫으므로, 각주는 Better Footnote 사이드바에서 편집하세요.",
       tidyInstallName: "Tidy Footnotes 연동",
@@ -1423,6 +1440,45 @@
     return nearest && nearest.distance <= 2 ? nearest.reference : null;
   }
 
+  // Issue #7: a click on a reference marker switches the sidebar to Better
+  // Footnote only when the sidebar is open with Better Footnote hidden behind
+  // another tab. Every refusal leaves the usual highlighting untouched.
+  function decideReferenceClickReveal(input) {
+    const state = input || {};
+    const refuse = (reason) => ({ reveal: false, reason });
+    if (!state.enabled) return refuse("disabled");
+    if (!state.click) return refuse("no-click");
+    if (!state.click.sameContainer) return refuse("other-view");
+    // Clicking the blank space after a line that ends with a marker puts the
+    // caret right after it: the click itself must land on the marker.
+    if (!state.click.onMarker) return refuse("off-marker");
+    if (state.mobile) return refuse("mobile");
+    if (!state.mainWindow) return refuse("popout");
+    if (state.readingView) return refuse("reading-view");
+    // A click on the title or properties leaves the caret where it was.
+    if (!state.editorHasFocus) return refuse("editor-not-focused");
+    if (!state.onReference) return refuse("not-on-reference");
+    if (state.referenceInDefinition) return refuse("in-definition");
+    if (state.hasSelection) return refuse("selection");
+    if (state.anyViewVisible) return refuse("already-visible");
+    const candidate = state.candidate;
+    if (!candidate) return refuse("no-leaf");
+    if (!candidate.inSidebar) return refuse("not-in-sidebar");
+    if (candidate.sidebarCollapsed) return refuse("sidebar-collapsed");
+    if (candidate.sameTabGroupAsNote) return refuse("same-tab-group");
+    return { reveal: true, reason: "reveal" };
+  }
+
+  // A hidden list reads scrollTop 0, and a list built while hidden never got
+  // its scroll applied: neither may overwrite a real position. The last one
+  // seen while visible (a hand scroll is recorded nowhere else) comes first,
+  // then the one saved before.
+  function chooseCapturedScrollTop({ laidOut, domBuiltWhileHidden, domScrollTop, lastVisibleScrollTop, savedScrollTop } = {}) {
+    if (laidOut && !domBuiltWhileHidden && typeof domScrollTop === "number") return domScrollTop;
+    if (typeof lastVisibleScrollTop === "number") return lastVisibleScrollTop;
+    return typeof savedScrollTop === "number" ? savedScrollTop : 0;
+  }
+
   function closestElement(target, selector) {
     return target && typeof target.closest === "function" ? target.closest(selector) : null;
   }
@@ -1610,6 +1666,8 @@
         referenceIndexForFootnoteReference,
         findReferenceAtOffset,
         findDefinitionAtOffset,
+        decideReferenceClickReveal,
+        chooseCapturedScrollTop,
         isTextEditingKey,
         isEditorTextInputEvent,
         isCommandLikeEditorKeydown,
@@ -1636,6 +1694,8 @@
         findReferenceAtOffset,
         findDefinitionAtOffset,
         findReferenceNearOffsetOnLine,
+        decideReferenceClickReveal,
+        chooseCapturedScrollTop,
         orderFootnotesByReference,
         detectAddedFootnotes,
         parseSearchQuery,
@@ -1681,7 +1741,7 @@
     codemirrorView = null;
   }
 
-  const { Component, ItemView, MarkdownRenderer, MarkdownView, Menu, Modal, Notice, Plugin, PluginSettingTab, Setting } = obsidian;
+  const { Component, ItemView, MarkdownRenderer, MarkdownView, Menu, Modal, Notice, Platform, Plugin, PluginSettingTab, Setting } = obsidian;
   const editorInfoField = obsidian.editorInfoField || null;
   const { StateEffect, StateField } = codemirrorState || {};
   const { Decoration, EditorView } = codemirrorView || {};
@@ -1798,6 +1858,7 @@
       this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
       this.settings.countMode = normalizeCountMode(this.settings.countMode);
       this.settings.renderMarkdownInSidebar = Boolean(this.settings.renderMarkdownInSidebar);
+      this.settings.revealSidebarOnReferenceClick = Boolean(this.settings.revealSidebarOnReferenceClick);
       // Data-only killswitch, defaults to enabled: only an explicit false disables it.
       this.settings.useLivePreviewEditor = this.settings.useLivePreviewEditor !== false;
       this.internalEditorResolution = null;
@@ -1807,6 +1868,9 @@
       this.suppressEditStamp = false;
       this.editTrustExtensionActive = false;
       this.cursorSyncTimer = null;
+      // Issue #7: the last mouse click in a note's text, until the cursor sync
+      // after it takes it: { at, containerEl }.
+      this.pendingReferenceClick = null;
       this.flashSelectionTimer = null;
       this.pendingTidyKeys = new Set();
       this.tidyMissingNoticeShown = false;
@@ -1858,6 +1922,7 @@
         this.scheduleCursorSync({ force: isCursorNavigationKey(event) && isMarkdownEditorTarget(event.target) });
       });
       this.registerDomEvent(document, "mouseup", (event) => {
+        this.rememberReferenceClick(event);
         if (!isMarkdownEditorTarget(event.target)) return;
         this.scheduleCursorSync({ force: true });
       });
@@ -2141,6 +2206,9 @@
     }
 
     syncCursorToViews(options = {}) {
+      // Taken before anything can return early: a click record serves the
+      // sync right after it or nothing, never a later arrow-key sync.
+      const click = this.takeReferenceClick();
       if (!options.force && this.isTypingActive()) {
         return;
       }
@@ -2203,10 +2271,101 @@
           });
         }
       }
+      if (click) this.maybeRevealFootnoteSidebar({ click, markdownView, editor, parsed, offset });
     }
 
     suppressCursorSyncFromSidebarJump() {
       this.suppressCursorSyncUntil = Date.now() + SIDEBAR_JUMP_CURSOR_SUPPRESS_MS;
+    }
+
+    rememberReferenceClick(event) {
+      this.pendingReferenceClick = null;
+      if (!this.settings?.revealSidebarOnReferenceClick || !event) return;
+      // Modifier clicks mean something else (open a link, add a cursor, extend).
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      const target = event.target;
+      // Only the note's text: a click on its title, properties, gutter or blank
+      // space leaves the caret where it was. The sidebar's own embedded editor
+      // has a .cm-content too.
+      if (!closestElement(target, ".cm-content") || isBetterFootnoteTarget(target)) return;
+      // Resolved now: Live Preview redraws the clicked line once the caret
+      // enters the marker, so the target may be detached when the sync runs.
+      const containerEl = closestElement(target, ".workspace-leaf-content");
+      if (!containerEl) return;
+      // Obsidian marks every part of a reference marker ("[^", the id, "]")
+      // with cm-footref, in Live Preview and in Source mode alike.
+      const onMarker = Boolean(closestElement(target, ".cm-footref"));
+      this.pendingReferenceClick = { at: Date.now(), containerEl, onMarker };
+    }
+
+    takeReferenceClick() {
+      const click = this.pendingReferenceClick;
+      this.pendingReferenceClick = null;
+      if (!click || Date.now() - click.at > REFERENCE_CLICK_TTL_MS) return null;
+      return click;
+    }
+
+    maybeRevealFootnoteSidebar({ click, markdownView, editor, parsed, offset }) {
+      // The loose same-line match picks the card to highlight; switching the
+      // sidebar needs the caret on the marker itself.
+      const exactReference = findReferenceAtOffset(parsed, offset);
+      const candidate = this.findRevealableFootnoteLeaf(markdownView);
+      const decision = decideReferenceClickReveal({
+        enabled: Boolean(this.settings?.revealSidebarOnReferenceClick),
+        click: {
+          sameContainer: Boolean(markdownView?.containerEl) && markdownView.containerEl === click.containerEl,
+          onMarker: Boolean(click.onMarker),
+        },
+        mobile: Boolean(Platform?.isMobile),
+        mainWindow: markdownView?.containerEl?.ownerDocument === document,
+        readingView: markdownView?.getMode?.() === "preview",
+        editorHasFocus: typeof editor?.hasFocus === "function" && editor.hasFocus(),
+        onReference: Boolean(exactReference),
+        referenceInDefinition: Boolean(exactReference && findDefinitionAtOffset(parsed, exactReference.start)),
+        hasSelection: typeof editor?.somethingSelected === "function" && editor.somethingSelected(),
+        anyViewVisible: Array.from(this.views).some((view) => view.isLaidOut()),
+        candidate: candidate?.info || null,
+      });
+      if (decision.reveal) this.revealFootnoteLeaf(candidate.leaf).catch(() => {});
+    }
+
+    // The Better Footnote leaf a click may bring forward: in an expanded
+    // sidebar, not in the clicked note's own tab group. Failing that, the
+    // first leaf found, so the decision can tell why not.
+    findRevealableFootnoteLeaf(markdownView) {
+      const workspace = this.app.workspace;
+      let fallback = null;
+      for (const leaf of workspace.getLeavesOfType(VIEW_TYPE)) {
+        const root = leaf.getRoot?.();
+        const inSidebar = Boolean(root) && (root === workspace.leftSplit || root === workspace.rightSplit);
+        const info = {
+          inSidebar,
+          sidebarCollapsed: inSidebar && Boolean(root.collapsed),
+          sameTabGroupAsNote: Boolean(leaf.parent) && leaf.parent === markdownView?.leaf?.parent,
+        };
+        if (inSidebar && !info.sidebarCollapsed && !info.sameTabGroupAsNote) return { leaf, info };
+        if (!fallback) fallback = { leaf, info };
+      }
+      return fallback;
+    }
+
+    async revealFootnoteLeaf(leaf) {
+      // A leaf not shown since startup holds no view yet, so the cursor sync
+      // before this could not reach it.
+      const wasLoaded = leaf.view instanceof BetterFootnoteView && this.views.has(leaf.view);
+      try {
+        // Selects the tab only (its sidebar is expanded): the note keeps the
+        // active leaf and the keyboard focus (verified on Obsidian 1.15.0).
+        // Showing the view makes it rebuild and scroll to the synced card.
+        await this.app.workspace.revealLeaf(leaf);
+      } catch (_error) {
+        return;
+      }
+      if (wasLoaded) return;
+      const view = leaf.view;
+      if (!(view instanceof BetterFootnoteView)) return;
+      if (await view.waitForRenderSettled(REVEAL_LOAD_WAIT_MS) === "cancelled") return;
+      this.syncCursorToViews({ force: true });
     }
 
     hideActiveDeleteNotice() {
@@ -2863,6 +3022,19 @@
         });
 
       new Setting(this.containerEl)
+        .setName(strings.revealOnReferenceClickName)
+        .setDesc(strings.revealOnReferenceClickDesc)
+        .addToggle((toggle) => {
+          toggle
+            .setValue(Boolean(this.plugin.settings.revealSidebarOnReferenceClick))
+            .onChange(async (value) => {
+              this.plugin.settings.revealSidebarOnReferenceClick = Boolean(value);
+              this.plugin.pendingReferenceClick = null;
+              await this.plugin.saveSettings();
+            });
+        });
+
+      new Setting(this.containerEl)
         .setName(strings.autoTidyName)
         .setDesc(strings.autoTidyDesc)
         .addToggle((toggle) => {
@@ -2937,6 +3109,125 @@
       // from, so a save can never be redirected by the sidebar moving on to
       // another note while the write is still pending.
       this.cardTargets = new WeakMap();
+      // A sidebar tab behind another one is display:none and measures 0: what
+      // is built or scrolled then is wrong, so the view rebuilds when it shows
+      // again. domBuiltWhileHidden: the list's scroll offset is not real.
+      // pendingLayoutFocus: { path, scrollBlock, expandIfClipped,
+      // autoExpandSource } of a scroll asked for while hidden.
+      this.domBuiltWhileHidden = false;
+      this.knownVisible = false;
+      this.pendingLayoutFocus = null;
+      this.pendingLayoutReplay = null;
+      this.pendingMarkdownRenders = [];
+      this.renderSettledWaiters = [];
+      this.renderCompleted = false;
+      // { path, top }: the list's last scroll position while it was visible.
+      this.lastVisibleScroll = null;
+      this.visibilityObserver = null;
+    }
+
+    isLaidOut() {
+      return Boolean(this.contentEl?.isConnected) && this.contentEl.getClientRects().length > 0;
+    }
+
+    onResize() {
+      // Obsidian's own notice arrives about 50 ms after a tab shows; the
+      // ResizeObserver usually got there first, in the same frame.
+      this.handleVisibilityCheck();
+    }
+
+    handleVisibilityCheck() {
+      if (!this.isLaidOut()) {
+        this.knownVisible = false;
+        return;
+      }
+      if (this.knownVisible) return;
+      this.knownVisible = true;
+      // Shown again: rebuild against real sizes before anything is painted.
+      if (this.renderTimer !== null) {
+        window.clearTimeout(this.renderTimer);
+        this.renderTimer = null;
+      }
+      this.render();
+    }
+
+    // A user gesture in the sidebar outranks any scroll still waiting to happen.
+    cancelPendingLayoutWork() {
+      this.pendingLayoutReplay = null;
+      for (const waiter of Array.from(this.renderSettledWaiters)) {
+        this.finishRenderWaiter(waiter, "cancelled");
+      }
+    }
+
+    waitForMarkdownRenders(maxMs) {
+      const renders = Promise.allSettled(this.pendingMarkdownRenders.slice());
+      return Promise.race([renders, new Promise((resolve) => window.setTimeout(resolve, maxMs))]);
+    }
+
+    // Resolves "settled" once the next render (rendered cards included) is
+    // done, "timeout" after maxMs, or "cancelled" on a gesture or close.
+    waitForRenderSettled(maxMs) {
+      return new Promise((resolve) => {
+        const waiter = { resolve, timer: null };
+        waiter.timer = window.setTimeout(() => this.finishRenderWaiter(waiter, "timeout"), maxMs);
+        this.renderSettledWaiters.push(waiter);
+        // Already rendered with nothing queued: only its rendered cards remain.
+        if (this.renderCompleted && this.renderTimer === null) {
+          this.waitForMarkdownRenders(LAYOUT_SETTLE_MAX_MS).then(() => this.finishRenderWaiter(waiter, "settled"));
+        }
+      });
+    }
+
+    finishRenderWaiter(waiter, outcome) {
+      const index = this.renderSettledWaiters.indexOf(waiter);
+      if (index < 0) return;
+      this.renderSettledWaiters.splice(index, 1);
+      window.clearTimeout(waiter.timer);
+      waiter.resolve(outcome);
+    }
+
+    // End of a render. Read the generation now: building the list inside the
+    // render already moved it on.
+    finishRender() {
+      const generation = this.renderGeneration;
+      this.renderCompleted = true;
+      if (this.renderSettledWaiters.length > 0) {
+        this.waitForMarkdownRenders(LAYOUT_SETTLE_MAX_MS).then(() => {
+          if (generation !== this.renderGeneration) return;
+          for (const waiter of Array.from(this.renderSettledWaiters)) {
+            this.finishRenderWaiter(waiter, "settled");
+          }
+        });
+      }
+      this.replayPendingLayoutFocus(generation);
+    }
+
+    // The scroll and expansion a cursor sync asked for while the view was
+    // hidden, done once it is laid out and its rendered cards have settled.
+    replayPendingLayoutFocus(generation) {
+      const pending = this.pendingLayoutFocus;
+      if (!pending || !this.isLaidOut()) return;
+      this.pendingLayoutFocus = null;
+      if (pending.path !== (this.file?.path || null) || !this.activeFootnoteId) return;
+      const token = {};
+      this.pendingLayoutReplay = token;
+      this.waitForMarkdownRenders(LAYOUT_SETTLE_MAX_MS).then(() => {
+        if (this.pendingLayoutReplay !== token) return;
+        this.pendingLayoutReplay = null;
+        if (generation !== this.renderGeneration) return;
+        // Hidden again before the cards settled: try again when it shows.
+        if (!this.isLaidOut()) {
+          if (!this.pendingLayoutFocus) this.pendingLayoutFocus = pending;
+          return;
+        }
+        this.focusFootnote(this.activeFootnoteId, {
+          occurrence: this.activeOccurrence,
+          scroll: true,
+          scrollBlock: pending.scrollBlock,
+          expandIfClipped: pending.expandIfClipped,
+          autoExpandSource: pending.autoExpandSource,
+        });
+      });
     }
 
     formatFootnoteCountForDisplay(text, strings = getStrings()) {
@@ -2960,7 +3251,10 @@
       this.contentEl.addClass("better-footnote");
       this.registerDomEvent(this.contentEl, "pointerdown", () => {
         this.pointerDownInside = true;
+        this.cancelPendingLayoutWork();
       });
+      this.registerDomEvent(this.contentEl, "wheel", () => this.cancelPendingLayoutWork(), { passive: true });
+      this.registerDomEvent(this.contentEl, "keydown", () => this.cancelPendingLayoutWork());
       const releasePointer = () => {
         if (!this.pointerDownInside) return;
         this.pointerDownInside = false;
@@ -2994,6 +3288,14 @@
       this.registerDomEvent(document, "pointerup", releasePointer);
       this.registerDomEvent(document, "pointercancel", releasePointer);
       this.registerDomEvent(window, "blur", releasePointer);
+      // Reports 0x0 when the tab is hidden behind another one or its sidebar
+      // collapses, and the real size in the frame it shows again.
+      const ResizeObserverClass = this.contentEl.win?.ResizeObserver || window.ResizeObserver;
+      if (typeof ResizeObserverClass === "function") {
+        this.visibilityObserver = new ResizeObserverClass(() => this.handleVisibilityCheck());
+        this.visibilityObserver.observe(this.contentEl);
+      }
+      this.knownVisible = this.isLaidOut();
       this.scheduleRender(0);
     }
 
@@ -3016,6 +3318,10 @@
       if (this.renderTimer !== null) {
         window.clearTimeout(this.renderTimer);
       }
+      this.visibilityObserver?.disconnect();
+      this.visibilityObserver = null;
+      this.cancelPendingLayoutWork();
+      this.pendingLayoutFocus = null;
       this.invalidateRenderedArtifacts(null);
       this.markdownRenderCache.clear();
       this.plugin.unregisterFootnoteView(this);
@@ -3060,6 +3366,7 @@
       // torn down in an orderly way before its DOM disappears.
       this.teardownLiveEditor();
       this.renderGeneration += 1;
+      this.pendingMarkdownRenders = [];
       for (const component of this.markdownRenderComponents) {
         try {
           component.unload();
@@ -3105,13 +3412,15 @@
       const renderCall = MarkdownRenderer?.render
         ? MarkdownRenderer.render(this.plugin.app, content, container, sourcePath, component)
         : MarkdownRenderer.renderMarkdown(content, container, sourcePath, component);
-      Promise.resolve(renderCall).then(() => {
+      const done = Promise.resolve(renderCall).then(() => {
         if (generation !== this.renderGeneration) return;
         this.markdownRenderCache.set(content, container);
         onReady?.();
       }).catch(() => {
         // Rendering errors leave the card blank; editing still works.
       });
+      // A scroll waiting for the cards' real heights waits for these.
+      this.pendingMarkdownRenders.push(done);
     }
 
     mountRenderedContent(itemEl, textarea, footnoteId, content, onReady) {
@@ -3598,7 +3907,13 @@
       const activeFootnote = activeId ? this.getPrimaryFootnote(activeId) : null;
       const searchQuery = this.searchInputEl?.value ?? currentState.searchQuery ?? "";
       this.stateByFile.set(this.file.path, {
-        scrollTop: this.listEl?.scrollTop ?? currentState.scrollTop ?? 0,
+        scrollTop: chooseCapturedScrollTop({
+          laidOut: this.isLaidOut(),
+          domBuiltWhileHidden: this.domBuiltWhileHidden,
+          domScrollTop: this.listEl?.scrollTop,
+          lastVisibleScrollTop: this.lastVisibleScroll?.path === this.file.path ? this.lastVisibleScroll.top : undefined,
+          savedScrollTop: currentState.scrollTop,
+        }),
         activeId,
         activeOccurrence,
         activeSnapshot: createFootnoteSnapshot(activeFootnote) || currentState.activeSnapshot || null,
@@ -3650,6 +3965,7 @@
       const generation = this.renderGeneration;
       this.contentEl.empty();
       this.contentEl.addClass("better-footnote");
+      this.noteLayoutVisibility();
 
       const headerEl = this.contentEl.createDiv({ cls: "bfw-header" });
       const titleRow = headerEl.createDiv({ cls: "bfw-title-row" });
@@ -3712,6 +4028,12 @@
       this.newFootnoteButton.addEventListener("click", () => this.createFootnoteFromSidebar());
       this.listEl = this.contentEl.createDiv({ cls: "bfw-list" });
       this.listEl.addEventListener("click", (event) => this.onRenderedLinkClick(event));
+      const listEl = this.listEl;
+      listEl.addEventListener("scroll", () => {
+        // Only a list laid out while visible scrolls for real.
+        if (listEl !== this.listEl || this.domBuiltWhileHidden || !this.file) return;
+        this.lastVisibleScroll = { path: this.file.path, top: listEl.scrollTop };
+      }, { passive: true });
       this.updateSearchModeButtons();
 
       if (!file) {
@@ -3723,6 +4045,7 @@
         this.setSearchNavDisabled(true);
         this.listEl.createDiv({ cls: "bfw-empty", text: strings.openMarkdownNote });
         restoreSearchFocus();
+        this.finishRender();
         return;
       }
 
@@ -3733,6 +4056,7 @@
         subtitleEl.setText(file.path);
         this.listEl.createDiv({ cls: "bfw-empty", text: t(strings, "readFailed", { message: error.message }) });
         restoreSearchFocus();
+        this.finishRender();
         return;
       }
       // The note changed while the text was being read: a newer render owns
@@ -3855,6 +4179,7 @@
         this.updateSearchModeButtons();
         this.listEl.createDiv({ cls: "bfw-empty", text: strings.noFootnotes });
         restoreSearchFocus();
+        this.finishRender();
         return;
       }
 
@@ -3947,6 +4272,14 @@
         }
       }
       restoreSearchFocus();
+      this.finishRender();
+    }
+
+    // Called by the two places that build the list: one built while hidden has
+    // wrong heights and no real scroll offset until the view shows again.
+    noteLayoutVisibility() {
+      this.domBuiltWhileHidden = !this.isLaidOut();
+      if (this.domBuiltWhileHidden) this.knownVisible = false;
     }
 
     getRawSearchQuery() {
@@ -4060,6 +4393,7 @@
 
     renderFootnoteList(footnotes, strings, subtitleEl, fileName) {
       this.invalidateRenderedArtifacts(this.file);
+      this.noteLayoutVisibility();
       const query = this.getEffectiveSearchQuery();
       const visibleFootnotes = filterFootnotes(footnotes, query);
       this.searchMatches = findFootnoteSearchResults(footnotes, query);
@@ -4100,6 +4434,7 @@
       for (const footnote of visibleFootnotes) {
         this.renderFootnoteItem(footnote, strings);
       }
+      this.fitCardsNow(strings);
 
       this.updateSearchControls(strings);
       this.markSearchTarget();
@@ -4432,33 +4767,51 @@
     }
 
     updateExpandButtonVisibility(contentEl, expandButton, footnoteId, strings = getStrings()) {
-      window.requestAnimationFrame(() => {
-        if (!contentEl || !expandButton) return;
-        const isTextarea = contentEl.tagName === "TEXTAREA";
-        const expanded = this.isFootnoteExpanded(footnoteId);
-        if (expanded) {
-          expandButton.removeClass("is-hidden");
-          expandButton.setText("△");
-          expandButton.setAttr("title", strings.collapseFootnote);
-          if (isTextarea) {
-            this.applyTextareaHeight(contentEl, true);
-          }
-          return;
-        }
+      window.requestAnimationFrame(() => this.applyExpandButtonVisibility(contentEl, expandButton, footnoteId, strings));
+    }
 
-        let hasHiddenContent;
+    applyExpandButtonVisibility(contentEl, expandButton, footnoteId, strings = getStrings()) {
+      if (!contentEl || !expandButton) return;
+      const isTextarea = contentEl.tagName === "TEXTAREA";
+      const expanded = this.isFootnoteExpanded(footnoteId);
+      if (expanded) {
+        expandButton.removeClass("is-hidden");
+        expandButton.setText("△");
+        expandButton.setAttr("title", strings.collapseFootnote);
         if (isTextarea) {
-          contentEl.style.height = "auto";
-          const naturalHeight = contentEl.scrollHeight + 2;
-          contentEl.style.height = `${Math.max(44, Math.min(112, naturalHeight))}px`;
-          hasHiddenContent = naturalHeight > 112 + CLIPPED_CONTENT_TOLERANCE_PX;
-        } else {
-          hasHiddenContent = contentEl.scrollHeight > contentEl.clientHeight + CLIPPED_CONTENT_TOLERANCE_PX;
+          this.applyTextareaHeight(contentEl, true);
         }
-        expandButton.toggleClass("is-hidden", !hasHiddenContent);
-        expandButton.setText("▽");
-        expandButton.setAttr("title", strings.expandFootnote);
-      });
+        return;
+      }
+
+      let hasHiddenContent;
+      if (isTextarea) {
+        contentEl.style.height = "auto";
+        const naturalHeight = contentEl.scrollHeight + 2;
+        contentEl.style.height = `${Math.max(44, Math.min(112, naturalHeight))}px`;
+        hasHiddenContent = naturalHeight > 112 + CLIPPED_CONTENT_TOLERANCE_PX;
+      } else {
+        hasHiddenContent = contentEl.scrollHeight > contentEl.clientHeight + CLIPPED_CONTENT_TOLERANCE_PX;
+      }
+      expandButton.toggleClass("is-hidden", !hasHiddenContent);
+      expandButton.setText("▽");
+      expandButton.setAttr("title", strings.expandFootnote);
+    }
+
+    // Sizes every card and sets its arrow as soon as a visible list is built,
+    // before the caller restores the scroll offset. Left to the per-card rAF,
+    // the cards would still be 112px tall when the offset is restored, and
+    // Chromium's scroll anchoring would then keep a card of that unsized
+    // layout in view (a list rebuilt on showing the tab climbed several cards
+    // per switch, and painted one frame of unsized cards). The rAF still runs
+    // and finds nothing to change.
+    fitCardsNow(strings = getStrings()) {
+      if (!this.listEl || this.domBuiltWhileHidden) return;
+      for (const itemEl of Array.from(this.listEl.querySelectorAll(".bfw-item"))) {
+        const expandButton = itemEl.querySelector(".bfw-expand-button");
+        if (!expandButton) continue;
+        this.applyExpandButtonVisibility(this.getMeasurableContentEl(itemEl), expandButton, itemEl.dataset.footnoteId, strings);
+      }
     }
 
     hasHiddenTextareaContent(textarea) {
@@ -4619,7 +4972,14 @@
           this.updateExpandButtonVisibility(this.getMeasurableContentEl(itemEl), expandButton, footnote.id, strings);
         });
       }
-      this.updateExpandButtonVisibility(this.getMeasurableContentEl(itemEl), expandButton, footnote.id, strings);
+      // A textarea in a list built while visible is sized by fitCardsNow right
+      // after this loop. Measuring it again a frame later (height auto, read,
+      // set back) moved the restored scroll offset by tens of pixels through
+      // Chromium's scroll anchoring, so only rendered cards (read-only check)
+      // and lists built while hidden keep the deferred pass.
+      if (useRenderedState || this.domBuiltWhileHidden) {
+        this.updateExpandButtonVisibility(this.getMeasurableContentEl(itemEl), expandButton, footnote.id, strings);
+      }
 
       const footerEl = itemEl.createDiv({ cls: "bfw-footer" });
       const countEl = footerEl.createSpan({ cls: "bfw-count", text: this.formatFootnoteCountForDisplay(textarea.value, strings) });
@@ -4977,6 +5337,17 @@
           activeSnapshot: createFootnoteSnapshot(activeFootnote) || currentState.activeSnapshot || null,
           referenceIndexes,
         });
+      }
+      if ((options.scroll || options.expandIfClipped) && !this.isLaidOut()) {
+        // Hidden: nothing can be measured or scrolled now. The card is current
+        // already; its scroll and expansion wait until the view shows again.
+        this.pendingLayoutFocus = {
+          path: this.file?.path || null,
+          scrollBlock: options.scrollBlock,
+          expandIfClipped: Boolean(options.expandIfClipped),
+          autoExpandSource: options.autoExpandSource || "",
+        };
+        this.knownVisible = false;
       }
 
       const items = this.contentEl.querySelectorAll(".bfw-item");

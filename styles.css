@@ -442,3 +442,25 @@
 .bfw-conflict-close {
   align-self: flex-end;
 }
+
+/* 1.6.1: buttons show hover and press. The default theme gives buttons the
+   same colour at rest and on hover; a layer of the theme's hover tint (two
+   when pressed) works in light and dark themes and leaves the focus ring,
+   a box-shadow, alone. Hover only where there is a pointer that hovers, so
+   the tint does not stay behind after a tap on a touch screen. */
+@media (hover: hover) {
+  .better-footnote .bfw-button:not(:disabled):hover {
+    background-image: linear-gradient(var(--background-modifier-hover) 0 0);
+  }
+}
+
+.better-footnote .bfw-button:not(:disabled):active {
+  background-image:
+    linear-gradient(var(--background-modifier-hover) 0 0),
+    linear-gradient(var(--background-modifier-hover) 0 0);
+}
+
+.better-footnote .bfw-id.is-copyable:active {
+  background-color: var(--background-modifier-hover);
+  background-image: linear-gradient(var(--background-modifier-hover) 0 0);
+}

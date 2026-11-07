@@ -40,6 +40,8 @@ Better Footnote turns footnotes into a right-side editing workspace instead of a
 
 The sidebar shows the real `[^id]` from the note, keeps footnotes in definition order, and marks definitions without an in-text reference as unreferenced.
 
+If the sidebar also holds other tabs, turn on **Switch to Better Footnote when clicking a reference marker** in the settings: clicking a marker then switches the open sidebar to Better Footnote and shows that footnote. You can also drag the Better Footnote tab into a pane of its own in the sidebar, so it stays visible next to the others.
+
 ## Supported Footnotes
 
 Better Footnote focuses on standard Markdown footnote definitions:
@@ -146,6 +148,8 @@ Better Footnote 的思路是把脚注变成一个稳定的右侧编辑工作区�
 - 直接在右侧栏编辑脚注内容，修改会自动保存回 Markdown 文件。
 
 侧栏会显示当前文档里的真实 `[^id]`，按文末定义顺序排列；没有正文引用的脚注定义会标记为“未引用”。
+
+如果侧栏里还放着别的标签，可以在设置中打开 **点击引用标记时切换到 Better Footnote**：点击正文里的引用标记时，展开着的侧栏会切换到 Better Footnote 并显示这条脚注。也可以把 Better Footnote 的标签拖到侧栏里单独的一格，让它和别的标签同时显示。
 
 ### 支持范围
 
@@ -258,6 +262,8 @@ Better Footnote は、脚注をノート末尾に隠れたテキストではな�
 
 サイドバーには現在のノート内の実際の `[^id]` が表示され、脚注定義の順序で並びます。本文中に参照がない定義には「未参照」と表示します。
 
+サイドバーにほかのタブも置いている場合は、設定で **参照マーカーのクリックで Better Footnote に切り替え** をオンにしてください。本文の参照マーカーをクリックすると、開いているサイドバーが Better Footnote に切り替わり、その脚注を表示します。Better Footnote のタブをサイドバー内の独立した区画へドラッグして、ほかのタブと同時に表示することもできます。
+
 ### 対応する脚注
 
 Better Footnote は標準的な Markdown 脚注定義を中心に対応しています。
@@ -368,6 +374,8 @@ Better Footnote는 각주를 문서 끝에 숨어 있는 텍스트가 아니라 
 - 사이드바에서 각주 내용을 직접 편집할 수 있습니다. 변경 사항은 Markdown 파일에 자동 저장됩니다.
 
 사이드바는 현재 노트의 실제 `[^id]`를 표시하고 각주 정의 순서대로 보여줍니다. 본문 참조가 없는 정의는 “참조 없음”으로 표시합니다.
+
+사이드바에 다른 탭도 두고 있다면 설정에서 **참조 표시를 클릭하면 Better Footnote로 전환**을 켜세요. 본문의 참조 표시를 클릭하면 열려 있는 사이드바가 Better Footnote로 전환되어 그 각주를 보여 줍니다. Better Footnote 탭을 사이드바의 별도 칸으로 끌어다 놓아 다른 탭과 함께 보이게 할 수도 있습니다.
 
 ### 지원하는 각주
 

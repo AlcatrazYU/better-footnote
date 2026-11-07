@@ -848,4 +848,72 @@ assert.equal(parser.formatFootnoteReference("citation"), "[^citation]");
   assert.equal(added("A.[^1]\n\n[^1]: one\n\nMiddle.[^2]\n\n[^2]: two\n\nEnd text.").text, "A.[^1]\n\n[^1]: one\n\nMiddle.[^2]\n\n[^2]: two\n[^3]: \n\nEnd text.");
 }
 
+// Issue #7: clicking a reference marker switches a sidebar that hides Better
+// Footnote behind another tab, only when every condition holds.
+{
+  const base = {
+    enabled: true,
+    click: { sameContainer: true, onMarker: true },
+    mobile: false,
+    mainWindow: true,
+    readingView: false,
+    editorHasFocus: true,
+    onReference: true,
+    referenceInDefinition: false,
+    hasSelection: false,
+    anyViewVisible: false,
+    candidate: { inSidebar: true, sidebarCollapsed: false, sameTabGroupAsNote: false },
+  };
+  const decide = (changes) => parser.decideReferenceClickReveal({ ...base, ...changes });
+  assert.deepEqual(decide({}), { reveal: true, reason: "reveal" });
+  const refusals = [
+    [{ enabled: false }, "disabled"],
+    [{ click: null }, "no-click"],
+    [{ click: { sameContainer: false, onMarker: true } }, "other-view"],
+    // The caret lands after a marker that ends a line when the blank space to
+    // its right is clicked: only a click on the marker itself counts.
+    [{ click: { sameContainer: true, onMarker: false } }, "off-marker"],
+    [{ mobile: true }, "mobile"],
+    [{ mainWindow: false }, "popout"],
+    [{ readingView: true }, "reading-view"],
+    [{ editorHasFocus: false }, "editor-not-focused"],
+    [{ onReference: false }, "not-on-reference"],
+    [{ referenceInDefinition: true }, "in-definition"],
+    [{ hasSelection: true }, "selection"],
+    [{ anyViewVisible: true }, "already-visible"],
+    [{ candidate: null }, "no-leaf"],
+    [{ candidate: { inSidebar: false, sidebarCollapsed: false, sameTabGroupAsNote: false } }, "not-in-sidebar"],
+    [{ candidate: { inSidebar: true, sidebarCollapsed: true, sameTabGroupAsNote: false } }, "sidebar-collapsed"],
+    [{ candidate: { inSidebar: true, sidebarCollapsed: false, sameTabGroupAsNote: true } }, "same-tab-group"],
+  ];
+  for (const [changes, reason] of refusals) {
+    assert.deepEqual(decide(changes), { reveal: false, reason }, reason);
+  }
+  // Any one refusal is enough, whatever else holds.
+  for (let left = 0; left < refusals.length; left += 1) {
+    for (let right = left + 1; right < refusals.length; right += 1) {
+      assert.equal(decide({ ...refusals[left][0], ...refusals[right][0] }).reveal, false);
+    }
+  }
+  assert.equal(parser.decideReferenceClickReveal(null).reveal, false);
+  assert.equal(parser.decideReferenceClickReveal({}).reveal, false);
+}
+
+// A list built or read while hidden reports scrollTop 0: keep the saved value.
+{
+  const pick = parser.chooseCapturedScrollTop;
+  assert.equal(pick({ laidOut: true, domBuiltWhileHidden: false, domScrollTop: 120, savedScrollTop: 50 }), 120);
+  assert.equal(pick({ laidOut: false, domBuiltWhileHidden: false, domScrollTop: 0, savedScrollTop: 50 }), 50);
+  assert.equal(pick({ laidOut: true, domBuiltWhileHidden: true, domScrollTop: 0, savedScrollTop: 50 }), 50);
+  assert.equal(pick({ laidOut: false, domBuiltWhileHidden: true, domScrollTop: 0, savedScrollTop: undefined }), 0);
+  assert.equal(pick({ laidOut: true, domBuiltWhileHidden: false, domScrollTop: undefined, savedScrollTop: 30 }), 30);
+  assert.equal(pick({ laidOut: true, domBuiltWhileHidden: false, domScrollTop: 0, savedScrollTop: 30 }), 0);
+  // Scrolled by hand, then hidden: the last position seen while visible wins
+  // over the older saved one; it never overrides a real reading.
+  assert.equal(pick({ laidOut: false, domBuiltWhileHidden: false, domScrollTop: 0, lastVisibleScrollTop: 2500, savedScrollTop: 7864 }), 2500);
+  assert.equal(pick({ laidOut: true, domBuiltWhileHidden: true, domScrollTop: 0, lastVisibleScrollTop: 2500, savedScrollTop: 7864 }), 2500);
+  assert.equal(pick({ laidOut: true, domBuiltWhileHidden: false, domScrollTop: 900, lastVisibleScrollTop: 2500, savedScrollTop: 7864 }), 900);
+  assert.equal(pick({ laidOut: false, domBuiltWhileHidden: false, domScrollTop: 0, lastVisibleScrollTop: undefined, savedScrollTop: 7864 }), 7864);
+}
+
 console.log("parser tests passed");
