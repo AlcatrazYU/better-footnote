@@ -1,28 +1,24 @@
-# Better Footnote 1.6.0
+# Better Footnote 1.6.1
 
-Write a footnote first and place it later, and search for whole phrases.
-
-## New
-
-- **Draft first, place later.** Click `+` beside the search box to add an empty footnote with the next free number after the last footnote definition; its card opens for writing. When you know where it belongs, click the number on the card to copy its marker (such as `[^41]`) and paste it into the note. Clicking the number only copies: the note and your cursor stay where they are, so you can paste right away. The card's right-click menu can copy it too.
-- **Phrase search.** Put words in double quotes, such as `"Hey Jude"`, to search for them as one phrase; Chinese quotes `“ ”` work too. A phrase is highlighted and counted as one match, also across line breaks. Words without quotes are still searched one by one.
-
-## Changes
-
-- Clicking a card whose footnote has no marker in the note no longer moves the note; the card just becomes the current one. Use the `Footnote area` button to go to its definition.
-- The search row shows `+` while the box is empty, and the clear button, match count and up/down buttons only while you search.
-- The `Refresh` button is gone. The sidebar already refreshes by itself when you switch notes, edit, or a note changes through Sync.
+Bring Better Footnote forward by clicking a footnote marker, and a sidebar that looks right when you come back to it.
 
 ## Fixes
 
-- While searching, only one card is outlined at a time. Moving to a result that matches only a card's number, or clicking another card to edit it, no longer leaves a second outline on the previous card; the card you click also becomes the search position.
+- When Better Footnote shares the sidebar with other tabs and is hidden behind one of them, it no longer comes back broken. Before, any refresh while hidden (switching notes, editing) left the list scrolled to the top and, with Markdown rendering off, every card squeezed to one line without its expand arrow until the next refresh. Now cards keep their size and arrows, and the list stays where you left it. The same fix also stops the list from shifting slightly after each refresh when Markdown rendering is off.
+- If you clicked a footnote marker while Better Footnote was hidden, switching back to it now shows that footnote's card in view, expanded if it is long, just as if the sidebar had been visible.
+
+## New
+
+- **Switch to Better Footnote when clicking a reference marker** (Settings, off by default). When the sidebar is open but showing another tab, such as an AI chat, clicking a footnote marker in your note switches the sidebar to Better Footnote and shows that footnote. Your cursor stays in the note, so you can keep typing. Nothing happens if the sidebar is collapsed or Better Footnote is not open, and clicks on footnote definitions do not count. Desktop only.
+- Buttons in the sidebar now show when you hover over them and when you press them.
 
 ## Thanks
 
-Thanks to @fat-pumpkin for Issue #6, which asked for a quicker way to put a footnote's reference into the text and started this release.
+Thanks to @fairmind-org for Issue #7, which asked for exactly this switch.
 
 ## Known limitations
 
+- The new setting does nothing on phones and tablets, in Reading view, for notes in pop-out windows, and when Better Footnote sits in a stacked tab group (where all tabs are visible anyway).
 - Text written right below a footnote definition without indentation belongs to that footnote in Obsidian's reading view, but its sidebar card shows only the indented lines. Editing the card keeps that text as it is.
 - When two definitions share one number, Obsidian's reading view shows only the later one and Tidy Footnotes keeps only the later one. Give one of them a new number before tidying by hand.
 - Footnote definitions written inside a block quote (`> [^1]: ...`) are not recognised. Write them outside the quote if you want them in the sidebar.
