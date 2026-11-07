@@ -1,24 +1,25 @@
-# Better Footnote 1.6.1
+# Better Footnote 1.6.2
 
-Bring Better Footnote forward by clicking a footnote marker, and a sidebar that looks right when you come back to it.
+Small fixes for inserting footnotes with auto tidy on, and for the outline of the current card.
 
 ## Fixes
 
-- When Better Footnote shares the sidebar with other tabs and is hidden behind one of them, it no longer comes back broken. Before, any refresh while hidden (switching notes, editing) left the list scrolled to the top and, with Markdown rendering off, every card squeezed to one line without its expand arrow until the next refresh. Now cards keep their size and arrows, and the list stays where you left it. The same fix also stops the list from shifting slightly after each refresh when Markdown rendering is off.
-- If you clicked a footnote marker while Better Footnote was hidden, switching back to it now shows that footnote's card in view, expanded if it is long, just as if the sidebar had been visible.
+- With "Auto tidy after a new footnote" on, the popup that Obsidian opens when you insert a footnote is now closed properly before the footnotes are renumbered. Before, it could come back after tidying and show a different footnote.
+- In long notes on a slow disk, inserting a footnote with Obsidian's Insert footnote command while auto tidy was on could empty the note. This no longer happens.
+- A card scrolled to the top of the sidebar, or reached through search, now keeps a small gap to the edge, so its whole outline stays visible.
 
-## New
+## Changes
 
-- **Switch to Better Footnote when clicking a reference marker** (Settings, off by default). When the sidebar is open but showing another tab, such as an AI chat, clicking a footnote marker in your note switches the sidebar to Better Footnote and shows that footnote. Your cursor stays in the note, so you can keep typing. Nothing happens if the sidebar is collapsed or Better Footnote is not open, and clicks on footnote definitions do not count. Desktop only.
-- Buttons in the sidebar now show when you hover over them and when you press them.
+- The description of "Auto tidy after a new footnote" and the README now say plainly how it works: it runs after you insert a footnote, not after you delete one; it closes the popup that opens on insert, so you type the new footnote in its sidebar card; and it works while Better Footnote is open.
 
 ## Thanks
 
-Thanks to @fairmind-org for Issue #7, which asked for exactly this switch.
+Thanks to @kdqiu for Issue #8: these fixes turned up while looking into that report.
 
 ## Known limitations
 
-- The new setting does nothing on phones and tablets, in Reading view, for notes in pop-out windows, and when Better Footnote sits in a stacked tab group (where all tabs are visible anyway).
+- After Obsidian restarts, a Better Footnote tab that sits behind another tab, or in a collapsed sidebar, does not tidy new footnotes until you open it once.
+- "Switch to Better Footnote when clicking a reference marker" does nothing on phones and tablets, in Reading view, for notes in pop-out windows, and when Better Footnote sits in a stacked tab group (where all tabs are visible anyway).
 - Text written right below a footnote definition without indentation belongs to that footnote in Obsidian's reading view, but its sidebar card shows only the indented lines. Editing the card keeps that text as it is.
 - When two definitions share one number, Obsidian's reading view shows only the later one and Tidy Footnotes keeps only the later one. Give one of them a new number before tidying by hand.
 - Footnote definitions written inside a block quote (`> [^1]: ...`) are not recognised. Write them outside the quote if you want them in the sidebar.
