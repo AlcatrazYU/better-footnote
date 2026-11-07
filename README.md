@@ -107,9 +107,12 @@ To undo, click back into the note editor and press `Command+Z` on macOS or `Ctrl
 
 ## Tidy Footnotes Integration
 
-Better Footnote can optionally work with [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes). If Tidy Footnotes is installed and enabled, Better Footnote can run it after you insert a new footnote in the note so the new footnote is renumbered and moved into the right definition order (footnotes that arrive from Sync or from scripts that write the file directly are only highlighted).
+With [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) installed, you can turn on "Auto tidy after a new footnote" in the settings:
 
-This integration closes Obsidian's built-in floating footnote editor after insertion, because the Better Footnote sidebar becomes the editing surface. Deleting an in-text reference does not automatically run Tidy Footnotes; the sidebar keeps the definition visible, marks it as unreferenced, and lets you tidy manually when you are ready.
+- After you insert a new footnote, Better Footnote runs Tidy Footnotes, so the new footnote gets its number and its place among the definitions. Footnotes that arrive from Sync or from scripts are only highlighted.
+- The popup that opens when you insert a footnote is closed; type the new footnote in its sidebar card.
+- Deleting a footnote does not tidy, so a single undo brings it back. Run Tidy Footnotes yourself when you are ready.
+- It works while Better Footnote is open.
 
 ## Languages
 
@@ -216,9 +219,12 @@ Better Footnote 主要支持标准 Markdown 脚注定义：
 
 ### Tidy Footnotes 联动
 
-Better Footnote 可以选择性地与 [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) 联动。安装并启用 Tidy Footnotes 后，Better Footnote 可以在你于笔记中插入新脚注后自动运行它，让新增脚注完成重新编号并回到正确的文末定义顺序（同步或直接写文件的脚本带来的新脚注只会高亮）。
+安装 [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) 后，可以在设置中打开“新增脚注后自动整理编号”：
 
-启用这一联动后，Better Footnote 会关闭 Obsidian 自带的脚注悬浮编辑框，因为脚注编辑入口会转移到 Better Footnote 侧栏。删除正文中的脚注引用时不会自动运行 Tidy Footnotes；侧栏会保留对应脚注定义，标记为“未引用”，你可以在确认后手动整理编号。
+- 你插入新脚注后，Better Footnote 会自动运行 Tidy Footnotes，让新脚注拿到正确的编号、排到正确的位置。同步或脚本带来的新脚注只会高亮。
+- 插入脚注时弹出的小窗会被关掉，请在侧栏的新卡片里写内容。
+- 删除脚注不会自动整理，这样按一次撤销就能完整恢复。需要时请自己运行 Tidy Footnotes。
+- 这一联动在 Better Footnote 打开时生效。
 
 ### 请我喝杯咖啡
 
@@ -329,9 +335,12 @@ Better Footnote は標準的な Markdown 脚注定義を中心に対応してい
 
 ### Tidy Footnotes 連携
 
-Better Footnote は、必要に応じて [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) と連携できます。Tidy Footnotes をインストールして有効化すると、ノート内で新しい脚注を挿入した後に自動実行し、番号と脚注定義の順序を整えられます（同期やファイルを直接書き換えるスクリプトで増えた脚注はハイライトのみです）。
+[Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes) をインストールすると、設定で「新しい脚注の後に自動整理」をオンにできます。
 
-この連携を有効にすると、Obsidian 標準の脚注フローティング編集欄は閉じられます。脚注の編集は Better Footnote サイドバーで行う前提です。本文中の脚注参照を削除しても Tidy Footnotes は自動実行されません。サイドバーは定義を残して「未参照」と表示し、必要なタイミングで手動整理できます。
+- 新しい脚注を挿入すると、Better Footnote が Tidy Footnotes を実行し、新しい脚注が正しい番号と位置に収まります。同期やスクリプトで増えた脚注はハイライトのみです。
+- 脚注の挿入時に開く小さなウィンドウは閉じられます。新しい脚注はサイドバーのカードに書いてください。
+- 脚注を削除しても整理はしません。そのため、取り消しを 1 回するだけで元に戻せます。必要なときは Tidy Footnotes を自分で実行してください。
+- この連携は Better Footnote を開いているときに働きます。
 
 ### サポート
 
@@ -442,9 +451,12 @@ Better Footnote는 표준 Markdown 각주 정의를 중심으로 지원합니다
 
 ### Tidy Footnotes 연동
 
-Better Footnote는 선택적으로 [Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes)와 연동할 수 있습니다. Tidy Footnotes를 설치하고 활성화하면, 노트에서 새 각주를 삽입한 뒤 자동으로 실행해 번호와 각주 정의 순서를 정리할 수 있습니다(동기화나 파일을 직접 쓰는 스크립트로 들어온 각주는 강조 표시만 합니다).
+[Tidy Footnotes](https://community.obsidian.md/plugins/obsidian-tidy-footnotes)를 설치하면 설정에서 "새 각주 뒤 자동 정리"를 켤 수 있습니다.
 
-이 연동을 켜면 Obsidian 기본 각주 플로팅 편집 창은 닫힙니다. 각주 편집은 Better Footnote 사이드바에서 하는 흐름을 기준으로 합니다. 본문 각주 참조를 삭제해도 Tidy Footnotes는 자동 실행되지 않습니다. 사이드바는 해당 정의를 유지하고 “참조 없음”으로 표시하며, 필요할 때 수동으로 정리할 수 있습니다.
+- 새 각주를 삽입하면 Better Footnote가 Tidy Footnotes를 실행해, 새 각주가 올바른 번호와 위치를 갖게 됩니다. 동기화나 스크립트로 들어온 각주는 강조 표시만 합니다.
+- 각주를 삽입할 때 열리는 작은 창은 닫힙니다. 새 각주는 사이드바의 카드에서 작성하세요.
+- 각주를 삭제해도 정리하지 않으므로 실행 취소 한 번으로 그대로 되돌릴 수 있습니다. 필요하면 Tidy Footnotes를 직접 실행하세요.
+- 이 연동은 Better Footnote가 열려 있을 때 작동합니다.
 
 ### 후원
 

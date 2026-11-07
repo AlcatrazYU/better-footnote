@@ -916,4 +916,19 @@ assert.equal(parser.formatFootnoteReference("citation"), "[^citation]");
   assert.equal(pick({ laidOut: false, domBuiltWhileHidden: false, domScrollTop: 0, lastVisibleScrollTop: undefined, savedScrollTop: 7864 }), 7864);
 }
 
+// 1.6.2: the "top position" leaves the 8px scroll margin above the card,
+// from live (fractional) positions; the rounded offsetTop cut the card's ring.
+{
+  const pos = parser.cardTopScrollPosition;
+  assert.equal(pos({ listScrollTop: 1000, listTop: 300, cardTop: 700, gap: 8 }), 1392);
+  assert.equal(pos({ listScrollTop: 1000, listTop: 300, cardTop: 299.37, gap: 8 }), 991.37);
+  // The first card sits one list padding below the top: scrollTop stays 0.
+  assert.equal(pos({ listScrollTop: 0, listTop: 300, cardTop: 308, gap: 8 }), 0);
+  assert.equal(pos({ listScrollTop: 0, listTop: 300, cardTop: 302, gap: 8 }), 0);
+  assert.equal(pos({ listScrollTop: 500, listTop: 300, cardTop: 400 }), 600);
+  assert.equal(pos({ listScrollTop: 500, listTop: 300, cardTop: 400, gap: -3 }), 600);
+  assert.equal(pos({ listScrollTop: Number.NaN, listTop: 300, cardTop: 400, gap: 8 }), 0);
+  assert.equal(pos(), 0);
+}
+
 console.log("parser tests passed");

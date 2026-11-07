@@ -15,6 +15,10 @@
   // Content cropped by no more than this many pixels (descender zone of the
   // last line) is treated as fully visible: no expand arrow, no auto-expand.
   const CLIPPED_CONTENT_TOLERANCE_PX = 8;
+  // Gap kept above a card scrolled to the top (1.6.2). Same 8px as the list's
+  // padding and its scroll-padding in styles.css, so the first card still
+  // sits at scrollTop 0.
+  const CARD_SCROLL_GAP_PX = 8;
   const DELETED_FOOTNOTE_RESTORE_TTL_MS = 10 * 60 * 1000;
   const RESTORED_DELETED_FOOTNOTE_CURSOR_SUPPRESS_MS = 5000;
   // How long the "Copied [^7]" notice stays, and how long a footnote just
@@ -99,7 +103,7 @@
       revealOnReferenceClickName: "Switch to Better Footnote when clicking a reference marker",
       revealOnReferenceClickDesc: "When the sidebar is open but showing another tab, clicking a footnote reference marker in your note switches it to Better Footnote and shows that footnote. Nothing happens if the sidebar is collapsed or Better Footnote is not open. Desktop only.",
       autoTidyName: "Auto tidy after a new footnote",
-      autoTidyDesc: "Requires Tidy Footnotes. After you insert a new footnote in the note's own editor, Better Footnote runs Tidy Footnotes automatically (footnotes that arrive from Sync or from scripts that write the file directly are only highlighted). This closes Obsidian's built-in floating footnote editor; use the Better Footnote sidebar to edit the footnote.",
+      autoTidyDesc: "Requires Tidy Footnotes and works while Better Footnote is open. After you insert a new footnote in the note's own editor, Better Footnote runs Tidy Footnotes automatically (footnotes that arrive from Sync or from scripts that write the file directly are only highlighted); deleting a footnote does not tidy. This closes Obsidian's built-in floating footnote editor; use the Better Footnote sidebar to edit the footnote.",
       tidyInstallName: "Tidy Footnotes integration",
       tidyInstallDesc: "Install and enable Tidy Footnotes before using automatic tidying.",
       tidyInstallButton: "Open plugin page",
@@ -180,7 +184,7 @@
       revealOnReferenceClickName: "点击引用标记时切换到 Better Footnote",
       revealOnReferenceClickDesc: "侧栏开着但显示的是别的标签时，点击正文里的脚注引用标记，侧栏会切换到 Better Footnote 并显示这条脚注。侧栏收起或没有打开 Better Footnote 时不做任何事。仅限桌面端。",
       autoTidyName: "新增脚注后自动整理编号",
-      autoTidyDesc: "需要先安装并启用 Tidy Footnotes。当你在这篇笔记的编辑器里插入新脚注后，Better Footnote 会自动运行 Tidy Footnotes（同步或直接写文件的脚本带来的新脚注只会高亮，不会自动整理）。启用后会关闭 Obsidian 自带的脚注悬浮编辑框，请在 Better Footnote 侧栏中编辑脚注。",
+      autoTidyDesc: "需要先安装并启用 Tidy Footnotes，在 Better Footnote 开着时生效。当你在这篇笔记的编辑器里插入新脚注后，Better Footnote 会自动运行 Tidy Footnotes（同步或直接写文件的脚本带来的新脚注只会高亮，不会自动整理）；删除脚注时不会整理。启用后会关闭 Obsidian 自带的脚注悬浮编辑框，请在 Better Footnote 侧栏中编辑脚注。",
       tidyInstallName: "Tidy Footnotes 集成",
       tidyInstallDesc: "使用自动整理前，请先安装并启用 Tidy Footnotes。",
       tidyInstallButton: "打开插件页面",
@@ -261,7 +265,7 @@
       revealOnReferenceClickName: "参照マーカーのクリックで Better Footnote に切り替え",
       revealOnReferenceClickDesc: "サイドバーが開いていて別のタブを表示しているとき、本文の脚注の参照マーカーをクリックすると、Better Footnote に切り替えてその脚注を表示します。サイドバーが折りたたまれているとき、または Better Footnote を開いていないときは何もしません。デスクトップのみ。",
       autoTidyName: "新しい脚注の後に自動整理",
-      autoTidyDesc: "Tidy Footnotes のインストールと有効化が必要です。このノートのエディタで新しい脚注を挿入すると、Better Footnote が Tidy Footnotes を自動実行します（同期やファイルを直接書き換えるスクリプトで増えた脚注はハイライトのみで、自動整理はしません）。有効にすると Obsidian 標準の脚注フローティング編集欄を閉じるため、脚注は Better Footnote サイドバーで編集してください。",
+      autoTidyDesc: "Tidy Footnotes のインストールと有効化が必要で、Better Footnote を開いているときに働きます。このノートのエディタで新しい脚注を挿入すると、Better Footnote が Tidy Footnotes を自動実行します（同期やファイルを直接書き換えるスクリプトで増えた脚注はハイライトのみで、自動整理はしません）。脚注を削除したときは整理しません。有効にすると Obsidian 標準の脚注フローティング編集欄を閉じるため、脚注は Better Footnote サイドバーで編集してください。",
       tidyInstallName: "Tidy Footnotes 連携",
       tidyInstallDesc: "自動整理を使う前に、Tidy Footnotes をインストールして有効化してください。",
       tidyInstallButton: "プラグインページを開く",
@@ -342,7 +346,7 @@
       revealOnReferenceClickName: "참조 표시를 클릭하면 Better Footnote로 전환",
       revealOnReferenceClickDesc: "사이드바가 열려 있지만 다른 탭을 표시하고 있을 때 노트의 각주 참조 표시를 클릭하면 사이드바가 Better Footnote로 전환되어 그 각주를 보여 줍니다. 사이드바가 접혀 있거나 Better Footnote가 열려 있지 않으면 아무 일도 하지 않습니다. 데스크톱 전용.",
       autoTidyName: "새 각주 뒤 자동 정리",
-      autoTidyDesc: "Tidy Footnotes를 먼저 설치하고 활성화해야 합니다. 이 노트의 편집기에서 새 각주를 삽입하면 Better Footnote가 Tidy Footnotes를 자동으로 실행합니다(동기화나 파일을 직접 쓰는 스크립트로 들어온 각주는 강조 표시만 합니다). 이 기능을 켜면 Obsidian 기본 각주 플로팅 편집 창을 닫으므로, 각주는 Better Footnote 사이드바에서 편집하세요.",
+      autoTidyDesc: "Tidy Footnotes를 먼저 설치하고 활성화해야 하며, Better Footnote가 열려 있을 때 작동합니다. 이 노트의 편집기에서 새 각주를 삽입하면 Better Footnote가 Tidy Footnotes를 자동으로 실행합니다(동기화나 파일을 직접 쓰는 스크립트로 들어온 각주는 강조 표시만 합니다). 각주를 삭제할 때는 정리하지 않습니다. 이 기능을 켜면 Obsidian 기본 각주 플로팅 편집 창을 닫으므로, 각주는 Better Footnote 사이드바에서 편집하세요.",
       tidyInstallName: "Tidy Footnotes 연동",
       tidyInstallDesc: "자동 정리를 사용하기 전에 Tidy Footnotes를 설치하고 활성화하세요.",
       tidyInstallButton: "플러그인 페이지 열기",
@@ -1479,6 +1483,17 @@
     return typeof savedScrollTop === "number" ? savedScrollTop : 0;
   }
 
+  // 1.6.2: where to scroll the list so a card's top sits `gap` below the
+  // list's top. Positions come from getBoundingClientRect and keep their
+  // fractions: the rounded offsetTop put cards flush with the edge, which cut
+  // their highlight ring and sometimes their top border.
+  function cardTopScrollPosition({ listScrollTop, listTop, cardTop, gap } = {}) {
+    const finite = (value) => typeof value === "number" && Number.isFinite(value);
+    if (!finite(listScrollTop) || !finite(listTop) || !finite(cardTop)) return 0;
+    const margin = finite(gap) && gap > 0 ? gap : 0;
+    return Math.max(0, listScrollTop + (cardTop - listTop) - margin);
+  }
+
   function closestElement(target, selector) {
     return target && typeof target.closest === "function" ? target.closest(selector) : null;
   }
@@ -1668,6 +1683,7 @@
         findDefinitionAtOffset,
         decideReferenceClickReveal,
         chooseCapturedScrollTop,
+        cardTopScrollPosition,
         isTextEditingKey,
         isEditorTextInputEvent,
         isCommandLikeEditorKeydown,
@@ -1696,6 +1712,7 @@
         findReferenceNearOffsetOnLine,
         decideReferenceClickReveal,
         chooseCapturedScrollTop,
+        cardTopScrollPosition,
         orderFootnotesByReference,
         detectAddedFootnotes,
         parseSearchQuery,
@@ -2506,6 +2523,24 @@
 
     dismissObsidianFootnotePopovers() {
       if (typeof document === "undefined") return;
+      // Obsidian's popovers on note views (Insert footnote opens its editing
+      // popover there) are closed through their own hide() (1.6.2).
+      const notePopovers = () => this.app.workspace.getLeavesOfType("markdown")
+        .map((leaf) => leaf.view?.hoverPopover)
+        .filter((popover) => popover && typeof popover.hide === "function");
+      const close = (popover) => {
+        try {
+          popover.hide();
+        } catch (error) {
+          // Already closed by Obsidian.
+        }
+      };
+      // A popover still reading its file holds nothing typed yet (loading
+      // replaces it), and the Escape below would make it save its empty
+      // buffer as the whole note, emptying the note. Close it first.
+      for (const popover of notePopovers()) {
+        if (popover.embed && popover.embed.lastSavedData == null) close(popover);
+      }
       const createEscapeEvent = () => new KeyboardEvent("keydown", {
         key: "Escape",
         code: "Escape",
@@ -2516,6 +2551,10 @@
       });
       document.activeElement?.dispatchEvent?.(createEscapeEvent());
       document.dispatchEvent(createEscapeEvent());
+      // The Escape has saved what was typed into a focused popover. Removing
+      // only its element (below) left the popover open: it put itself back on
+      // screen, showing whatever footnote its number named after Tidy.
+      for (const popover of notePopovers()) close(popover);
 
       const selectors = [
         ".hover-popover",
@@ -4489,12 +4528,24 @@
       this.applySearchMatch(this.searchMatches[this.searchMatchIndex]);
     }
 
+    // The "top position" for a card: its top edge CARD_SCROLL_GAP_PX below the
+    // list's top, so its highlight ring is never cut (1.6.2).
+    scrollCardToTop(target) {
+      if (!this.listEl || !target) return;
+      const top = cardTopScrollPosition({
+        listScrollTop: this.listEl.scrollTop,
+        listTop: this.listEl.getBoundingClientRect().top,
+        cardTop: target.getBoundingClientRect().top,
+        gap: CARD_SCROLL_GAP_PX,
+      });
+      this.listEl.scrollTo({ top, behavior: "auto" });
+    }
+
     scrollActiveFootnoteIntoView() {
       if (!this.activeFootnoteId || !this.listEl) return;
       const target = this.findFootnoteItem(this.activeFootnoteId, this.activeOccurrence);
       if (!target) return;
-      const top = Math.max(0, target.offsetTop - this.listEl.offsetTop);
-      this.listEl.scrollTo({ top, behavior: "auto" });
+      this.scrollCardToTop(target);
       if (this.file) {
         const currentState = this.stateByFile.get(this.file.path) || {};
         this.stateByFile.set(this.file.path, {
@@ -4565,6 +4616,9 @@
       const textarea = item?.querySelector(".bfw-editor");
       if (!textarea) return;
       this.applyTextareaHeight(textarea, this.isFootnoteExpanded(result.footnoteId));
+      // The card was scrolled into view before it became the (taller) editor:
+      // place it again so its edges stay in view (1.6.2).
+      if (options.scroll !== false) item.scrollIntoView({ block: "nearest" });
       const match = result.match;
       if (!match) return;
       this.suppressTextareaFocusJump = true;
@@ -5376,13 +5430,9 @@
           const listRect = this.listEl.getBoundingClientRect();
           const targetRect = target.getBoundingClientRect();
           const fullyVisible = targetRect.top >= listRect.top - 2 && targetRect.bottom <= listRect.bottom + 2;
-          if (!fullyVisible) {
-            const top = Math.max(0, target.offsetTop - this.listEl.offsetTop);
-            this.listEl.scrollTo({ top, behavior: "auto" });
-          }
+          if (!fullyVisible) this.scrollCardToTop(target);
         } else if (options.scrollBlock === "start" && this.listEl) {
-          const top = Math.max(0, target.offsetTop - this.listEl.offsetTop);
-          this.listEl.scrollTo({ top, behavior: "auto" });
+          this.scrollCardToTop(target);
         } else {
           target.scrollIntoView({ block: options.scrollBlock || "nearest" });
         }

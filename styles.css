@@ -464,3 +464,11 @@
   background-color: var(--background-modifier-hover);
   background-image: linear-gradient(var(--background-modifier-hover) 0 0);
 }
+
+/* 1.6.2: a card scrolled into view keeps 8px to the list's edge, so its
+   highlight ring (outside the border) is never cut. Set on the list as
+   scroll padding: Obsidian's Chromium ignores scroll-margin on the cards here.
+   Same 8px as the list's padding and CARD_SCROLL_GAP_PX in main.js. */
+.better-footnote .bfw-list {
+  scroll-padding-block: 8px;
+}
